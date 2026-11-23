@@ -19,7 +19,8 @@ const Drop=(()=>{
     const rd=document.getElementById('v-reader'), tabs=document.getElementById('tabs');
     if(rd && !rd.hidden){
       const on=rd.dataset.mode!=='speed';   /* shown with or without the controls; Speed mode has its own progress bar */
-      return {kind:'base', l:0, t:innerHeight-Math.max(inset()*.5,7)-3, w:Math.max(6,Math.min(1,frac)*innerWidth), h:3, vis:on};
+      /* the same 36px bead as on the tab bar, riding along the bottom as you read (a progress bar would be a speck in a long book) */
+      return {kind:'base', l:Math.min(1,frac)*(innerWidth-36), t:innerHeight-Math.max(inset()*.5,7)-4, w:36, h:4, vis:on};
     }
     const b=tabs&&tabs.querySelector('button[aria-current="page"]'), tr=tabs&&tabs.getBoundingClientRect();
     if(!b||!tr||!tr.height) return null;
@@ -32,7 +33,7 @@ const Drop=(()=>{
     put(el,to);
     if(RM.matches){ anim=fade(el,.2,1); return; }
     if(from.kind===to.kind && to.kind==='base'){          /* progress: glide, a little give at the end */
-      anim=el.animate([{width:px(from.w)},{width:px(to.w)}],{duration:420,easing:SPRING}); return;
+      anim=el.animate([{left:px(from.l)},{left:px(to.l)}],{duration:420,easing:SPRING}); return;
     }
     if(from.kind===to.kind){                              /* tab to tab: stretch toward it, then pull the tail over */
       const L=Math.min(from.l,to.l), R=Math.max(from.l+from.w,to.l+to.w);

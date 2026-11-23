@@ -53,7 +53,7 @@ async function run(reduce){
   await pg.evaluate(()=>switchMode('pages')); await sleep(900);
   await pg.evaluate(()=>{ goTo(Math.floor(R.n/2), true); setChrome(false); }); await sleep(1200);
   d=await dropBox();
-  ok(d.op>.9 && d.top>=852-40 && Math.abs(d.w/393-0.5)<.12, tag+'with controls hidden the drop is the progress line at the bottom (width '+Math.round(d.w)+'px of 393, opacity '+d.op+')');
+  ok(d.op>.9 && d.top>=852-40 && Math.abs(d.cx-(18+0.5*(393-36)))<12 && d.w>=36, tag+'the drop is a bead at about half way along the bottom (centre '+Math.round(d.cx)+', width '+Math.round(d.w)+', opacity '+d.op+')');
   await pg.screenshot({path:S+'drop_reader'+(reduce?'_rm':'')+'.png', clip:{x:0,y:760,width:393,height:92}});
   /* back to the library: it returns under the tab */
   await pg.evaluate(()=>closeReader()); await sleep(1300);
