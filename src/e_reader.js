@@ -1006,44 +1006,125 @@ function openFootnote(i){
 }
 
 /* ---------- contents, bookmarks, highlights ---------- */
-function openToc(tab){
-  if(R.mode==='speed' && R.playing) pause();
-  const t=tab||'toc';
-  const seg=`<div class="seg" style="margin-bottom:4px">${[['toc','Contents'],['marks','Bookmarks'],['hls','Highlights & notes']].map(([k,l])=>`<button type="button" data-act="tab" data-t="${k}" aria-pressed="${t===k}">${l}</button>`).join('')}</div>`;
-  let body='';
-  if(t==='toc'){
-    const ch=R.meta.chapters||[]; const cur=currentChapter(R.pos);
-    /* a very long list (the Bible's 1,189 chapters) shows books first; tap a book to show its chapters */
-    let rows=ch.map((c,k)=>k), kids=new Set(), open=-1;
-    if(ch.length>150){
-      const maxD=Math.max(...ch.map(c=>c.d||0));
-      const parentOf=k=>{ for(let j=k-1;j>=0;j--) if((ch[j].d||0)<(ch[k].d||0)) return j; return -1; };
-      ch.forEach((c,k)=>{ if((c.d||0)===maxD){ const p=parentOf(k); if(p>=0) kids.add(p); } });
-      const curK=ch.indexOf(cur);
-      open = (R.tocOpen&&R.tocOpen.id===R.meta.id)? R.tocOpen.k : (curK>=0&&(cur.d||0)===maxD? parentOf(curK) : curK);
-      if(maxD>0) rows=rows.filter(k=>(ch[k].d||0)<maxD || parentOf(k)===open);
-    }
-    body = ch.length ? `<div class="list">${rows.map(k=>{ const c=ch[k]; const par=kids.has(k); return `<button class="li${c===cur?' on':''}${k===open?' open':''}" type="button" data-act="${par?'tocx':'go'}" data-k="${k}" data-i="${c.i}" style="padding-left:${4+(c.d||0)*16}px"${par?` aria-expanded="${k===open}"`:''}><span class="grow">${par?(k===open?'▾ ':'▸ '):''}${esc(c.t)}</span><span class="small">${Math.round(100*c.i/Math.max(1,R.n-1))}%</span></button>`; }).join('')}</div>` : '<p class="note">This document has no chapter list. Use search or the progress bar to move around.</p>';
-  } else if(t==='marks'){
-    const bm=R.meta.bookmarks;
-    body=`<div class="field"><label for="bmName">Bookmark this spot</label><input class="input" id="bmName" placeholder="Name (optional)"></div>
-      <button class="btn primary block" type="button" data-act="addbm">${ICON.mark} Add bookmark here</button>
-      <div class="list">${bm.length?bm.map((b,k)=>`<div class="li"><button type="button" style="all:unset;flex:1;min-width:0;cursor:pointer" data-act="go" data-i="${b.i}"><b>${esc(b.name||'Bookmark')}</b><div class="small">${Math.round(100*b.i/Math.max(1,R.n-1))}% · ${esc(textOf(b.i,Math.min(R.n-1,b.i+9)))}…</div></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`).join(''):'<p class="note">No bookmarks yet. Tap the bookmark at the bottom of any page.</p>'}</div>`;
-  } else {
-    const hl=R.meta.highlights;
-    body = hl.length ? `<button class="btn block" type="button" data-act="copyall">Copy all highlights and notes</button>`+hl.map(h=>`<div class="hlrow"><span class="bar" style="background:var(--hl${h.c})"></span><div class="grow" data-act="go" data-i="${h.s}"><div class="t">${esc(textOf(h.s,Math.min(h.e,h.s+60)))}${h.e>h.s+60?'…':''}</div>${h.note?`<div class="nt">${esc(h.note)}</div>`:''}<div class="where">${esc((currentChapter(h.s)||{}).t||'')} · ${Math.round(100*h.s/Math.max(1,R.n-1))}%</div></div><button class="icon-btn" type="button" data-act="edit" data-id="${h.id}" aria-label="Edit highlight">${ICON.more}</button></div>`).join('')
-      : '<p class="note">Select text with a long press, then pick a color to highlight it or tap Note to add a note.</p>';
+/* ---------- one sheet: Contents (with bookmarks in place) | Notes ----------
+   Contents: search the book (chapter titles, bookmarks, then the text), a filter to one section, and a
+   Both / Contents / Bookmarks switch that only shows once the book has bookmarks. Notes: highlights and notes,
+   grouped by chapter, with their own search. The current chapter carries the drop. */
+function placeLabel(i){
+  if(R.mode==='pages' && R.SEC && R.SEC.length){
+    const c=PC.counts||[]; let kw=0, kp=0; for(let k=0;k<R.SEC.length;k++) if(c[k]){ kw+=R.SEC[k][1]-R.SEC[k][0]; kp+=c[k]; }
+    const wpp=kp? kw/kp : 280; let before=0;
+    for(let k=0;k<R.SEC.length;k++){ const [a,b]=R.SEC[k]; const n=c[k]||Math.max(1,Math.round((b-a)/wpp));
+      if(i<b || k===R.SEC.length-1) return 'Page '+(before+Math.min(n-1,Math.floor(n*(i-a)/Math.max(1,b-a)))+1).toLocaleString();
+      before+=n; }
   }
-  openSheet(R.meta.title, seg+body, {
-    tab:(b)=>openToc(b.dataset.t),
-    tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc('toc'); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
+  return 'Location '+(i+1).toLocaleString();
+}
+function tocSpan(k){ const ch=R.meta.chapters||[], d=ch[k].d||0; for(let j=k+1;j<ch.length;j++) if((ch[j].d||0)<=d) return [ch[k].i, ch[j].i]; return [ch[k].i, R.n]; }
+function norm(s){ return (s||'').toLowerCase().replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/\s+/g,' ').trim(); }
+function bmRow(b){
+  const k=R.meta.bookmarks.indexOf(b), ch=currentChapter(b.i), cht=ch?ch.t:'';
+  const sub=[cht?'in '+cht:'', b.name&&b.name!==cht? b.name:'', '“'+textOf(b.i,Math.min(R.n-1,b.i+8))+'…”'].filter(Boolean).join(' · ');
+  return `<div class="li bmli"><button type="button" class="grow" data-act="go" data-i="${b.i}">${ICON.mark}<span><b>${esc(placeLabel(b.i))}</b><span class="small">${esc(sub)}</span></span></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`;
+}
+function tocList(){
+  const ch=R.meta.chapters||[], bm=(R.meta.bookmarks||[]).slice().sort((a,b)=>a.i-b.i);
+  const show=R.tocShowNow||'both', q=norm(R.tocQ), sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
+  const [lo,hi]= sc>=0&&ch[sc]? tocSpan(sc) : [0,R.n];
+  const inScope=i=>i>=lo&&i<hi;
+  const wantCh=show!=='marks', wantBm=show!=='toc';
+  if(q){
+    const chs=wantCh? ch.map((c,k)=>k).filter(k=>inScope(ch[k].i)&&norm(ch[k].t).includes(q)) : [];
+    const bms=wantBm? bm.filter(b=>inScope(b.i)&&(norm(b.name).includes(q)||norm(textOf(b.i,Math.min(R.n-1,b.i+8))).includes(q))) : [];
+    let h=chs.map(k=>`<button class="li" type="button" data-act="go" data-i="${ch[k].i}"><span class="grow">${esc(ch[k].t)}</span><span class="small">${esc(placeLabel(ch[k].i))}</span></button>`).join('')+bms.map(bmRow).join('');
+    let txt='';
+    if(q.length>=2){
+      const {s,off}=buildSearchIndex(); const MAX=100; const hits=[]; let p=0, total=0;
+      const cLo=off[Math.min(lo,R.n-1)], cHi=hi>=R.n? s.length : off[hi];
+      p=cLo; while(total<5000){ p=s.indexOf(q,p); if(p<0||p>=cHi) break; total++; if(hits.length<MAX) hits.push(p); p+=q.length; }
+      const qW=q.split(' ').length; const span=i=>{ let j=i,n=0; while(j<R.n&&n<qW){ j++; if(!glued(j)) n++; } return Math.max(1,j-i); };
+      txt=hits.map(c=>{ const i=wordAtChar(c), L=span(i), a=Math.max(0,i-6), b=Math.min(R.n-1,i+L+8); let t=''; for(let k=a;k<=b;k++){ const w=esc(R.words[k]); t+=(k>a&&!glued(k)?' ':'')+(k>=i&&k<i+L?'<mark>'+w+'</mark>':w); }
+        const c2=currentChapter(i); return `<button class="result" type="button" data-act="res" data-i="${i}" data-l="${L}">${a>0?'…':''}${t}${b<R.n-1?'…':''}<span class="where">${esc(c2?c2.t:'')} · ${esc(placeLabel(i))}</span></button>`; }).join('');
+      if(total) txt=`<div class="tochd">In the text · ${total>=5000?'5000+':total}${total>MAX?` (first ${MAX} shown)`:''}</div>`+txt;
+    }
+    return (h||txt)? `<div class="list">${h}</div>${txt}` : '<p class="note">Nothing found.</p>';
+  }
+  if(!wantCh || !ch.length){
+    const list=bm.filter(b=>inScope(b.i));
+    if(!wantCh || bm.length) return list.length? `<div class="list">${list.map(bmRow).join('')}</div>` : '<p class="note">No bookmarks yet. Tap the bookmark at the bottom of any page.</p>';
+    return '<p class="note">This document has no chapter list. Search above, or use the progress bar to move around.</p>';
+  }
+  const cur=currentChapter(R.pos);
+  /* a very long list (the Bible's 1,189 chapters) shows books first; tap a book to show its chapters */
+  let rows=ch.map((c,k)=>k), kids=new Set(), open=-1;
+  if(ch.length>150){
+    const maxD=Math.max(...ch.map(c=>c.d||0));
+    const parentOf=k=>{ for(let j=k-1;j>=0;j--) if((ch[j].d||0)<(ch[k].d||0)) return j; return -1; };
+    ch.forEach((c,k)=>{ if((c.d||0)===maxD){ const p=parentOf(k); if(p>=0) kids.add(p); } });
+    const curK=ch.indexOf(cur);
+    open = (R.tocOpen&&R.tocOpen.id===R.meta.id)? R.tocOpen.k : (curK>=0&&(cur.d||0)===maxD? parentOf(curK) : curK);
+    if(maxD>0) rows=rows.filter(k=>(ch[k].d||0)<maxD || parentOf(k)===open);
+  }
+  rows=rows.filter(k=>inScope(ch[k].i));
+  let h='', bj=0; const marks=wantBm? bm.filter(b=>inScope(b.i)) : [];
+  while(bj<marks.length && rows.length && marks[bj].i<ch[rows[0]].i) h+=bmRow(marks[bj++]);
+  rows.forEach((k,x)=>{ const c=ch[k], par=kids.has(k), nextI= x+1<rows.length? ch[rows[x+1]].i : Infinity;
+    h+=`<button class="li${c===cur?' on':''}${k===open?' open':''}" type="button" data-act="${par?'tocx':'go'}" data-k="${k}" data-i="${c.i}" style="padding-left:${14+(c.d||0)*16}px"${par?` aria-expanded="${k===open}"`:''}><span class="grow">${par?(k===open?'▾ ':'▸ '):''}${esc(c.t)}</span><span class="small">${esc(placeLabel(c.i))}</span></button>`;
+    while(bj<marks.length && marks[bj].i<nextI) h+=bmRow(marks[bj++]); });
+  while(bj<marks.length) h+=bmRow(marks[bj++]);
+  return `<div class="list">${h}</div>`;
+}
+function hlList(){
+  const q=norm(R.hlQ); const hl=(R.meta.highlights||[]).slice().sort((a,b)=>a.s-b.s);
+  if(!hl.length) return '<p class="note">Select text with a long press, then pick a color to highlight it or tap Note to add a note.</p>';
+  const items=hl.filter(h=>!q||norm(textOf(h.s,h.e)).includes(q)||norm(h.note).includes(q));
+  if(!items.length) return '<p class="note">Nothing found.</p>';
+  let last=null, h='';
+  for(const x of items){ const c=currentChapter(x.s), t=c?c.t:''; if(t!==last){ h+=`<div class="tochd">${esc(t)}</div>`; last=t; }
+    h+=`<div class="hlrow"><span class="bar" style="background:var(--hl${x.c})"></span><div class="grow" data-act="go" data-i="${x.s}"><div class="t">${esc(textOf(x.s,Math.min(x.e,x.s+60)))}${x.e>x.s+60?'…':''}</div>${x.note?`<div class="nt">${esc(x.note)}</div>`:''}<div class="where">${esc(placeLabel(x.s))}</div></div><button class="icon-btn" type="button" data-act="edit" data-id="${x.id}" aria-label="Edit highlight">${ICON.more}</button></div>`; }
+  return h + (q? '' : `<button class="btn block" type="button" data-act="copyall">Copy all highlights and notes</button>`);
+}
+function tocScopeOpts(){
+  const ch=R.meta.chapters||[]; let ks=ch.map((c,k)=>k);
+  if(ch.length>150){ const maxD=Math.max(...ch.map(c=>c.d||0)); if(maxD>0) ks=ks.filter(k=>(ch[k].d||0)<maxD); }
+  return `<option value="-1">Whole book</option>`+ks.map(k=>`<option value="${k}">${' '.repeat(ch[k].d||0)}${esc(ch[k].t)}</option>`).join('');
+}
+function openToc(tab, inPlace){
+  if(R.mode==='speed' && R.playing) pause();
+  let t=tab||R.tocTab||'toc'; R.tocTab=t;
+  if(t==='marks'){ t='toc'; R.tocShowNow='marks'; } else if(tab) R.tocShowNow=LS.get('tocShow','both');
+  if(!(R.meta.bookmarks||[]).length) R.tocShowNow='both';
+  if(R.tocFor!==R.meta.id){ R.tocFor=R.meta.id; R.tocQ=''; R.hlQ=''; }
+  const ch=R.meta.chapters||[], nb=(R.meta.bookmarks||[]).length, sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
+  const seg=`<div class="seg">${[['toc','Contents'],['hls','Notes']].map(([k,l])=>`<button type="button" data-act="tab" data-t="${k}" aria-pressed="${t===k}">${l}</button>`).join('')}</div>`;
+  let body;
+  if(t==='toc'){
+    body=`<div class="tocbar"><input class="input" id="tocQ" type="search" placeholder="Search this book" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.tocQ||'')}">${ch.length?`<label class="icon-btn tocflt${sc>=0?' on':''}" aria-label="Show one section">${ICON.filter}<select id="tocScope">${tocScopeOpts()}</select></label>`:''}</div>`
+      +(sc>=0&&ch[sc]?`<div class="tocscope"><span>${esc(ch[sc].t)}</span><button class="icon-btn" type="button" data-act="unscope" aria-label="Show the whole book">${ICON.close}</button></div>`:'')
+      +(nb?`<div class="seg tocshow">${[['both','Both'],['toc','Contents'],['marks','Bookmarks']].map(([k,l])=>`<button type="button" data-act="show" data-s="${k}" aria-pressed="${R.tocShowNow===k}">${l}</button>`).join('')}</div>`:'')
+      +`<div id="tocOut">${tocList()}</div>`;
+  } else {
+    body=`<input class="input" id="hlQ" type="search" placeholder="Search highlights and notes" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.hlQ||'')}"><div id="tocOut">${hlList()}</div>`;
+  }
+  const acts={
+    tab:(b)=>{ R.tocTab=b.dataset.t; openToc(b.dataset.t, true); },
+    show:(b)=>{ R.tocShowNow=b.dataset.s; LS.set('tocShow',R.tocShowNow); openToc(); },
+    unscope:()=>{ R.tocScope=null; openToc(); },
+    tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
-    addbm:()=>{ const bm=R.meta.bookmarks; bm.push({i:R.pos, name:$('#bmName').value.trim()||((currentChapter(R.pos)||{}).t||''), at:Date.now()}); bm.sort((a,b)=>a.i-b.i); touch(R.meta); updateChrome(); toast('Bookmarked'); openToc('marks'); },
-    rmbm:(b)=>{ R.meta.bookmarks.splice(+b.dataset.k,1); touch(R.meta); updateChrome(); openToc('marks'); },
+    res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
+    rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
+      toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
     copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.map(h=>'“'+textOf(h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
-  });
-  if(t==='toc' && !(tab==='toc' && R.tocOpen && R.tocOpen.fresh===false)) setTimeout(()=>{ const on=$('#sheet .li.on')||$('#sheet .li.open'); on&&on.scrollIntoView({block:'center'}); },30);
+  };
+  /* already open: swap the contents in place, so quick taps inside the sheet aren't eaten as ghost taps */
+  const sh=$('#sheet'); if(!sh.hidden && sh.classList.contains('toc') && (!tab||inPlace)){ sheetActs=acts; sh.querySelector('.sheet-body').innerHTML=seg+body; }
+  else openSheet(R.meta.title, seg+body, acts, 'toc');
+  const out=$('#tocOut'), inp=$('#tocQ')||$('#hlQ'); let tm=null;
+  inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(t==='toc'){ R.tocQ=inp.value; out.innerHTML=tocList(); } else { R.hlQ=inp.value; out.innerHTML=hlList(); } }, t==='toc'?260:120); });
+  const sel=$('#tocScope'); if(sel){ sel.value=String(sc); sel.addEventListener('change',()=>{ const k=+sel.value; R.tocScope= k>=0? {id:R.meta.id,k} : null; openToc(); }); }
+  if(t==='toc' && tab && !inPlace && !R.tocQ) setTimeout(()=>{ const on=$('#sheet .li.on')||$('#sheet .li.open'); on&&on.scrollIntoView({block:'center'}); },30);
 }
 
 /* ---------- search ---------- */
@@ -1389,7 +1470,6 @@ function bindPanel(root){
 }
 $('#rAa').onclick=openPanel;
 $('#rToc').onclick=()=>openToc('toc');
-$('#rNotes').onclick=()=>openToc('hls');
 $('#rSearch').onclick=openSearch;
 $('#markBtn').onclick=()=>openToc('marks');
 /* night theme switch and phone light/dark changes */

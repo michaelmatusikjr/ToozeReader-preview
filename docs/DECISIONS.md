@@ -5,6 +5,15 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-23
 
+- **Mick — one sheet for contents, bookmarks and notes: build A and C, switchable in Settings.** Shown three
+  mock-ups (A two tabs, B one list, C the spine), he chose to have both A and C, with a Settings switch. Claude: A
+  first (2026.11.23.6) because C reuses its search, bookmark placement and drop; C next round. Claude's calls: the
+  Contents search covers titles, bookmarks and the book's text (so it does what the magnifying glass does; the
+  magnifying glass was kept, ask him whether to drop it); the filter is a native picker under the filter icon (no new
+  UI to learn); the Both/Contents/Bookmarks switch only appears once a book has a bookmark; numbers are pages in
+  Pages mode (estimated for sections not yet laid out) and locations in Scroll; the sheet keeps a steady height so
+  switching tabs doesn't jump; in-sheet taps re-render in place (re-opening the sheet made the 420 ms ghost-tap
+  guard eat quick taps). Test: `tests/feature/sheet.js`.
 - **Mick — drop stage 1 feel check: "feels great" (Nov 23, 2026).** Stage 2 (pull-up pool) is a go in principle.
   Claude recommended building the contents/notes sheet first as its own round, then drop stage 2, so each feel
   check is about one change and the pool can include the new sheet as a bead.

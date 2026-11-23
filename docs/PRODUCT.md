@@ -5,15 +5,11 @@ and move items out of **Pending changes** once they're built.
 
 ## Pending changes (not yet built)
 
-- **One sheet for contents, bookmarks and notes (asked Nov 23, 2026; build in the next round).** Remove the
-  separate notes icon in the reader's top bar (`#rNotes`). The contents icon (`#rToc`) opens one sheet with two
-  tabs, **Contents** and **Notes**, each with a search bar under the tab.
-  - *Contents tab:* the search bar searches the book's contents; a filter icon filters by section and/or chapter.
-    Bookmarks live here: each bookmark gets its own tappable line in its place in the contents, naming the chapter
-    it's in and marked with a bookmark icon and/or colour. Example: bookmark on page 102 (or the location number
-    in Scroll view) with chapter headings at 90 and 130 → the bookmark line sits between those two, says which
-    chapter it's in. A toggle at the top shows **bookmarks only, contents only, or both**.
-  - *Notes tab:* all highlights and notes. Its search bar searches only highlights and notes.
+- **The spine (contents style C), chosen Nov 23, 2026; next round.** A second look for the contents sheet, picked in
+  Settings (default stays the two-tab list). The Contents tab becomes a tall map of the book: chapters are marks
+  down a line, highlights are coloured beads on it, bookmarks are small flags, your place is the drop. Drag a thumb
+  down it and the chapter names near the thumb grow; let go to jump there (paused). Tap a bead to see that highlight
+  in a small card. Search lights up matching beads. Mock-up: option C in the Nov 23 mock-ups.
 
 - **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
   and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
@@ -82,7 +78,14 @@ and move items out of **Pending changes** once they're built.
 
 - Highlights (four colours) with notes; copy with citation; quote image cards; export per book.
 - The tutorial book opens on first launch; leaving it asks whether to keep it in the library or tuck it in Settings.
-- Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, the bookmark list has an ×.
+- **In a book, one sheet for contents, bookmarks and notes** (built Nov 23, 2026.11.23.6, option A of three). The
+  list icon (`#rToc`) opens it; the separate notes icon is gone. **Contents** tab: a search bar (chapter titles,
+  bookmarks, then hits in the text) and a filter icon (a native picker) to narrow to one section; bookmarks sit in
+  their place between chapters, naming their chapter, with page (Pages) or location (Scroll) numbers; a
+  Both / Contents / Bookmarks switch shows only once the book has a bookmark (remembered). **Notes** tab: highlights
+  and notes grouped by chapter, with their own search. The current chapter carries the drop. Deleting a bookmark
+  offers Undo.
+- Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, bookmark lines in the contents have an ×.
 - A highlight must be able to stop right before a dash (dash-joined words are separate words).
 
 ## Reading time and stats

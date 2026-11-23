@@ -1,6 +1,7 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.23.5';
+const APP_VERSION='2026.11.23.6';
 const WHATSNEW=[
+  ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes button is gone, and the drop marks the chapter you’re in.'],
   ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings flow from the old choice to the new one.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],
   ['Where you left off, in Scroll','Whenever you leave a book in Scroll mode, even for a moment, the page shows a tear when you come back: what you’d read sits above it, marked Previously read, and the tear is in the middle of the screen so you can pick up right below it.'],

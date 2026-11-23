@@ -359,6 +359,24 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .li .grow{flex:1;min-width:0}
 .li .small{font-size:.82rem;color:var(--muted)}
 .li.on{color:var(--accent);font-weight:700}
+/* one sheet: contents (bookmarks in place) | notes */
+#sheet.toc{height:86%}
+#sheet.toc .li{position:relative}
+#sheet.toc .li.on::before{content:"";position:absolute;left:0;top:50%;width:6px;height:22px;margin-top:-11px;border-radius:999px;background:var(--accent)}
+.tocbar{display:flex;gap:8px;align-items:center}
+.tocbar .input{flex:1;min-width:0}
+.tocflt{position:relative;flex:none;overflow:hidden}
+.tocflt.on{color:var(--accent);background:var(--accent-soft)}
+.tocflt select{position:absolute;inset:0;opacity:0;font-size:16px;cursor:pointer}
+.tocscope{display:flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:2px 2px 2px 12px;font-weight:700;font-size:.9rem}
+.tocscope span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tocshow button{font-size:.85rem;padding:6px 4px}
+.bmli{background:var(--accent-soft);padding:0 0 0 0;cursor:default}
+.bmli>.grow{all:unset;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start;padding:10px 4px 10px 14px;cursor:pointer;color:var(--accent)}
+.bmli>.grow svg{flex:none;width:18px;height:18px;margin-top:2px}
+.bmli>.grow>span{min-width:0}
+.bmli .small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tochd{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 0 0}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-weight:700;font-size:.9rem}
 .input,textarea,select.input{width:100%;border:1px solid var(--line);background:var(--raise);border-radius:10px;padding:10px 12px;font-size:16px}
