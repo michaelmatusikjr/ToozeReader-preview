@@ -162,7 +162,7 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #tabs button[aria-current="page"]{color:var(--accent)}
 #tabs button{transition:color .2s .14s}
 /* The drop (see k_blob.js): one fixed bit of the accent colour. It sits on the tab bar, and becomes progress in the reader. */
-#drop{position:fixed;left:0;top:0;z-index:6;width:36px;height:3px;border-radius:2px;background:var(--accent);pointer-events:none;opacity:0}
+#drop{position:fixed;left:0;top:0;z-index:6;width:36px;height:3px;border-radius:999px;background:var(--accent);pointer-events:none;opacity:0}
 .seg.lq{position:relative;background:var(--raise)}
 .seg.lq button{position:relative;z-index:1;background:transparent;transition:color .18s .14s}
 .seg.lq button[aria-pressed="true"]{background:transparent;color:var(--accent-ink)}
@@ -182,7 +182,11 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #v-reader[data-mode="speed"] #rFoot{display:none}
 .rfoot-row{display:flex;align-items:center;gap:4px}
 .rfoot-row .info{flex:1;min-width:0;border:0;background:none;color:var(--page-muted);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:6px 2px}
-#rScrub{accent-color:var(--page-link)}
+#rScrub{-webkit-appearance:none;appearance:none;background:transparent;height:30px;margin:0}
+#rScrub::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--page-line)}
+#rScrub::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:30px;margin-top:-12px;opacity:0} /* the drop is the thumb (k_blob.js) */
+#rScrub::-moz-range-track{height:6px;border-radius:3px;background:var(--page-line)}
+#rScrub::-moz-range-thumb{width:36px;height:30px;border:0;opacity:0}
 #rMark.on svg path{fill:currentColor}
 #rMark.on{color:var(--page-link)}
 #rTts.on{color:var(--page-link)}

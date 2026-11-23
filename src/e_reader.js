@@ -619,7 +619,7 @@ function updateChrome(){
   $('#rTts').classList.toggle('on', !!TTS.mode); $('#rTts').innerHTML=ICON.speaker; $('#rTts').setAttribute('aria-label',TTS.mode?'Close read-aloud controls':'Read aloud'); ttsBarUI();
 }
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
-$('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
+$('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);

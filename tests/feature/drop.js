@@ -43,7 +43,14 @@ async function run(reduce){
   await sleep(1200);
   await pg.evaluate(()=>{ setChrome(true); }); await sleep(700);
   d=await dropBox();
-  ok(d.op>.9 && d.top>=852-40 && d.top<852-3, tag+'drop is on the bottom edge with the reader controls showing too (top '+Math.round(d.top)+', opacity '+d.op+')');
+  const sc=await pg.evaluate(()=>{ const r=document.getElementById('rScrub').getBoundingClientRect(); return {cy:r.top+r.height/2}; });
+  ok(d.op>.9 && Math.abs((d.top+d.h/2)-sc.cy)<3 && d.h>=10, tag+'with the controls up the drop is the scrubber thumb (drop y '+Math.round(d.top+d.h/2)+', scrubber y '+Math.round(sc.cy)+')');
+  /* dragging the scrubber: the drop sticks to the value at once */
+  await pg.evaluate(()=>{ const s=document.getElementById('rScrub'); s.value=Math.floor(+s.max*0.9); s.dispatchEvent(new Event('input',{bubbles:true})); });
+  const dr=await dropBox(), sr=await pg.evaluate(()=>{ const r=document.getElementById('rScrub').getBoundingClientRect(); return {l:r.left,w:r.width}; });
+  ok(Math.abs(dr.cx-(sr.l+18+0.9*(sr.w-36)))<10, tag+'drop follows the scrubber while dragging (centre '+Math.round(dr.cx)+')');
+  await pg.evaluate(()=>{ const s=document.getElementById('rScrub'); s.dispatchEvent(new Event('change',{bubbles:true})); }); await sleep(900);
+  await pg.evaluate(()=>{ goTo(Math.floor(R.n/2), true); }); await sleep(900);
   await pg.screenshot({path:S+'drop_reader_on'+(reduce?'_rm':'')+'.png', clip:{x:0,y:700,width:393,height:152}});
   /* Scroll mode and Speed mode */
   await pg.evaluate(()=>switchMode('scroll')); await sleep(900);
@@ -51,7 +58,7 @@ async function run(reduce){
   await pg.evaluate(()=>switchMode('speed')); await sleep(900);
   ok((await dropBox()).op<.1, tag+'drop hidden in Speed mode (it has its own progress bar)');
   await pg.evaluate(()=>switchMode('pages')); await sleep(900);
-  await pg.evaluate(()=>{ goTo(Math.floor(R.n/2), true); setChrome(false); }); await sleep(1200);
+  await pg.evaluate(()=>{ goTo(Math.floor(R.n/2), true); setChrome(false); }); await sleep(1300);
   d=await dropBox();
   ok(d.op>.9 && d.top>=852-40 && Math.abs(d.cx-(18+0.5*(393-36)))<12 && d.w>=36, tag+'the drop is a bead at about half way along the bottom (centre '+Math.round(d.cx)+', width '+Math.round(d.w)+', opacity '+d.op+')');
   await pg.screenshot({path:S+'drop_reader'+(reduce?'_rm':'')+'.png', clip:{x:0,y:760,width:393,height:92}});

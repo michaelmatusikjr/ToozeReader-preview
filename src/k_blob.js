@@ -18,7 +18,11 @@ const Drop=(()=>{
   function target(){
     const rd=document.getElementById('v-reader'), tabs=document.getElementById('tabs');
     if(rd && !rd.hidden){
-      const on=rd.dataset.mode!=='speed';   /* shown with or without the controls; Speed mode has its own progress bar */
+      const on=rd.dataset.mode!=='speed';   /* Speed mode has its own progress bar */
+      const sc=document.getElementById('rScrub'), sr=sc&&sc.getBoundingClientRect();
+      if(on && !rd.classList.contains('chrome-off') && sr && sr.width){   /* controls up: the drop is the scrubber's thumb */
+        return {kind:'scrub', l:sr.left+Math.min(1,frac)*(sr.width-36), t:sr.top+sr.height/2-6, w:36, h:12, vis:true};
+      }
       /* the same 36px bead as on the tab bar, riding along the bottom as you read (a progress bar would be a speck in a long book) */
       return {kind:'base', l:Math.min(1,frac)*(innerWidth-36), t:innerHeight-Math.max(inset()*.5,7)-4, w:36, h:4, vis:on};
     }
@@ -32,7 +36,7 @@ const Drop=(()=>{
     if(anim){ anim.cancel(); anim=null; }
     put(el,to);
     if(RM.matches){ anim=fade(el,.2,1); return; }
-    if(from.kind===to.kind && to.kind==='base'){          /* progress: glide, a little give at the end */
+    if(from.kind===to.kind && (to.kind==='base'||to.kind==='scrub')){   /* progress: glide, a little give at the end */
       anim=el.animate([{left:px(from.l)},{left:px(to.l)}],{duration:420,easing:SPRING}); return;
     }
     if(from.kind===to.kind){                              /* tab to tab: stretch toward it, then pull the tail over */
@@ -77,7 +81,11 @@ const Drop=(()=>{
     requestAnimationFrame(sync);
   }
   /* ----- reading progress (0..1) ----- */
-  function progress(f){ frac=Math.max(0,Math.min(1,+f||0)); later(); }
+  function progress(f,live){
+    frac=Math.max(0,Math.min(1,+f||0));
+    if(live&&el&&placed&&cur&&cur.kind==='scrub'){ const t=target(); if(t&&t.kind==='scrub'){ if(anim){ anim.cancel(); anim=null; } cur=t; put(el,t); return; } }  /* dragging the scrubber: stick to the finger */
+    later();
+  }
 
   /* ----- segmented controls: the selection is the same liquid ----- */
   const seen=new Map();
