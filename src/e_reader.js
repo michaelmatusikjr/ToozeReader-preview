@@ -610,6 +610,7 @@ function bookmarkHere(){
 function updateChrome(){
   if(!R.meta) return;
   const ch=currentChapter(R.pos); $('#rSub').textContent=ch?ch.t:(KIND[R.meta.kind]||'');
+  Drop.progress(R.n>1?R.pos/(R.n-1):0);
   if(R.mode==='speed'||!R.mode) return;
   const sc=$('#rScrub'); sc.max=Math.max(1,R.n-1); if(!scrubbing) sc.value=R.pos;
   const info=infoText(); $('#rInfo').textContent=info; $('#runFoot').textContent=info; $('#runHead').textContent=ch?ch.t:R.meta.title;

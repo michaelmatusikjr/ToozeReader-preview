@@ -1,6 +1,7 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.23.1';
+const APP_VERSION='2026.11.23.2';
 const WHATSNEW=[
+  ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. With a book open and the controls hidden, it spreads along the bottom edge as your progress. Selected options in settings flow from the old choice to the new one.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],
   ['Where you left off, in Scroll','Whenever you leave a book in Scroll mode, even for a moment, the page shows a tear when you come back: what you’d read sits above it, marked Previously read, and the tear is in the middle of the screen so you can pick up right below it.'],
   ['One pause for an ellipsis','Three dots in a row (..., . . . or …) are read as a single pause instead of three.'],

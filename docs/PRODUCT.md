@@ -5,7 +5,11 @@ and move items out of **Pending changes** once they're built.
 
 ## Pending changes (not yet built)
 
-- (none)
+- **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
+  and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
+  release to apply. Also: drag along the base to scrub through a book; a short wake-up pulse the first time a
+  non-obvious control (page-number pill, progress line) comes into view; flowing selection for chips, fonts and
+  themes; colour arriving on primary buttons and input frames. **Remind him to come back to this.**
 
 ## The app
 

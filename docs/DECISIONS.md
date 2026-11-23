@@ -5,6 +5,15 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-23
 
+- **Mick — the guide drop (Nov 23, 2026).** He wants one living drop of the accent colour as a calm guide: fun
+  (personality, never in the way), a guide where accent colour already is (selections animate from old to new, plus
+  a few non-obvious controls made noticeable), and an assistant (tap/hold/drag gestures replacing hidden controls).
+  It must always be on screen: tab indicator, or the bottom base the app sits on. Of three takes he chose
+  **1: Foundation** (bottom base). Stage 1 built (2026.11.23.2, `src/k_blob.js`): one fixed drop on the tab bar and
+  as reading progress in the reader (controls hidden); `.seg` selections flow. **He asked to be reminded to come
+  back and add Option 3 (the pull-up pool) if he likes it**; it's in Pending changes in `PRODUCT.md`. Not yet
+  verified on a real iPhone (bottom-edge position vs the home indicator, how the stretch feels under a thumb).
+  Rejected for now: "Offspring" (highlights as droplets; adds more than it removes) and edge-pull "Frame".
 - **Mick — work happens in preview (Nov 23, 2026).** He wants the live app left alone while he tests: all source,
   tests and docs moved into `ToozeReader-preview`, which is now the working repo. Approved versions are released to
   `readfast-app` with `tools/release.sh`, and every release is logged in `docs/RELEASES.md` so it can be undone.

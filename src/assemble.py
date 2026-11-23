@@ -92,7 +92,7 @@ def fill(s):
             assert t.count(o)==1; t=t.replace(o,"$('#wordList').addEventListener('pointerdown',e=>{ const r=e.target.closest('.winner'); if(!r || e.target.closest('[data-wdel]') || e.pointerType==='mouse') return;")
         return t
     return re.sub(r'/\*@@OLD:(\d+)-(\d+)@@\*/', r, s)
-parts=[open(D+f,encoding='utf-8').read() for f in ['a_head.html','b_body.html','c_js1.js']]
+parts=[open(D+f,encoding='utf-8').read() for f in ['a_head.html','b_body.html','c_js1.js','k_blob.js']]
 d=L(601,854)
 def rep(s,o,n):
     assert s.count(o)==1,(s.count(o),o[:80]); return s.replace(o,n)

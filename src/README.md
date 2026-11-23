@@ -17,6 +17,7 @@ python3 assemble.py        # writes ../index.html
 | `b_body.html` | The page markup: library, notes, stats, settings, reader, sheets |
 | `c_js1.js` | Settings (`S`, `DEFAULTS`), storage helpers, fonts, themes |
 | `old.html` | The original app. `assemble.py` copies line ranges from it wherever a part contains `/*@@OLD:a-b@@*/`, and applies small `rep()`/`fill()` patches |
+| `k_blob.js` | The drop: the one fixed accent drop (tab bar / reader progress) and flowing `.seg` selections |
 | `e_reader.js` | The reader: Pages, Scroll, Speed, read aloud, selection, highlights, reading clock |
 | `i_speech.js` | What read-aloud says: scripture references and abbreviations in full, no "colon", notes skipped, paragraph and heading pauses |
 | `h_voice.js` | Natural read-aloud voices (Piper, via `../piper-worker.js`) and the iPhone voice list |

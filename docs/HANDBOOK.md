@@ -29,6 +29,7 @@ whole.**
 | Library, filters, tags, archive | `f_js3.js` | `renderLibrary`, `openFilter`, `suggestTags`, `archiveFlow` |
 | Settings screen, backup, erase | `f_js3.js` | `renderSettings`, `buildBackup`, `eraseAll` |
 | Tutorial book, starter shelf, boot | `f_js3.js` | `SAMPLE_HTML`, `SAMPLE_V`, `SHELF` |
+| The drop (accent guide), flowing `.seg` selections | `k_blob.js` | `Drop`, `Drop.progress`, `#drop` |
 | Offline cache | `src/site/sw.js` (root `sw.js` is generated) | `CACHE` |
 
 Storage: `localStorage` keys start with `rf.`; IndexedDB via `Store` (books in `texts`) and `tooz-kv`; OPFS folders
