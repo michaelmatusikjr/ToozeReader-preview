@@ -243,7 +243,7 @@ w.found{background:var(--page-link);color:var(--page-bg);border-radius:3px}
 #v-reader.overlay:not([data-mode="speed"]) .rchrome{position:absolute;left:0;right:0}
 #v-reader.overlay:not([data-mode="speed"]) #rTop{top:0}
 #v-reader.overlay:not([data-mode="speed"]) #rFoot{bottom:0}
-#v-reader.overlay #pgClip{top:50px;bottom:max(46px,calc(var(--run-b) + 26px))}
+#v-reader.overlay #pgClip{top:50px;bottom:max(46px,calc(var(--run-b) + 26px))} /* clear the bottom info line */
 #v-reader.overlay #scrollView{top:48px;bottom:max(46px,calc(var(--run-b) + 26px))}
 #pgFlow.anim-slide{transition:transform .28s cubic-bezier(.3,.6,.2,1)}
 #pgFlow.fade{opacity:0;transition:opacity .14s ease}
@@ -3711,8 +3711,9 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.16.1 preview';
+const APP_VERSION='2026.11.23.1 preview';
 const WHATSNEW=[
+  ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],
   ['Where you left off, in Scroll','Whenever you leave a book in Scroll mode, even for a moment, the page shows a tear when you come back: what you’d read sits above it, marked Previously read, and the tear is in the middle of the screen so you can pick up right below it.'],
   ['One pause for an ellipsis','Three dots in a row (..., . . . or …) are read as a single pause instead of three.'],
   ['Delete bookmarks with a swipe','In Notes → Bookmarks, swipe a bookmark to the left and tap Delete. Undo brings it back.'],

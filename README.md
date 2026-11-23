@@ -1,5 +1,6 @@
-# Tooz Preview
+# Tooz eReader (preview / working repo)
 
-Test copy of the Tooz eReader, published from `michaelmatusikjr/readfast-app` by `tools/ship-preview.sh`.
-Don't edit this repo; changes here are overwritten. Open https://michaelmatusikjr.github.io/ToozeReader-preview/ on the
-iPhone and add it to the home screen.
+All work on the Tooz eReader happens here. `main` is served as **Tooz Preview** at
+https://michaelmatusikjr.github.io/ToozeReader-preview/. Approved versions are released to the live app
+(`michaelmatusikjr/readfast-app`) with `tools/release.sh`; see `docs/RELEASES.md` for every release and how to undo it.
+Notes for Claude are in `CLAUDE.md`.
