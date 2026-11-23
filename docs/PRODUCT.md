@@ -5,6 +5,16 @@ and move items out of **Pending changes** once they're built.
 
 ## Pending changes (not yet built)
 
+- **One sheet for contents, bookmarks and notes (asked Nov 23, 2026; build in the next round).** Remove the
+  separate notes icon in the reader's top bar (`#rNotes`). The contents icon (`#rToc`) opens one sheet with two
+  tabs, **Contents** and **Notes**, each with a search bar under the tab.
+  - *Contents tab:* the search bar searches the book's contents; a filter icon filters by section and/or chapter.
+    Bookmarks live here: each bookmark gets its own tappable line in its place in the contents, naming the chapter
+    it's in and marked with a bookmark icon and/or colour. Example: bookmark on page 102 (or the location number
+    in Scroll view) with chapter headings at 90 and 130 → the bookmark line sits between those two, says which
+    chapter it's in. A toggle at the top shows **bookmarks only, contents only, or both**.
+  - *Notes tab:* all highlights and notes. Its search bar searches only highlights and notes.
+
 - **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
   and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
   release to apply. Also: drag along the base to scrub through a book; a short wake-up pulse the first time a

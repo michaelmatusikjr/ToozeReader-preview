@@ -13,11 +13,13 @@ const Drop=(()=>{
 
   /* ----- the foundation (one fixed drop) ----- */
   let el=null, cur=null, vis=false, placed=false, frac=0, queued=false, anim=null;
+  let probe=null; /* the phone's bottom safe area (home indicator), so the base sits just above it */
+  function inset(){ if(!probe){ probe=document.createElement('div'); probe.style.cssText='position:fixed;left:0;bottom:0;width:0;height:0;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)'; document.body.appendChild(probe); } return parseFloat(getComputedStyle(probe).paddingBottom)||0; }
   function target(){
     const rd=document.getElementById('v-reader'), tabs=document.getElementById('tabs');
     if(rd && !rd.hidden){
-      const on=rd.classList.contains('chrome-off') && rd.dataset.mode!=='speed';
-      return {kind:'base', l:0, t:innerHeight-3, w:Math.max(6,Math.min(1,frac)*innerWidth), h:3, vis:on};
+      const on=rd.dataset.mode!=='speed';   /* shown with or without the controls; Speed mode has its own progress bar */
+      return {kind:'base', l:0, t:innerHeight-Math.max(inset()*.5,7)-3, w:Math.max(6,Math.min(1,frac)*innerWidth), h:3, vis:on};
     }
     const b=tabs&&tabs.querySelector('button[aria-current="page"]'), tr=tabs&&tabs.getBoundingClientRect();
     if(!b||!tr||!tr.height) return null;

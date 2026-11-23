@@ -42,10 +42,18 @@ async function run(reduce){
   await pg.evaluate(async()=>{ S.mode='pages'; saveSettings(); await openDoc(LIB.find(x=>x.kind==='sample').id); });
   await sleep(1200);
   await pg.evaluate(()=>{ setChrome(true); }); await sleep(700);
-  ok((await dropBox()).op<.1, tag+'drop hidden while the reader controls are showing');
+  d=await dropBox();
+  ok(d.op>.9 && d.top>=852-40 && d.top<852-3, tag+'drop is on the bottom edge with the reader controls showing too (top '+Math.round(d.top)+', opacity '+d.op+')');
+  await pg.screenshot({path:S+'drop_reader_on'+(reduce?'_rm':'')+'.png', clip:{x:0,y:700,width:393,height:152}});
+  /* Scroll mode and Speed mode */
+  await pg.evaluate(()=>switchMode('scroll')); await sleep(900);
+  ok((await dropBox()).op>.9, tag+'drop shows in Scroll mode');
+  await pg.evaluate(()=>switchMode('speed')); await sleep(900);
+  ok((await dropBox()).op<.1, tag+'drop hidden in Speed mode (it has its own progress bar)');
+  await pg.evaluate(()=>switchMode('pages')); await sleep(900);
   await pg.evaluate(()=>{ goTo(Math.floor(R.n/2), true); setChrome(false); }); await sleep(1200);
   d=await dropBox();
-  ok(d.op>.9 && d.top>=852-4 && Math.abs(d.w/393-0.5)<.12, tag+'with controls hidden the drop is the progress line at the bottom (width '+Math.round(d.w)+'px of 393, opacity '+d.op+')');
+  ok(d.op>.9 && d.top>=852-40 && Math.abs(d.w/393-0.5)<.12, tag+'with controls hidden the drop is the progress line at the bottom (width '+Math.round(d.w)+'px of 393, opacity '+d.op+')');
   await pg.screenshot({path:S+'drop_reader'+(reduce?'_rm':'')+'.png', clip:{x:0,y:760,width:393,height:92}});
   /* back to the library: it returns under the tab */
   await pg.evaluate(()=>closeReader()); await sleep(1300);
