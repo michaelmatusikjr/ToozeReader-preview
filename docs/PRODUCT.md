@@ -5,14 +5,6 @@ and move items out of **Pending changes** once they're built.
 
 ## Pending changes (not yet built)
 
-- **The spine (contents style C), chosen Nov 23, 2026; next round.** A second look for the contents sheet, picked in
-  Settings (default stays the two-tab list). The Contents tab becomes a tall map of the book: chapters are marks
-  down a line, highlights are coloured beads on it, bookmarks are small flags, your place is the drop. Drag a thumb
-  down it and the chapter names near the thumb grow; let go to jump there (paused). Tap a bead to see that highlight
-  in a small card. Search lights up matching beads. Mock-up: option C in the Nov 23 mock-ups.
-  Same round: **remove the magnifying glass (`#rSearch`) from the reader's top bar** (Mick, Nov 23); the Contents
-  search replaces it. Check tests that click `#rSearch` and the tutorial's "The magnifying glass" sentence.
-
 - **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
   and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
   release to apply. Also: drag along the base to scrub through a book; a short wake-up pulse the first time a
@@ -86,7 +78,14 @@ and move items out of **Pending changes** once they're built.
   their place between chapters, naming their chapter, with page (Pages) or location (Scroll) numbers; a
   Both / Contents / Bookmarks switch shows only once the book has a bookmark (remembered). **Notes** tab: highlights
   and notes grouped by chapter, with their own search. The current chapter carries the drop. Deleting a bookmark
-  offers Undo.
+  offers Undo. The reader's magnifying glass is gone (Nov 23): the Contents search does its job.
+- **The spine** (built 2026.11.23.7, option C; Settings → Reading → Contents: List | Spine, default List). The Contents
+  tab becomes the book as one line: chapter marks (labels thinned to never overlap, using the level that best fits:
+  books in the Bible, chapters in a novel), highlights as coloured beads, bookmarks as flags, read part tinted, the
+  drop at your place. Drag or tap along it: the chapter under the thumb shows big with two neighbours each side
+  and its page/location; release jumps to that chapter's start (paused); release off the spine cancels. Tap a bead
+  or flag for a card; tap the card to go there. Typing in search swaps to the result list; the filter zooms the
+  spine to one section. Notes tab is always the list.
 - Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, bookmark lines in the contents have an ×.
 - A highlight must be able to stop right before a dash (dash-joined words are separate words).
 

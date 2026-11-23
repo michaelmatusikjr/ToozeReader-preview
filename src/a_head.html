@@ -362,6 +362,36 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 /* one sheet: contents (bookmarks in place) | notes */
 #sheet.toc{height:86%}
 #sheet.toc .li{position:relative}
+#sheet.toc .sheet-body{flex:1;min-height:0}
+#sheet.toc.spine .sheet-body{overflow:hidden}
+#sheet.toc.spine #tocOut{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.spnmap{position:relative;flex:1;min-height:240px;touch-action:none;-webkit-user-select:none;user-select:none;overflow:hidden;cursor:pointer}
+.spnmap>*{position:absolute}
+.spnmap>[hidden]{display:none}
+.sp-track{width:4px;border-radius:4px;background:var(--line)}
+.sp-read{width:4px;border-radius:4px;background:var(--accent);opacity:.35}
+.sp-tick{height:2px;width:10px;background:var(--line);margin-top:-1px}
+.sp-tick.big{width:16px;background:var(--muted);opacity:.6}
+.sp-labs{inset:0;transition:opacity .2s}
+.sp-lab{position:absolute;transform:translateY(-50%);font-size:13px;color:var(--muted);white-space:nowrap;max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis}
+.sp-bead{width:28px;height:28px;margin:-14px 0 0 -14px;border:0;padding:0;background:none;cursor:pointer;transition:opacity .2s}
+.sp-bead::after{content:"";position:absolute;left:7px;top:7px;width:14px;height:14px;border-radius:50%;background:var(--hc);border:2px solid var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.3);box-sizing:border-box}
+.sp-flag{width:26px;height:28px;margin-top:-14px;border:0;padding:0;background:none;color:var(--accent);cursor:pointer;display:grid;place-items:center;transition:opacity .2s}
+.sp-flag svg{width:15px;height:15px}
+.sp-drop{width:14px;height:32px;margin:-16px 0 0 -7px;border-radius:999px;background:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 45%,transparent)}
+.sp-thumb{width:66px;height:66px;margin:-33px 0 0 -33px;left:58px;border-radius:50%;background:color-mix(in srgb,var(--accent) 12%,transparent);border:2px solid color-mix(in srgb,var(--accent) 40%,transparent);pointer-events:none}
+.sp-lens{inset:0;pointer-events:none}
+.sp-l{position:absolute;left:94px;right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);line-height:1.15}
+.sp-l.on{font-family:var(--f-display);font-weight:800;color:var(--accent)}
+.sp-l small{display:block;font-family:var(--f-ui);font-weight:400;font-size:13px;color:var(--muted)}
+.spnmap.dragging .sp-labs{opacity:.12}
+.spnmap.dragging .sp-bead,.spnmap.dragging .sp-flag{opacity:.4}
+.sp-card{left:96px;right:6px;z-index:2;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;font:inherit}
+.sp-card .t{font-family:var(--bfont);font-size:.92rem;line-height:1.4;background:linear-gradient(var(--hc),var(--hc));color:#1B1B1B;border-radius:3px;padding:0 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone;display:inline}
+.sp-card .nt{font-size:.85rem}
+.sp-card .bt{display:flex;gap:6px;align-items:center;font-weight:700;color:var(--accent)}
+.sp-card .bt svg{width:16px;height:16px}
+.sp-card .where{font-size:.75rem;color:var(--muted)}
 #sheet.toc .li.on::before{content:"";position:absolute;left:0;top:50%;width:6px;height:22px;margin-top:-11px;border-radius:999px;background:var(--accent)}
 .tocbar{display:flex;gap:8px;align-items:center}
 .tocbar .input{flex:1;min-width:0}

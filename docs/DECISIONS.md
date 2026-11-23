@@ -15,6 +15,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
   switching tabs doesn't jump; in-sheet taps re-render in place (re-opening the sheet made the 420 ms ghost-tap
   guard eat quick taps). Test: `tests/feature/sheet.js`.
   Mick then OK'd removing the magnifying glass from the top bar (done with the spine round).
+- **Claude — the spine (2026.11.23.7).** Built option C as a Settings choice (Reading → Contents: List | Spine).
+  Calls: release jumps to the chapter start (the big label says exactly where you'll land) rather than a raw
+  position; releasing off the spine cancels (no cancel button); with a search typed the spine swaps to the same
+  result list as List (one search behaviour to learn), rather than lighting beads; resting labels use the chapter
+  level whose count best fits the height. Removed the magnifying glass and the old search sheet (`openSearch`).
+  Gotcha: don't name an inner element class `spine` — `#sheet` carries `.spine` too. Test: `tests/feature/spine.js`.
 - **Mick — drop stage 1 feel check: "feels great" (Nov 23, 2026).** Stage 2 (pull-up pool) is a go in principle.
   Claude recommended building the contents/notes sheet first as its own round, then drop stage 2, so each feel
   check is about one change and the pool can include the new sheet as a bead.

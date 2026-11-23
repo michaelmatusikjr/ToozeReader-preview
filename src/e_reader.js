@@ -1089,6 +1089,59 @@ function tocScopeOpts(){
   if(ch.length>150){ const maxD=Math.max(...ch.map(c=>c.d||0)); if(maxD>0) ks=ks.filter(k=>(ch[k].d||0)<maxD); }
   return `<option value="-1">Whole book</option>`+ks.map(k=>`<option value="${k}">${' '.repeat(ch[k].d||0)}${esc(ch[k].t)}</option>`).join('');
 }
+/* ---------- the spine (contents style "spine", Settings → Reading) ----------
+   The book as one line: chapters are marks, highlights coloured beads, bookmarks flags, your place the drop.
+   Drag along it and the chapter under your thumb grows, with its neighbours smaller; let go to go there (paused).
+   Let go off the spine to cancel. Tap a bead or flag to see it; tap the card to go there. The filter zooms in. */
+function spineUse(){ return S.tocStyle==='spine' && (R.tocTab||'toc')==='toc' && !norm(R.tocQ); }
+function drawSpine(el){
+  const ch=R.meta.chapters||[], sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
+  const [lo,hi]= sc>=0&&ch[sc]? tocSpan(sc) : [0,R.n];
+  const H=el.clientHeight, PAD=18, U=Math.max(40,H-2*PAD), X=58;
+  const y=i=>PAD+U*(clamp(i,lo,hi)-lo)/Math.max(1,hi-lo);
+  const iAt=py=>Math.round(lo+(hi-lo)*clamp((py-PAD)/U,0,1));
+  const ks=ch.map((c,k)=>k).filter(k=>ch[k].i>=lo&&ch[k].i<hi);
+  const chAt=i=>{ let r=-1; for(const k of ks){ if(ch[k].i<=i) r=k; else break; } return r<0? ks[0] : r; };
+  /* resting labels: shallow levels first, never closer than 24px */
+  /* resting labels: the level whose size best fits the space (books in the Bible, chapters in a novel),
+     first of each in order, never closer than 24px */
+  const cnt={}; for(const k of ks){ const d=ch[k].d||0; cnt[d]=(cnt[d]||0)+1; }
+  const ds=Object.keys(cnt).map(Number).sort((a,b)=>a-b), fit=Math.max(4,U/26), lv=ds.reduce((best,d)=>Math.abs(Math.log(cnt[d]/fit))<Math.abs(Math.log(cnt[best]/fit))? d : best, ds[0]);
+  const taken=[], lab=new Set();
+  for(const k of ks){ if((ch[k].d||0)!==lv) continue; const yy=y(ch[k].i); if(taken.every(t=>Math.abs(t-yy)>=24)){ taken.push(yy); lab.add(k); } }
+  let h=`<i class="sp-track" style="top:${PAD}px;height:${U}px;left:${X-2}px"></i>`;
+  if(R.pos>=lo) h+=`<i class="sp-read" style="top:${PAD}px;height:${y(R.pos)-PAD}px;left:${X-2}px"></i>`;
+  if(ks.length<400) for(const k of ks) h+=`<i class="sp-tick${lab.has(k)?' big':''}" style="top:${y(ch[k].i)}px;left:${X-(lab.has(k)?8:5)}px"></i>`;
+  h+=`<div class="sp-labs">${[...lab].map(k=>`<span class="sp-lab" style="top:${y(ch[k].i)}px;left:${X+16}px">${esc(ch[k].t)}</span>`).join('')}</div>`;
+  for(const x of (R.meta.highlights||[])) if(x.s>=lo&&x.s<hi) h+=`<button type="button" class="sp-bead" data-h="${x.id}" style="top:${y(x.s)}px;left:${X}px;--hc:var(--hl${x.c})" aria-label="Highlight"></button>`;
+  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X-28}px" aria-label="Bookmark">${ICON.mark}</button>`; });
+  if(R.pos>=lo&&R.pos<hi) h+=`<i class="sp-drop" style="top:${y(R.pos)}px;left:${X}px"></i>`;
+  h+=`<div class="sp-lens" hidden></div><i class="sp-thumb" hidden></i><button type="button" class="sp-card" hidden></button>`;
+  el.innerHTML=h;
+  const lens=el.querySelector('.sp-lens'), thumb=el.querySelector('.sp-thumb'), card=el.querySelector('.sp-card');
+  const showCard=(i,html)=>{ card.innerHTML=html; card.dataset.i=i; card.hidden=false; const ch2=card.offsetHeight; card.style.top=clamp(y(i)-ch2/2,4,H-ch2-4)+'px'; };
+  el.onclick=e=>{ const bd=e.target.closest('.sp-bead'), fl=e.target.closest('.sp-flag'), cd=e.target.closest('.sp-card');
+    if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
+    if(bd){ const x=R.meta.highlights.find(z=>z.id===bd.dataset.h); if(x) showCard(x.s, `<span class="t" style="--hc:var(--hl${x.c})">${esc(textOf(x.s,Math.min(x.e,x.s+40)))}${x.e>x.s+40?'…':''}</span>${x.note?`<span class="nt">${esc(x.note)}</span>`:''}<span class="where">${esc(((currentChapter(x.s)||{}).t||''))} · ${esc(placeLabel(x.s))}</span>`); return; }
+    if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${ICON.mark}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
+  };
+  /* drag (or tap) along the spine */
+  let drag=null;
+  const lensAt=py=>{ const i=iAt(py), k=ch.length? chAt(i) : -1, tgt= k>=0? ch[k].i : i;
+    if(k>=0){ const at=ks.indexOf(k); let s='';
+      for(let d=-2;d<=2;d++){ const kk=ks[at+d]; if(kk==null) continue; const big=d===0;
+        s+=`<div class="sp-l${big?' on':''}" style="top:${py+d*30+(d>0?14:0)-(big?18:9)}px;font-size:${[13,17,28,17,13][d+2]}px;opacity:${[.45,.75,1,.75,.45][d+2]}">${esc(ch[kk].t)}${big?`<small>${esc(placeLabel(tgt))}</small>`:''}</div>`; }
+      lens.innerHTML=s; }
+    else lens.innerHTML=`<div class="sp-l on" style="top:${py-18}px;font-size:28px">${esc(placeLabel(i))}</div>`;
+    thumb.style.top=py+'px'; return tgt; };
+  el.onpointerdown=e=>{ if(e.target.closest('.sp-bead,.sp-flag,.sp-card')) return; if(!card.hidden){ card.hidden=true; return; }
+    const r=el.getBoundingClientRect(); drag={r, tgt:0}; el.setPointerCapture&&el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging'); lens.hidden=false; thumb.hidden=false; drag.tgt=lensAt(e.clientY-r.top); };
+  el.onpointermove=e=>{ if(!drag) return; e.preventDefault(); drag.tgt=lensAt(e.clientY-drag.r.top); };
+  const end=(e,cancel)=>{ if(!drag) return; const r=drag.r, out=cancel|| e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-30||e.clientY>r.bottom+30, tgt=drag.tgt; drag=null;
+    el.classList.remove('dragging'); lens.hidden=true; thumb.hidden=true; if(!out){ closeSheet(); goTo(tgt,true); } };
+  el.onpointerup=e=>end(e,false); el.onpointercancel=e=>end(e,true);
+}
 function openToc(tab, inPlace){
   if(R.mode==='speed' && R.playing) pause();
   let t=tab||R.tocTab||'toc'; R.tocTab=t;
@@ -1101,8 +1154,8 @@ function openToc(tab, inPlace){
   if(t==='toc'){
     body=`<div class="tocbar"><input class="input" id="tocQ" type="search" placeholder="Search this book" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.tocQ||'')}">${ch.length?`<label class="icon-btn tocflt${sc>=0?' on':''}" aria-label="Show one section">${ICON.filter}<select id="tocScope">${tocScopeOpts()}</select></label>`:''}</div>`
       +(sc>=0&&ch[sc]?`<div class="tocscope"><span>${esc(ch[sc].t)}</span><button class="icon-btn" type="button" data-act="unscope" aria-label="Show the whole book">${ICON.close}</button></div>`:'')
-      +(nb?`<div class="seg tocshow">${[['both','Both'],['toc','Contents'],['marks','Bookmarks']].map(([k,l])=>`<button type="button" data-act="show" data-s="${k}" aria-pressed="${R.tocShowNow===k}">${l}</button>`).join('')}</div>`:'')
-      +`<div id="tocOut">${tocList()}</div>`;
+      +(nb&&S.tocStyle!=='spine'?`<div class="seg tocshow">${[['both','Both'],['toc','Contents'],['marks','Bookmarks']].map(([k,l])=>`<button type="button" data-act="show" data-s="${k}" aria-pressed="${R.tocShowNow===k}">${l}</button>`).join('')}</div>`:'')
+      +`<div id="tocOut">${spineUse()?'<div class="spnmap" id="spine"></div>':tocList()}</div>`;
   } else {
     body=`<input class="input" id="hlQ" type="search" placeholder="Search highlights and notes" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.hlQ||'')}"><div id="tocOut">${hlList()}</div>`;
   }
@@ -1119,12 +1172,14 @@ function openToc(tab, inPlace){
     copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.map(h=>'“'+textOf(h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
   };
   /* already open: swap the contents in place, so quick taps inside the sheet aren't eaten as ghost taps */
-  const sh=$('#sheet'); if(!sh.hidden && sh.classList.contains('toc') && (!tab||inPlace)){ sheetActs=acts; sh.querySelector('.sheet-body').innerHTML=seg+body; }
-  else openSheet(R.meta.title, seg+body, acts, 'toc');
+  const cls='toc'+(S.tocStyle==='spine'&&t==='toc'?' spine':'');
+  const sh=$('#sheet'); if(!sh.hidden && sh.classList.contains('toc') && (!tab||inPlace)){ sheetActs=acts; sh.className=cls; sh.querySelector('.sheet-body').innerHTML=seg+body; }
+  else openSheet(R.meta.title, seg+body, acts, cls);
+  const sp=$('#spine'); if(sp) requestAnimationFrame(()=>drawSpine(sp));
   const out=$('#tocOut'), inp=$('#tocQ')||$('#hlQ'); let tm=null;
-  inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(t==='toc'){ R.tocQ=inp.value; out.innerHTML=tocList(); } else { R.hlQ=inp.value; out.innerHTML=hlList(); } }, t==='toc'?260:120); });
+  inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(t==='toc'){ R.tocQ=inp.value; if(spineUse()){ if(!$('#spine')){ out.innerHTML='<div class="spnmap" id="spine"></div>'; drawSpine($('#spine')); } } else out.innerHTML=tocList(); } else { R.hlQ=inp.value; out.innerHTML=hlList(); } }, t==='toc'?260:120); });
   const sel=$('#tocScope'); if(sel){ sel.value=String(sc); sel.addEventListener('change',()=>{ const k=+sel.value; R.tocScope= k>=0? {id:R.meta.id,k} : null; openToc(); }); }
-  if(t==='toc' && tab && !inPlace && !R.tocQ) setTimeout(()=>{ const on=$('#sheet .li.on')||$('#sheet .li.open'); on&&on.scrollIntoView({block:'center'}); },30);
+  if(t==='toc' && tab && !inPlace && !R.tocQ && !spineUse()) setTimeout(()=>{ const on=$('#sheet .li.on')||$('#sheet .li.open'); on&&on.scrollIntoView({block:'center'}); },30);
 }
 
 /* ---------- search ---------- */
@@ -1134,29 +1189,6 @@ function buildSearchIndex(){
   return R.sIdx={s,off};
 }
 function wordAtChar(c){ const off=R.sIdx.off; let lo=0, hi=off.length-1; while(lo<hi){ const m=(lo+hi+1)>>1; if(off[m]<=c) lo=m; else hi=m-1; } return lo; }
-function openSearch(){
-  stopActivity();
-  openSheet('Search this book', `<input class="input" id="srchIn" type="search" placeholder="Words or a phrase" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="srchMeta" class="note"></div><div id="srchOut"></div>`, {
-    res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); }
-  });
-  const inp=$('#srchIn'); inp.value=R.lastSearch||''; let t=null;
-  inp.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(runSearch,260); });
-  setTimeout(()=>inp.focus(),80); if(inp.value) runSearch();
-}
-function runSearch(){
-  const inp=$('#srchIn'); if(!inp) return;
-  const q=inp.value.trim().toLowerCase().replace(/\s+/g,' ').replace(/[’‘]/g,"'").replace(/[“”]/g,'"'); R.lastSearch=inp.value.trim();
-  const out=$('#srchOut'), meta=$('#srchMeta');
-  if(q.length<2){ out.innerHTML=''; meta.textContent=q?'Type at least 2 letters.':''; return; }
-  const {s}=buildSearchIndex(); const MAXSHOW=150, MAXCOUNT=5000; const hits=[]; let p=0, total=0;
-  while(total<MAXCOUNT){ p=s.indexOf(q,p); if(p<0) break; total++; if(hits.length<MAXSHOW) hits.push(p); p+=q.length; }
-  const qWords=q.split(' ').length; const span=(i)=>{ let j=i, n=0; while(j<R.n && n<qWords){ j++; if(!glued(j)) n++; } return Math.max(1,j-i); };
-  meta.textContent = total ? `${total>=MAXCOUNT?MAXCOUNT+'+':total} match${total===1?'':'es'}`+(total>MAXSHOW?` · showing the first ${MAXSHOW}`:'') : 'No matches.';
-  out.innerHTML=hits.map(c=>{ const i=wordAtChar(c), L=span(i); const a=Math.max(0,i-7), b=Math.min(R.n-1,i+L+9);
-    let h=''; for(let k=a;k<=b;k++){ const w=esc(R.words[k]); h+=(k>a&&!glued(k)?' ':'')+(k>=i&&k<i+L?'<mark>'+w+'</mark>':w); }
-    const ch=currentChapter(i);
-    return `<button class="result" type="button" data-act="res" data-i="${i}" data-l="${L}">${a>0?'…':''}${h}${b<R.n-1?'…':''}<span class="where">${esc(ch?ch.t:'')} · ${Math.round(100*i/Math.max(1,R.n-1))}%</span></button>`; }).join('');
-}
 function flashFound(i,len){
   if(R.mode==='speed') return;
   const ws=[]; for(let k=i;k<i+len;k++){ const w=wordEl(k); if(w){ w.classList.add('found'); ws.push(w); } }
@@ -1470,7 +1502,6 @@ function bindPanel(root){
 }
 $('#rAa').onclick=openPanel;
 $('#rToc').onclick=()=>openToc('toc');
-$('#rSearch').onclick=openSearch;
 $('#markBtn').onclick=()=>openToc('marks');
 /* night theme switch and phone light/dark changes */
 setInterval(()=>{ if(S.nightAuto) applyLook(); },60000);

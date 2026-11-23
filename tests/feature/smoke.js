@@ -43,9 +43,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await pg.evaluate(()=>{ addHighlight(5,12,2,'my note'); }); await sleep(100);
   log('hl', await pg.evaluate(()=>[document.querySelectorAll('#pgFlow w.hl2').length, document.querySelectorAll('#pgFlow w.hn').length, R.meta.highlights.length]));
   // search
-  await pg.evaluate(()=>openSearch()); await pg.fill('#srchIn','scene break'); await sleep(500);
-  log('search', await pg.evaluate(()=>[$('#srchMeta').textContent, document.querySelectorAll('#srchOut .result').length]));
-  await pg.click('#srchOut .result'); await sleep(600);
+  await pg.evaluate(()=>openToc('toc')); await sleep(500); await pg.fill('#tocQ','scene break'); await sleep(500);
+  log('search', await pg.evaluate(()=>[($('#tocOut .tochd')||{}).textContent, document.querySelectorAll('#tocOut .result').length]));
+  await pg.click('#tocOut .result'); await sleep(600);
   log('after search jump', await pg.evaluate(()=>[R.pos, R.words.slice(R.pos,R.pos+3).join(' '), !$('#backPill').hidden, document.querySelectorAll('w.found').length]));
   // toc + panel
   await pg.evaluate(()=>openToc('toc')); await sleep(150);
