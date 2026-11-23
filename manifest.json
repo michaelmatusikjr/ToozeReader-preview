@@ -1,0 +1,24 @@
+{
+  "name": "Tooz Preview",
+  "short_name": "Tooz Preview",
+  "description": "An eReader with page-by-page, scrolling and speed reading for iPhone and iPad",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#E9EDF2",
+  "theme_color": "#D9661F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
