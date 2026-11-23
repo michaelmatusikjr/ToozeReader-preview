@@ -10,6 +10,8 @@ and move items out of **Pending changes** once they're built.
   down a line, highlights are coloured beads on it, bookmarks are small flags, your place is the drop. Drag a thumb
   down it and the chapter names near the thumb grow; let go to jump there (paused). Tap a bead to see that highlight
   in a small card. Search lights up matching beads. Mock-up: option C in the Nov 23 mock-ups.
+  Same round: **remove the magnifying glass (`#rSearch`) from the reader's top bar** (Mick, Nov 23); the Contents
+  search replaces it. Check tests that click `#rSearch` and the tutorial's "The magnifying glass" sentence.
 
 - **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
   and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
