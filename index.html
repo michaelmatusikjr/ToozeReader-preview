@@ -180,7 +180,8 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #rTts.on{color:var(--page-link)}
 .run{position:absolute;left:0;right:0;z-index:4;text-align:center;font-size:.72rem;color:var(--page-muted);opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 56px;font-variant-numeric:tabular-nums}
 #runHead{top:16px}
-#runFoot{bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+#v-reader{--run-b:calc(14px + env(safe-area-inset-bottom,0px))}
+#runFoot{bottom:var(--run-b)}
 #v-reader input[type=range]{accent-color:var(--page-link)}
 #v-reader.chrome-off .run{opacity:1}
 #v-reader[data-mode="speed"] .run{display:none}
@@ -242,8 +243,8 @@ w.found{background:var(--page-link);color:var(--page-bg);border-radius:3px}
 #v-reader.overlay:not([data-mode="speed"]) .rchrome{position:absolute;left:0;right:0}
 #v-reader.overlay:not([data-mode="speed"]) #rTop{top:0}
 #v-reader.overlay:not([data-mode="speed"]) #rFoot{bottom:0}
-#v-reader.overlay #pgClip{top:50px;bottom:46px}
-#v-reader.overlay #scrollView{top:48px;bottom:46px}
+#v-reader.overlay #pgClip{top:50px;bottom:max(46px,calc(var(--run-b) + 26px))}
+#v-reader.overlay #scrollView{top:48px;bottom:max(46px,calc(var(--run-b) + 26px))}
 #pgFlow.anim-slide{transition:transform .28s cubic-bezier(.3,.6,.2,1)}
 #pgFlow.fade{opacity:0;transition:opacity .14s ease}
 /* Scroll */
