@@ -88,12 +88,15 @@ const Drop=(()=>{
   }
 
   /* ----- segmented controls: the selection is the same liquid ----- */
-  const seen=new Map();
+  const seen=new Map(), RING='.themes[data-set],.fontrow[data-set],.fontgrid[data-set]';
   function seg(g){
-    if(g._lq||!g.classList.contains('seg')) return; g._lq=1; g.classList.add('lq');
-    const key=g.id||g.dataset.set||''; let d=null, shown=false, at=null;
-    const geo=()=>{ const b=g.querySelector('button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft,t:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight}:null; };
-    const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className='drop-seg'; g.prepend(d); } return d; };
+    if(g._lq||!g.matches(RING+',.seg')) return; g._lq=1;
+    /* segmented controls get a filled drop; swatches and font tiles get a ring that slides the same way */
+    const ring=!g.classList.contains('seg'); g.classList.add(ring?'lqr':'lq');
+    const key=g.id||(g.dataset.set? g.dataset.set+':'+(ring?g.className.split(' ')[0]:'seg') : ''); let d=null, shown=false, at=null;
+    const out= g.classList.contains('themes')? 3 : 0, rad=b=>parseFloat(getComputedStyle(b).borderTopLeftRadius)||10;
+    const geo=()=>{ const b=g.querySelector(':scope > button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft-out,t:b.offsetTop-out,w:b.offsetWidth+2*out,h:b.offsetHeight+2*out,r:rad(b)+out}:null; };
+    const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className= ring?'drop-ring':'drop-seg'; g.prepend(d); } if(ring&&at) d.style.borderRadius=px(at.r); return d; };
     let resume=0;
     const remember=(fly)=>{ if(key) seen.set(key,Object.assign({}, seen.get(key)||{}, {t:Date.now(), at}, fly||{})); };   /* keeps an in-flight slide's start */
     function reveal(animate){
@@ -108,6 +111,12 @@ const Drop=(()=>{
       remember({from, start:performance.now()-off});
       if(!from||RM.matches){ fade(d,.2,1,220); return; }
       const L=Math.min(from.l,to.l), Rr=Math.max(from.l+from.w,to.l+to.w);
+      if(ring){ const T=Math.min(from.t,to.t), B=Math.max(from.t+from.h,to.t+to.h), same=Math.abs(from.t-to.t)<4;
+        d.animate([
+          {...css(from),borderRadius:px(from.r),easing:DRAG},
+          {offset:.4,left:px(L),width:px(Rr-L),top:px(same?from.t+3:T),height:px(same?from.h-6:B-T),borderRadius:px(Math.min(from.r+8,(same?from.h-6:B-T)/2)),easing:SPRING},
+          {...css(to),borderRadius:px(to.r)}],{duration:520, delay:-off});
+        return; }
       d.animate([
         {...css(from),borderRadius:'0px',easing:DRAG},
         {offset:.4,left:px(L),width:px(Rr-L),top:px(from.t+4),height:px(from.h-8),borderRadius:'999px',easing:SPRING},
@@ -129,9 +138,10 @@ const Drop=(()=>{
     const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting&&e.intersectionRatio>=.6)){ io.disconnect(); setTimeout(()=>{ if(!shown) reveal(true); },260); } },{threshold:[.6,1]});
     io.observe(g);
   }
-  const scan=root=>{ if(root.nodeType!==1) return; if(root.classList&&root.classList.contains('seg')) seg(root); root.querySelectorAll&&root.querySelectorAll('.seg').forEach(seg); };
+  const SEL='.seg,'+RING;
+  const scan=root=>{ if(root.nodeType!==1) return; if(root.matches&&root.matches(SEL)) seg(root); root.querySelectorAll&&root.querySelectorAll(SEL).forEach(seg); };
   function watch(){
-    document.querySelectorAll('.seg').forEach(seg);
+    document.querySelectorAll(SEL).forEach(seg);
     for(const id of ['settingsBody','sheet','v-words','v-library','v-stats']){
       const n=document.getElementById(id); if(!n) continue;
       new MutationObserver(ms=>{ for(const m of ms) m.addedNodes.forEach(scan); }).observe(n,{childList:true,subtree:true});

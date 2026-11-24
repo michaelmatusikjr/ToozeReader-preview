@@ -35,6 +35,17 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('fold control: the tap slides (mid-slide not yet at the target)', m2 && (m2[0]!==tb[0] || m2[1]!==tb[1]), [m2,tb]);
   await sleep(700);
   ok('fold control settles on the new choice', JSON.stringify(await dropX(G))===JSON.stringify(await btn(G,to)));
+  // theme swatches and font tiles: a ring slides between them (Mick, Nov 24: "still doesn't work right")
+  await pg.evaluate(()=>$('#sheet .themes').scrollIntoView({block:'center'})); await sleep(900);
+  const ring=sel=>pg.evaluate(s=>{ const d=document.querySelector(s+' .drop-ring'); if(!d) return null; const r=d.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; }, sel);
+  const T='#sheet .themes', curT=await pg.evaluate(()=>S.theme), toT= curT==='black'?'white':'black';
+  const t0=await ring(T); await pg.click(`${T} [data-v=${toT}]`); await sleep(170); const t1=await ring(T); await sleep(800); const t2=await ring(T);
+  const tbT=await btn(T,toT);
+  ok('theme: a ring stretches across mid-slide, then sits on the new swatch', t0 && t1 && t1[1]>t0[1]+20 && Math.abs(t2[0]-(tbT[0]-3))<=1, [t0,t1,t2,tbT]);
+  const F='#sheet .fontrow', fs=await pg.evaluate(()=>[...document.querySelectorAll('#sheet .fontrow button')].map(b=>[b.dataset.v,b.getAttribute('aria-pressed')]));
+  const toF=fs.find(x=>x[1]!=='true')[0];
+  const f0=await ring(F); await pg.click(`${F} [data-v=${toF}]`); await sleep(170); const f1=await ring(F); await sleep(800); const f2=await ring(F); const fb=await btn(F,toF);
+  ok('font: the ring slides to the new font', f0 && f1 && JSON.stringify(f2)===JSON.stringify(fb) && JSON.stringify(f1)!==JSON.stringify(f2), [f0,f1,f2,fb]);
   ok('no page errors', !errs.length, errs);
   console.log(fails?'FAIL '+fails:'ALL PASS'); await b.close();
 })();

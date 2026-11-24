@@ -26,6 +26,7 @@ whole.**
 | What read aloud says | `i_speech.js` | `speechChunk`, `refPhrase`, `acronymSpoken`, `ellipsisPause` |
 | Natural voices (Piper), live playback | `h_voice.js` | `PIP_VOICES`, `natSpeakFrom`, `natChunkAt`, `natPauseFor` |
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
+| Toasts (top, themed, flick away) | `f_js3.js`, `a_head.html` | `toast`, `#toast`, `toastT` |
 | Version, What's new, search, export, year stats | `g_extra.js` | `APP_VERSION`, `WHATSNEW`, `searchAllBooks`, `exportBook` |
 | Library, filters, tags, archive | `f_js3.js` | `renderLibrary`, `openFilter`, `suggestTags`, `archiveFlow` |
 | Settings screen, backup, erase | `f_js3.js` | `renderSettings`, `buildBackup`, `eraseAll` |

@@ -168,6 +168,11 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 .seg.lq button[aria-pressed="true"]{background:transparent;color:var(--accent-ink)}
 .seg.lq:not(.lq-on) button[aria-pressed="true"]{color:var(--ink)}
 .drop-seg{position:absolute;z-index:0;background:var(--accent);pointer-events:none}
+.lqr{position:relative}
+.drop-ring{position:absolute;z-index:2;border:2.5px solid var(--accent);box-sizing:border-box;background:transparent;pointer-events:none;border-radius:12px}
+.lqr.lq-on>button[aria-pressed="true"]{box-shadow:none}
+.fontrow.lqr.lq-on>button[aria-pressed="true"],.fontgrid.lqr.lq-on>.chip[aria-pressed="true"]{border-color:var(--line)}
+.themes.lqr.lq-on>button[aria-pressed="true"]{border-color:var(--line)}
 
 /* ---------- Reader frame ---------- */
 #v-reader{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;background:var(--page-bg);color:var(--page-ink)}
@@ -484,8 +489,14 @@ h3.subh{margin:16px 0 8px}
 .goalbar{height:10px;border-radius:5px;background:var(--raise);overflow:hidden;margin-top:6px}
 .goalbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25);flex-wrap:wrap}
-#toast button{background:none;border:0;color:var(--paper);font-weight:700;text-decoration:underline;cursor:pointer;padding:4px}
+/* toasts: at the top, in the theme's colours; they drop in from the top and flick away up or sideways */
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
+#toast:not([hidden]){animation:toastIn .34s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes toastIn{from{transform:translate(-50%,calc(-100% - 20px));opacity:0}}
+@media (prefers-reduced-motion:reduce){#toast:not([hidden]){animation:none}}
+#toast button{background:none;border:0;color:var(--accent);font-weight:700;cursor:pointer;padding:4px}
+body:has(#v-reader:not([hidden])) #toast{background:var(--page-bg);color:var(--page-ink);border-color:var(--page-line)}   /* in a book: the page's own theme */
+body:has(#v-reader:not([hidden])) #toast button{color:var(--page-link)}
 #toastProg{flex-basis:100%}
 
 /* Words */
@@ -1331,12 +1342,15 @@ const Drop=(()=>{
   }
 
   /* ----- segmented controls: the selection is the same liquid ----- */
-  const seen=new Map();
+  const seen=new Map(), RING='.themes[data-set],.fontrow[data-set],.fontgrid[data-set]';
   function seg(g){
-    if(g._lq||!g.classList.contains('seg')) return; g._lq=1; g.classList.add('lq');
-    const key=g.id||g.dataset.set||''; let d=null, shown=false, at=null;
-    const geo=()=>{ const b=g.querySelector('button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft,t:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight}:null; };
-    const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className='drop-seg'; g.prepend(d); } return d; };
+    if(g._lq||!g.matches(RING+',.seg')) return; g._lq=1;
+    /* segmented controls get a filled drop; swatches and font tiles get a ring that slides the same way */
+    const ring=!g.classList.contains('seg'); g.classList.add(ring?'lqr':'lq');
+    const key=g.id||(g.dataset.set? g.dataset.set+':'+(ring?g.className.split(' ')[0]:'seg') : ''); let d=null, shown=false, at=null;
+    const out= g.classList.contains('themes')? 3 : 0, rad=b=>parseFloat(getComputedStyle(b).borderTopLeftRadius)||10;
+    const geo=()=>{ const b=g.querySelector(':scope > button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft-out,t:b.offsetTop-out,w:b.offsetWidth+2*out,h:b.offsetHeight+2*out,r:rad(b)+out}:null; };
+    const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className= ring?'drop-ring':'drop-seg'; g.prepend(d); } if(ring&&at) d.style.borderRadius=px(at.r); return d; };
     let resume=0;
     const remember=(fly)=>{ if(key) seen.set(key,Object.assign({}, seen.get(key)||{}, {t:Date.now(), at}, fly||{})); };   /* keeps an in-flight slide's start */
     function reveal(animate){
@@ -1351,6 +1365,12 @@ const Drop=(()=>{
       remember({from, start:performance.now()-off});
       if(!from||RM.matches){ fade(d,.2,1,220); return; }
       const L=Math.min(from.l,to.l), Rr=Math.max(from.l+from.w,to.l+to.w);
+      if(ring){ const T=Math.min(from.t,to.t), B=Math.max(from.t+from.h,to.t+to.h), same=Math.abs(from.t-to.t)<4;
+        d.animate([
+          {...css(from),borderRadius:px(from.r),easing:DRAG},
+          {offset:.4,left:px(L),width:px(Rr-L),top:px(same?from.t+3:T),height:px(same?from.h-6:B-T),borderRadius:px(Math.min(from.r+8,(same?from.h-6:B-T)/2)),easing:SPRING},
+          {...css(to),borderRadius:px(to.r)}],{duration:520, delay:-off});
+        return; }
       d.animate([
         {...css(from),borderRadius:'0px',easing:DRAG},
         {offset:.4,left:px(L),width:px(Rr-L),top:px(from.t+4),height:px(from.h-8),borderRadius:'999px',easing:SPRING},
@@ -1372,9 +1392,10 @@ const Drop=(()=>{
     const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting&&e.intersectionRatio>=.6)){ io.disconnect(); setTimeout(()=>{ if(!shown) reveal(true); },260); } },{threshold:[.6,1]});
     io.observe(g);
   }
-  const scan=root=>{ if(root.nodeType!==1) return; if(root.classList&&root.classList.contains('seg')) seg(root); root.querySelectorAll&&root.querySelectorAll('.seg').forEach(seg); };
+  const SEL='.seg,'+RING;
+  const scan=root=>{ if(root.nodeType!==1) return; if(root.matches&&root.matches(SEL)) seg(root); root.querySelectorAll&&root.querySelectorAll(SEL).forEach(seg); };
   function watch(){
-    document.querySelectorAll('.seg').forEach(seg);
+    document.querySelectorAll(SEL).forEach(seg);
     for(const id of ['settingsBody','sheet','v-words','v-library','v-stats']){
       const n=document.getElementById(id); if(!n) continue;
       new MutationObserver(ms=>{ for(const m of ms) m.addedNodes.forEach(scan); }).observe(n,{childList:true,subtree:true});
@@ -4092,12 +4113,13 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.7 preview';
+const APP_VERSION='2026.11.24.8 preview';
 const WHATSNEW=[
+  ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
   ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place.'],
   ['Type a Bible reference','In a Bible, type a reference like “jn 3:16” or “rev 22 3” in the contents search and the first result takes you straight there.'],
-  ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings flow from the old choice to the new one.'],
+  ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings and in Aa flow from the old choice to the new one; theme swatches and fonts get a ring that slides across.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],
   ['Where you left off, in Scroll','Whenever you leave a book in Scroll mode, even for a moment, the page shows a tear when you come back: what you’d read sits above it, marked Previously read, and the tear is in the middle of the screen so you can pick up right below it.'],
   ['One pause for an ellipsis','Three dots in a row (..., . . . or …) are read as a single pause instead of three.'],
@@ -5404,8 +5426,19 @@ function toast(msg, action, ms, progress){
   $('#toastMsg').textContent=msg; const a=$('#toastAct'); const prog=$('#toastProg'); const bar=$('#toastBar');
   if(action){ a.hidden=false; a.textContent=action.label; a.onclick=()=>{ action.fn(); $('#toast').hidden=true; }; } else a.hidden=true;
   if(progress!=null){ prog.hidden=false; bar.style.width=Math.max(0,Math.min(100,progress))+'%'; } else { prog.hidden=true; }
-  $('#toast').hidden=false; clearTimeout(toastT); if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
+  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT); if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
 }
+/* flick a toast away: up, or sideways; let go short of that and it springs back and stays a little longer */
+(()=>{ const t=$('#toast'); let p=null; const rest=()=>{ t.style.transform=''; t.style.opacity=''; };
+  t.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; p={x:e.clientX,y:e.clientY,dx:0,dy:0}; try{ t.setPointerCapture(e.pointerId); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; });
+  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2; p.dx=dx; p.dy=dy;
+    t.style.transform=`translate(calc(-50% + ${dx}px), ${dy}px)`; t.style.opacity=String(Math.max(.2,1-(Math.abs(dx)+Math.max(0,-dy))/240)); });
+  const up=()=>{ if(!p) return; const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+    if(dy<-26 || Math.abs(dx)>64){ t.style.transform= Math.abs(dx)>64? `translate(calc(-50% + ${Math.sign(dx)*480}px), ${dy}px)` : 'translate(-50%, calc(-100% - 40px))'; t.style.opacity='0';
+      setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; },230); }
+    else { rest(); setTimeout(()=>{ t.style.animation=''; },240); if(!t.dataset.sticky) toastT=setTimeout(()=>{ t.hidden=true; },2600); } };
+  t.addEventListener('pointerup',up); t.addEventListener('pointercancel',up);
+})();
 const VIEWS=['library','words','stats','settings'];
 function showView(v){
   for(const x of VIEWS) $('#v-'+x).hidden=(x!==v);

@@ -1046,8 +1046,19 @@ function toast(msg, action, ms, progress){
   $('#toastMsg').textContent=msg; const a=$('#toastAct'); const prog=$('#toastProg'); const bar=$('#toastBar');
   if(action){ a.hidden=false; a.textContent=action.label; a.onclick=()=>{ action.fn(); $('#toast').hidden=true; }; } else a.hidden=true;
   if(progress!=null){ prog.hidden=false; bar.style.width=Math.max(0,Math.min(100,progress))+'%'; } else { prog.hidden=true; }
-  $('#toast').hidden=false; clearTimeout(toastT); if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
+  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT); if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
 }
+/* flick a toast away: up, or sideways; let go short of that and it springs back and stays a little longer */
+(()=>{ const t=$('#toast'); let p=null; const rest=()=>{ t.style.transform=''; t.style.opacity=''; };
+  t.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; p={x:e.clientX,y:e.clientY,dx:0,dy:0}; try{ t.setPointerCapture(e.pointerId); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; });
+  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2; p.dx=dx; p.dy=dy;
+    t.style.transform=`translate(calc(-50% + ${dx}px), ${dy}px)`; t.style.opacity=String(Math.max(.2,1-(Math.abs(dx)+Math.max(0,-dy))/240)); });
+  const up=()=>{ if(!p) return; const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+    if(dy<-26 || Math.abs(dx)>64){ t.style.transform= Math.abs(dx)>64? `translate(calc(-50% + ${Math.sign(dx)*480}px), ${dy}px)` : 'translate(-50%, calc(-100% - 40px))'; t.style.opacity='0';
+      setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; },230); }
+    else { rest(); setTimeout(()=>{ t.style.animation=''; },240); if(!t.dataset.sticky) toastT=setTimeout(()=>{ t.hidden=true; },2600); } };
+  t.addEventListener('pointerup',up); t.addEventListener('pointercancel',up);
+})();
 const VIEWS=['library','words','stats','settings'];
 function showView(v){
   for(const x of VIEWS) $('#v-'+x).hidden=(x!==v);

@@ -168,6 +168,11 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 .seg.lq button[aria-pressed="true"]{background:transparent;color:var(--accent-ink)}
 .seg.lq:not(.lq-on) button[aria-pressed="true"]{color:var(--ink)}
 .drop-seg{position:absolute;z-index:0;background:var(--accent);pointer-events:none}
+.lqr{position:relative}
+.drop-ring{position:absolute;z-index:2;border:2.5px solid var(--accent);box-sizing:border-box;background:transparent;pointer-events:none;border-radius:12px}
+.lqr.lq-on>button[aria-pressed="true"]{box-shadow:none}
+.fontrow.lqr.lq-on>button[aria-pressed="true"],.fontgrid.lqr.lq-on>.chip[aria-pressed="true"]{border-color:var(--line)}
+.themes.lqr.lq-on>button[aria-pressed="true"]{border-color:var(--line)}
 
 /* ---------- Reader frame ---------- */
 #v-reader{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;background:var(--page-bg);color:var(--page-ink)}
@@ -484,8 +489,14 @@ h3.subh{margin:16px 0 8px}
 .goalbar{height:10px;border-radius:5px;background:var(--raise);overflow:hidden;margin-top:6px}
 .goalbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25);flex-wrap:wrap}
-#toast button{background:none;border:0;color:var(--paper);font-weight:700;text-decoration:underline;cursor:pointer;padding:4px}
+/* toasts: at the top, in the theme's colours; they drop in from the top and flick away up or sideways */
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
+#toast:not([hidden]){animation:toastIn .34s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes toastIn{from{transform:translate(-50%,calc(-100% - 20px));opacity:0}}
+@media (prefers-reduced-motion:reduce){#toast:not([hidden]){animation:none}}
+#toast button{background:none;border:0;color:var(--accent);font-weight:700;cursor:pointer;padding:4px}
+body:has(#v-reader:not([hidden])) #toast{background:var(--page-bg);color:var(--page-ink);border-color:var(--page-line)}   /* in a book: the page's own theme */
+body:has(#v-reader:not([hidden])) #toast button{color:var(--page-link)}
 #toastProg{flex-basis:100%}
 
 /* Words */

@@ -5,6 +5,14 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — toasts: move to the top, match the theme, swipe away.** Built 2026.11.24.8: `#toast` sits under the
+  top safe area, uses `--surface`/`--ink`/`--line` (in a book: `--page-bg`/`--page-ink`/`--page-link`, via
+  `body:has(#v-reader:not([hidden]))`), drops in from the top, flicks away up (26px) or sideways (64px); a short
+  drag springs back and stays 2.6 s more (progress toasts stay). Test: `toast.js`.
+- **Mick — "the drop in the reading options still doesn't work right."** The mode/segmented controls slid after
+  2026.11.24.6, but the theme swatches and font tiles (`.themes`, `.fontrow`, `.fontgrid`) weren't `.seg`, so their
+  selection still jumped. Now they get a sliding accent **ring** (same stretch-and-settle motion; `.drop-ring`,
+  `.lqr`). Test: `aadrop.js`.
 - **Mick — "I can't even see all the books"; wants wheels.** His idea: a vertical wheel with momentum and an
   indicator on the current book; when it lands, a chapter wheel, then a verse wheel; commit with Go, not on
   release. Offered A (picker wheels, his idea + thin spine map kept), B (grids, Bible-app style), C (one zooming
