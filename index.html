@@ -202,12 +202,15 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #rTts.on{color:var(--page-link)}
 .run{position:absolute;left:0;right:0;z-index:4;text-align:center;font-size:.72rem;color:var(--page-muted);opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 56px;font-variant-numeric:tabular-nums}
 #runHead{top:16px}
-/* "‹ <book>": the way back after a link into another book (top bar, and at the top left of the page with the controls hidden) */
-#rBack.has-crumb{width:auto;max-width:42%;padding:0 8px 0 2px;gap:0;color:var(--page-link,var(--accent));justify-content:flex-start}
-#rBack.has-crumb svg{flex:none}
-#rBack .crumb{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.runcrumb{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:9px;z-index:6;max-width:36%;padding:4px 6px;border:0;background:none;color:var(--page-link,var(--accent));font:inherit;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s}
-#v-reader.chrome-off:not([data-mode="speed"]) .runcrumb{opacity:1;pointer-events:auto}
+/* "‹ <book>": the way back after a link into another book. Its own row under the header that stays put when the
+   controls hide; the text starts below it, so it never covers the page. */
+#rCrumb{flex:none;display:flex;align-items:center;gap:2px;height:32px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));margin:0;border:0;border-bottom:1px solid var(--page-line);background:var(--page-bg);color:var(--page-link,var(--accent));font:inherit;font-weight:700;font-size:.92rem;text-align:left;cursor:pointer;position:relative;z-index:6;min-width:0}
+#rCrumb[hidden]{display:none}
+#rCrumb svg{flex:none;width:20px;height:20px}
+#rCrumb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-reader.overlay:not([data-mode="speed"]) #rCrumb{position:absolute;left:0;right:0;top:49px}
+#v-reader.overlay.crumbing #pgClip{top:84px}
+#v-reader.overlay.crumbing #scrollView{top:82px}
 #v-reader{--run-b:calc(14px + env(safe-area-inset-bottom,0px))}
 #runFoot{bottom:var(--run-b)}
 /* today's reading toward the daily goal: a small circle, only with the controls hidden and a goal set */
@@ -628,6 +631,7 @@ input[type=color]{width:44px;height:44px;border:0;padding:0;background:none;bord
       <button class="icon-btn" id="rToc" type="button" aria-label="Contents, bookmarks and notes"></button>
       <button class="icon-btn" id="rAa" type="button" aria-label="Reading options">Aa</button>
     </header>
+    <button id="rCrumb" type="button" hidden></button>
     <div id="rBody">
       <div id="pagesView" hidden><div id="pgClip"><div class="book" id="pgFlow"></div><div class="book" id="pgMeasure" aria-hidden="true"></div></div></div>
       <div id="scrollView" hidden><div class="book" id="scFlow"></div></div>
@@ -695,7 +699,6 @@ input[type=color]{width:44px;height:44px;border:0;padding:0;background:none;bord
       </div>
     </footer>
     <div class="run" id="runHead"></div>
-    <button class="runcrumb" id="runCrumb" type="button" hidden></button>
     <div class="run" id="runFoot"></div>
     <button class="goalring" id="goalRing" type="button" aria-label="Reading today" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle class="gr-bg" cx="10" cy="10" r="7.5" pathLength="100"/><circle class="gr-fg" cx="10" cy="10" r="7.5" pathLength="100"/></svg></button>
   </section>
@@ -2473,17 +2476,18 @@ const RT={back:null, inId:null, t:0, timer:0};
 function showReturnLink(){
   if(!RT.back || !R.meta || R.meta.id!==RT.inId) return;
   const m=LIB.find(x=>x.id===RT.back.id); if(!m){ RT.back=null; return; }
-  const b=$('#rBack'), c=$('#runCrumb'), name=esc(m.title);
-  b.innerHTML=ICON.back+`<span class="crumb">${name}</span>`; b.classList.add('has-crumb'); b.setAttribute('aria-label','Return to '+m.title);
-  c.innerHTML=`‹ ${name}`; c.hidden=false; c.setAttribute('aria-label','Return to '+m.title);
+  const c=$('#rCrumb'), v=$('#v-reader'), was=!c.hidden;
+  c.innerHTML=ICON.back+`<span>${esc(m.title)}</span>`; c.setAttribute('aria-label','Return to '+m.title); c.hidden=false;
+  if(!was){ v.classList.add('crumbing'); if(R.mode!=='speed') R.anchor=R.pos; relayoutSoon(); }   /* the text moves down a line, keeping the exact spot you jumped to */
   clearTimeout(RT.timer); RT.timer=setTimeout(endReturnLink, Math.max(1000, RT.t+600000-Date.now()));   /* ten minutes at most */
 }
-function endReturnLink(){
+function endReturnLink(leaving){
   clearTimeout(RT.timer); RT.back=null; RT.inId=null;
-  const b=$('#rBack'); b.innerHTML=ICON.back; b.classList.remove('has-crumb'); b.setAttribute('aria-label','Back to library'); $('#runCrumb').hidden=true;
+  const c=$('#rCrumb'), v=$('#v-reader'); if(c.hidden) return;
+  c.hidden=true; v.classList.remove('crumbing'); if(!leaving && R.meta){ holdPlace(); relayoutSoon(); }
 }
-async function returnBack(){ const to=RT.back; if(!to) return; endReturnLink(); if(await openDoc(to.id)!==false) goTo(to.pos); }
-$('#runCrumb').addEventListener('click',e=>{ e.stopPropagation(); returnBack(); });
+async function returnBack(){ const to=RT.back; if(!to) return; endReturnLink(true); if(await openDoc(to.id)!==false) goTo(to.pos); }
+$('#rCrumb').addEventListener('click',e=>{ e.stopPropagation(); returnBack(); });
 /* go to a spot in another book; remember this one so the return toast can bring you back */
 async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
@@ -2704,7 +2708,7 @@ function dashSplitText(text, meta){
 }
 async function openDoc(id){
   const meta=LIB.find(x=>x.id===id); if(!meta){ toast('That document couldn’t be found.'); return false; }
-  if(RT.back && id!==RT.inId) endReturnLink();   /* leaving the linked-to book ends the return link */
+  if(RT.back && id!==RT.inId) endReturnLink(true);   /* leaving the linked-to book ends the return link */
   if(meta.pending){ if(!await fetchShelfBook(meta)) return false; }
   R.anchor=null; LS.set('tutOpen', meta.kind==='sample');
   let text=await Store.get('texts',id).catch(()=>null);
@@ -2769,7 +2773,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; endReturnLink(); LS.set('resume',null);   /* back in the library: next launch opens the library */
+  Drop.ghost(null); R.backPos=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -4384,10 +4388,10 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.7 preview';
+const APP_VERSION='2026.11.25.8 preview';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
-  ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, the back arrow at the top left becomes “‹ <the book you came from>”; tap it to go back.'],
+  ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
   ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate; tap the circle after that to see it again.'],
   ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],
   ['Exact quotes','Copied and shared quotes from the Bible now say “John 3:16–18 (KJV)”; from other books they name the part and chapter.'],
@@ -5729,13 +5733,13 @@ function showView(v){
 }
 const TABS={library:['book','Library'], words:['note','Notes'], stats:['stats','Stats'], settings:['gear','Settings']};
 document.querySelectorAll('#tabs button').forEach(b=>{ const [ic,l]=TABS[b.dataset.tab]; b.innerHTML=ICON[ic]+l; b.onclick=()=>showView(b.dataset.tab); });
-$('#rBack').innerHTML=ICON.back; $('#rBack').onclick=()=>{ if(RT.back) returnBack(); else closeReader(); };   /* the back arrow can be a link back to another book */ $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
+$('#rBack').innerHTML=ICON.back; $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
 $('#bSent').innerHTML=ICON.bsent; $('#bWord').innerHTML=ICON.back; $('#fWord').innerHTML=ICON.fwd; $('#fSent').innerHTML=ICON.fsent;
 $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown').innerHTML=ICON.minus; $('#asUp').innerHTML=ICON.plus; $('#asPlay').innerHTML=ICON.play;
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=25;
+const SAMPLE_V=26;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -5768,7 +5772,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
-<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, the back arrow at the top left names the book you came from: tap it to go back.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>

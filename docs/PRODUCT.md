@@ -75,10 +75,10 @@ and move items out of **Pending changes** once they're built.
   left. Tap: go back, and it moves to where you'd jumped to (back and forth). Fades after 3 minutes. Replaced the
   back pill.
 - **Return link (another book):** when a link takes you into another book (scripture peek → the Bible), no hollow
-  drop; the reader's back arrow becomes "‹ <book title>" in the link colour (like iOS's "◀ Safari"), and with the
-  controls hidden the same link sits at the top left of the page. Tap → back to that book. Ends when you leave that
-  book or after 10 minutes; then the arrow goes to the library again. (Mick, Nov 25: first a toast "Return to …"; he
-  found it didn't look tappable and covered the title, and asked for another way.)
+  drop; a row under the header reads "‹ <book title>" in the link colour. It stays in the same place with the
+  controls hidden, and the text starts below it (the page re-flows, keeping your exact spot). Tap → back to that
+  book. Ends when you leave that book or after 10 minutes. The header's own back arrow stays the plain way to the
+  library. (Mick, Nov 25: toast → back-arrow link → its own row, "so it's readable".)
 - **Scripture peek:** references in any book that isn't itself a Bible (book name/abbreviation + ch:v, ranges,
   "1 Cor.", follow-on refs like "; 12:1") get a faint dotted underline; tap → a card with up to 8 verses from the
   Bible in the library (most recently read; downloaded first; the KJV by default; a not-yet-downloaded shelf Bible

@@ -26,7 +26,7 @@ whole.**
 | What read aloud says | `i_speech.js` | `speechChunk`, `refPhrase`, `acronymSpoken`, `ellipsisPause` |
 | Natural voices (Piper), live playback | `h_voice.js` | `PIP_VOICES`, `natSpeakFrom`, `natChunkAt`, `natPauseFor` |
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
-| Where you were (ghost drop, same book); return link (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnLink`, `endReturnLink`, `returnBack`, `#rBack.has-crumb`, `#runCrumb` |
+| Where you were (ghost drop, same book); return link (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnLink`, `endReturnLink`, `returnBack`, `#rCrumb`, `.crumbing` |
 | Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` |
 | Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
 | Daily goal circle in the reader; goal celebration | `e_reader.js`, `f_js3.js`, `k_blob.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs`, `Drop.celebrate`, `.drop-buddy` |

@@ -202,12 +202,15 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #rTts.on{color:var(--page-link)}
 .run{position:absolute;left:0;right:0;z-index:4;text-align:center;font-size:.72rem;color:var(--page-muted);opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 56px;font-variant-numeric:tabular-nums}
 #runHead{top:16px}
-/* "‹ <book>": the way back after a link into another book (top bar, and at the top left of the page with the controls hidden) */
-#rBack.has-crumb{width:auto;max-width:42%;padding:0 8px 0 2px;gap:0;color:var(--page-link,var(--accent));justify-content:flex-start}
-#rBack.has-crumb svg{flex:none}
-#rBack .crumb{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.runcrumb{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:9px;z-index:6;max-width:36%;padding:4px 6px;border:0;background:none;color:var(--page-link,var(--accent));font:inherit;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s}
-#v-reader.chrome-off:not([data-mode="speed"]) .runcrumb{opacity:1;pointer-events:auto}
+/* "‹ <book>": the way back after a link into another book. Its own row under the header that stays put when the
+   controls hide; the text starts below it, so it never covers the page. */
+#rCrumb{flex:none;display:flex;align-items:center;gap:2px;height:32px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));margin:0;border:0;border-bottom:1px solid var(--page-line);background:var(--page-bg);color:var(--page-link,var(--accent));font:inherit;font-weight:700;font-size:.92rem;text-align:left;cursor:pointer;position:relative;z-index:6;min-width:0}
+#rCrumb[hidden]{display:none}
+#rCrumb svg{flex:none;width:20px;height:20px}
+#rCrumb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-reader.overlay:not([data-mode="speed"]) #rCrumb{position:absolute;left:0;right:0;top:49px}
+#v-reader.overlay.crumbing #pgClip{top:84px}
+#v-reader.overlay.crumbing #scrollView{top:82px}
 #v-reader{--run-b:calc(14px + env(safe-area-inset-bottom,0px))}
 #runFoot{bottom:var(--run-b)}
 /* today's reading toward the daily goal: a small circle, only with the controls hidden and a goal set */

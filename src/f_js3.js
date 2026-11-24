@@ -1073,13 +1073,13 @@ function showView(v){
 }
 const TABS={library:['book','Library'], words:['note','Notes'], stats:['stats','Stats'], settings:['gear','Settings']};
 document.querySelectorAll('#tabs button').forEach(b=>{ const [ic,l]=TABS[b.dataset.tab]; b.innerHTML=ICON[ic]+l; b.onclick=()=>showView(b.dataset.tab); });
-$('#rBack').innerHTML=ICON.back; $('#rBack').onclick=()=>{ if(RT.back) returnBack(); else closeReader(); };   /* the back arrow can be a link back to another book */ $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
+$('#rBack').innerHTML=ICON.back; $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
 $('#bSent').innerHTML=ICON.bsent; $('#bWord').innerHTML=ICON.back; $('#fWord').innerHTML=ICON.fwd; $('#fSent').innerHTML=ICON.fsent;
 $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown').innerHTML=ICON.minus; $('#asUp').innerHTML=ICON.plus; $('#asPlay').innerHTML=ICON.play;
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=25;
+const SAMPLE_V=26;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1112,7 +1112,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
-<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, the back arrow at the top left names the book you came from: tap it to go back.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>

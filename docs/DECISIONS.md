@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — likes the way back, wants it on its own line under the header, readable, visible in the same place with
+  the controls hidden, without overlapping the text.** Built 2026.11.25.8: `#rCrumb` row (32 px) under `#rTop`; in
+  overlay (focus) mode it's absolutely placed at 49 px and the text area moves down (`.crumbing`); otherwise it's a
+  normal flex row. The re-flow anchors on the exact jumped-to word (first try anchored on the page top and landed
+  on verse 5 instead of 8). Header back arrow is plain again. Test: `delight.js`.
 - **Mick — tapping the goal circle after the goal is met plays the celebration too** (2026.11.25.7; popup shows as
   well). Test: `delight.js`.
 - **Mick — the "Return to …" toast didn't look tappable and covered the title; "move it or do it another way".**

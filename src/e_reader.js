@@ -535,17 +535,18 @@ const RT={back:null, inId:null, t:0, timer:0};
 function showReturnLink(){
   if(!RT.back || !R.meta || R.meta.id!==RT.inId) return;
   const m=LIB.find(x=>x.id===RT.back.id); if(!m){ RT.back=null; return; }
-  const b=$('#rBack'), c=$('#runCrumb'), name=esc(m.title);
-  b.innerHTML=ICON.back+`<span class="crumb">${name}</span>`; b.classList.add('has-crumb'); b.setAttribute('aria-label','Return to '+m.title);
-  c.innerHTML=`‹ ${name}`; c.hidden=false; c.setAttribute('aria-label','Return to '+m.title);
+  const c=$('#rCrumb'), v=$('#v-reader'), was=!c.hidden;
+  c.innerHTML=ICON.back+`<span>${esc(m.title)}</span>`; c.setAttribute('aria-label','Return to '+m.title); c.hidden=false;
+  if(!was){ v.classList.add('crumbing'); if(R.mode!=='speed') R.anchor=R.pos; relayoutSoon(); }   /* the text moves down a line, keeping the exact spot you jumped to */
   clearTimeout(RT.timer); RT.timer=setTimeout(endReturnLink, Math.max(1000, RT.t+600000-Date.now()));   /* ten minutes at most */
 }
-function endReturnLink(){
+function endReturnLink(leaving){
   clearTimeout(RT.timer); RT.back=null; RT.inId=null;
-  const b=$('#rBack'); b.innerHTML=ICON.back; b.classList.remove('has-crumb'); b.setAttribute('aria-label','Back to library'); $('#runCrumb').hidden=true;
+  const c=$('#rCrumb'), v=$('#v-reader'); if(c.hidden) return;
+  c.hidden=true; v.classList.remove('crumbing'); if(!leaving && R.meta){ holdPlace(); relayoutSoon(); }
 }
-async function returnBack(){ const to=RT.back; if(!to) return; endReturnLink(); if(await openDoc(to.id)!==false) goTo(to.pos); }
-$('#runCrumb').addEventListener('click',e=>{ e.stopPropagation(); returnBack(); });
+async function returnBack(){ const to=RT.back; if(!to) return; endReturnLink(true); if(await openDoc(to.id)!==false) goTo(to.pos); }
+$('#rCrumb').addEventListener('click',e=>{ e.stopPropagation(); returnBack(); });
 /* go to a spot in another book; remember this one so the return toast can bring you back */
 async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
@@ -766,7 +767,7 @@ function dashSplitText(text, meta){
 }
 async function openDoc(id){
   const meta=LIB.find(x=>x.id===id); if(!meta){ toast('That document couldn’t be found.'); return false; }
-  if(RT.back && id!==RT.inId) endReturnLink();   /* leaving the linked-to book ends the return link */
+  if(RT.back && id!==RT.inId) endReturnLink(true);   /* leaving the linked-to book ends the return link */
   if(meta.pending){ if(!await fetchShelfBook(meta)) return false; }
   R.anchor=null; LS.set('tutOpen', meta.kind==='sample');
   let text=await Store.get('texts',id).catch(()=>null);
@@ -831,7 +832,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; endReturnLink(); LS.set('resume',null);   /* back in the library: next launch opens the library */
+  Drop.ghost(null); R.backPos=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
