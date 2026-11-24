@@ -329,12 +329,18 @@ async function scEnsure(){
     for(let guard=0; guard<4; guard++){
       const first=scFlow.firstElementChild, last=scFlow.lastElementChild; if(!first) break;
       if(scView.scrollTop+vh*2.5>scView.scrollHeight && last._k<R.SEC.length-1){ await renderSec(scFlow,last._k+1,'append'); continue; }
-      if(scView.scrollTop<vh*1.5 && first._k>0){ await renderSec(scFlow,first._k-1,'prepend',scView); continue; }
+      /* adding above also needs a scroll correction: not while a swipe is coasting (unless we've run out of text above) */
+      const coasting=!SC.auto && !SC.touching && performance.now()-(SC.scrollAt||0)<700;
+      if(scView.scrollTop<vh*1.5 && first._k>0 && (!coasting || scView.scrollTop<40)){ await renderSec(scFlow,first._k-1,'prepend',scView); continue; }
       break;
     }
+    /* trim far-away sections. Never above the screen while the page is moving: iPhone Safari ignores the scroll
+       correction during a coasting swipe, so removing a big section above (a long preface) would throw the page
+       thousands of pixels ahead into text not drawn yet (Mick's Nov 25 recording). Those wait until it stops. */
+    const moving= !SC.auto && (SC.touching || performance.now()-(SC.scrollAt||0)<700);   /* auto-scroll isn't a coasting swipe */
     while(scFlow.children.length>5){
       const cur=secAt(R.pos), first=scFlow.firstElementChild, last=scFlow.lastElementChild;
-      if(cur-first._k > last._k-cur){ const h0=scView.scrollHeight, t0=scView.scrollTop; first.remove(); scView.scrollTop=t0-(h0-scView.scrollHeight); }
+      if(cur-first._k > last._k-cur){ if(moving) break; const h0=scView.scrollHeight, t0=scView.scrollTop; first.remove(); scView.scrollTop=t0-(h0-scView.scrollHeight); }
       else last.remove();
     }
   } finally{ SC.busy=false; }
@@ -352,6 +358,7 @@ function wordAtY(y){
 }
 function scPos(){ return wordAtY(scView.getBoundingClientRect().top+6); }
 scView.addEventListener('scroll',()=>{
+  SC.scrollAt=performance.now(); clearTimeout(SC.tidyT); SC.tidyT=setTimeout(()=>{ if(R.mode==='scroll' && !SC.touching) scEnsure(); }, 800);   /* tidy up once it has stopped */
   if(SC.ticking || R.mode!=='scroll') return; SC.ticking=true;
   requestAnimationFrame(async()=>{
     SC.ticking=false; if(R.mode!=='scroll') return;
@@ -374,7 +381,7 @@ scView.addEventListener('pointerup',e=>{
 });
 scView.addEventListener('touchstart',()=>{ SC.touching=true; },{passive:true});
 scView.addEventListener('touchmove',()=>{ SC.userScrolled=true; SC.gestureAt=performance.now(); R.anchor=null; },{passive:true});
-scView.addEventListener('touchend',()=>{ SC.touching=false; if(SC.userScrolled) SC.gestureAt=performance.now(); },{passive:true});
+scView.addEventListener('touchend',()=>{ SC.touching=false; if(SC.userScrolled) SC.gestureAt=performance.now(); clearTimeout(SC.tidyT); SC.tidyT=setTimeout(()=>{ if(R.mode==='scroll' && !SC.touching && performance.now()-(SC.scrollAt||0)>700) scEnsure(); }, 800); },{passive:true});
 scView.addEventListener('touchcancel',()=>{ SC.touching=false; },{passive:true});
 scView.addEventListener('wheel',()=>{ SC.userScrolled=true; SC.gestureAt=performance.now(); R.anchor=null; },{passive:true});
 scView.addEventListener('keydown',()=>{ SC.userScrolled=true; SC.gestureAt=performance.now(); R.anchor=null; });

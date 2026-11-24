@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick (screen recording) — Scroll mode glitch in The Imitation of Christ.** Past the "Book I" heading the page went
+  blank and raced to chapter XX. Cause: Scroll mode keeps ~5 sections rendered and removes far ones above the screen
+  with a scrollTop correction; iPhone Safari ignores that correction during a coasting swipe, and Imitation's
+  preface is ~9,600 px, so the page jumped that far into unrendered text. Fix (2026.11.25.2): never remove or prepend
+  above the screen while a swipe is moving (finger down, or a scroll event in the last 700 ms; auto-scroll exempt);
+  tidy 800 ms after it stops. Test: `scrolljump.js` (old code: a 9,662 px jump; now 0).
 - **Mick — drop stage 2: unsure about the pool.** Saw mock-ups of the four pool takes, wasn't sure he likes the idea,
   asked for other ways to make the app delightfully useful. Offered: where you were (A), today's reading (B),
   chapter horizon (C), then scripture peek, exact citations, open into your book, sleep timer, today's highlight,

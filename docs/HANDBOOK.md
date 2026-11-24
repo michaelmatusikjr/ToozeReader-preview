@@ -17,7 +17,7 @@ whole.**
 | Settings, themes, fonts, EPUB/PDF import | `c_js1.js` | `DEFAULTS`, `S`, `THEMES`, `applyLook`, `parseEpub`, `parseFile` |
 | Reader core, open/close a book | `e_reader.js` | `R`, `openDoc`, `closeReader`, `goTo`, `switchMode`, `MODES` |
 | Pages mode | `e_reader.js` | `P`, `pgLoad`, `pgSet`, `pgTurn`, `pgCheckAnchor`, `holdPlace` |
-| Scroll mode, auto-scroll, tear | `e_reader.js` | `SC`, `scShow`, `asStart`, `asStop`, `tearMark`, `tearShowOnReturn` |
+| Scroll mode, auto-scroll, tear | `e_reader.js` | `SC`, `scShow`, `scEnsure` (never trims/prepends above the screen mid-swipe: iOS ignores the scroll correction), `asStart`, `asStop`, `tearMark`, `tearShowOnReturn` |
 | Speed mode | `e_reader.js` | `speedText`, `difficulty`, `hyphenSlow` |
 | Contents/Notes sheet in a book (bookmarks in place, search, section filter) | `e_reader.js` | `openToc`, `tocList`, `hlList`, `placeLabel`, `tocSpan`, `R.tocShowNow`; the wheels (style 'spine'): `drawSpine`, `spineUse`, `versesIn`, `kidsOf`, `pageEntries`, `wheelLabel`, `fullTitle`, `refTarget`, `S.tocStyle` |
 | Selection, highlights | `e_reader.js` | `SEL`, `hasSelection`, `decorate` |

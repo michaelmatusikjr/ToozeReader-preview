@@ -1,5 +1,5 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.1';
+const APP_VERSION='2026.11.25.2';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
   ['Back to where you were','After any jump, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). It replaces the “Back to where you were” button.'],
