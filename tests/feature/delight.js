@@ -1,5 +1,5 @@
 // Nov 24 batch (Mick: "do all of them"): where you were (ghost drop), scripture peek, exact citations, today's reading
-// in the drop, a tick under the thumb (haptics), and opening straight into the book you were reading.
+// as a small circle in the reader, the return toast after a link into another book, and opening straight into the book you were reading.
 const __E=require('../env');
 const { chromium } = require('playwright');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -28,20 +28,23 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   const gb=await ghost(); ok('with the controls hidden it rides the bottom line', gb && await pg.evaluate(()=>{ const r=$('#dropGhost').getBoundingClientRect(); return r.top>innerHeight-40; }));
   await pg.screenshot({path:__E.SCRATCH+'ghost_base.png'});
 
-  // ---- today's reading ----
-  await pg.evaluate(()=>{ const st={}; st[dayKey()]={ms:5*60000, words:1000}; LS.set('stats',st); S.goalMins=10; updateToday(); });
-  ok('the drop knows today is half done', await pg.evaluate(()=>$('#drop').style.getPropertyValue('--fill')==='50.0%'), await pg.evaluate(()=>$('#drop').style.getPropertyValue('--fill')));
-  const hit=await pg.evaluate(()=>{ const h=$('#dropHit'); return h&&!h.hidden; });
-  ok('the bottom drop can be touched', hit);
-  await pg.click('#dropHit'); await sleep(300);
-  const bub=await pg.evaluate(()=>{ const x=document.querySelector('.drop-bubble'); return x&&x.textContent; });
-  ok('the bubble stays on screen', await pg.evaluate(()=>{ const r=document.querySelector('.drop-bubble').getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth; }));
-  ok('touching it shows today and the chapter', /^5 min today · .+ left in chapter$/.test(bub||''), bub);
-  await pg.screenshot({path:__E.SCRATCH+'drop_bubble.png'});
-  await pg.evaluate(()=>closeReader()); await sleep(500);
-  ok('on the tab bar the drop fills half way', await pg.evaluate(()=>$('#drop').dataset.kind==='tab' && getComputedStyle($('#drop')).backgroundImage.includes('gradient')));
-  await pg.evaluate(()=>{ recordStats(6*60000, 1200); }); await sleep(300);
-  ok('meeting the goal fills it and ripples', await pg.evaluate(()=>$('#drop').style.getPropertyValue('--fill')==='100.0%' && !!document.querySelector('.drop-ripple')));
+  // ---- today's reading: a small circle in the reader, only with a goal (Mick, Nov 25) ----
+  await pg.evaluate(()=>{ const st={}; st[dayKey()]={ms:5*60000, words:1000}; LS.set('stats',st); S.goalMins=0; updateToday(); setChrome(false); });
+  await sleep(300);
+  ok('no goal: no circle', await pg.evaluate(()=>$('#goalRing').hidden));
+  ok('the tab bar drop is plain again (no gauge)', await pg.evaluate(()=>!document.querySelector('#dropHit') && !document.querySelector('.drop-ripple')));
+  await pg.evaluate(()=>{ S.goalMins=10; saveSettings(); updateToday(); }); await sleep(300);
+  ok('with a goal: a circle half full, only with the controls hidden', await pg.evaluate(()=>{ const g=$('#goalRing'); return !g.hidden && getComputedStyle(g).opacity==='1' && g.style.getPropertyValue('--p')==='0.500'; }));
+  await pg.click('#goalRing'); await sleep(300);
+  const pop=await pg.evaluate(()=>{ const x=document.querySelector('.goalpop'); return x&&x.innerText; });
+  ok('tapping it: "5 minutes read today" / "Goal 10 minutes"', pop==='5 minutes read today\nGoal 10 minutes', pop);
+  ok('the popup stays on screen', await pg.evaluate(()=>{ const r=document.querySelector('.goalpop').getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth && r.top>=0; }));
+  await pg.screenshot({path:__E.SCRATCH+'goal_ring.png'});
+  await pg.evaluate(()=>setChrome(true)); await sleep(300);
+  ok('hidden while the controls are up', await pg.evaluate(()=>getComputedStyle($('#goalRing')).opacity==='0'));
+  await pg.evaluate(()=>{ recordStats(6*60000, 1200); }); await sleep(200);
+  ok('meeting the goal fills it', await pg.evaluate(()=>$('#goalRing').style.getPropertyValue('--p')==='1.000'));
+  await pg.evaluate(()=>closeReader()); await sleep(400);
 
   // ---- scripture peek ----
   await pg.evaluate(()=>openDoc('shelf-pursuit')); await sleep(1200);
@@ -56,9 +59,29 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.screenshot({path:__E.SCRATCH+'peek.png'});
   await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
   ok('Read it in context opens the Bible at that verse', await pg.evaluate(()=>R.meta.id==='shelf-kjv' && currentChapter(R.pos).t==='Psalm 63' && R.words[R.pos]==='8'), await pg.evaluate(()=>[R.meta.id, currentChapter(R.pos).t, R.words[R.pos]]));
-  g=await ghost(); ok('a ghost waits to take you back to the other book', g && g.away, g);
-  await pg.click('#dropGhost'); await sleep(2000);
-  ok('…and does', await pg.evaluate(k=>R.meta.id==='shelf-pursuit' && Math.abs(R.pos-k)<30, k), await pg.evaluate(()=>[R.meta.id,R.pos]));
+  ok('no hollow drop for another book…', !(await ghost()));
+  const rt=await pg.evaluate(()=>[!$('#toast').hidden, $('#toastMsg').textContent]);
+  ok('…instead a toast: "Return to The Pursuit of God"', rt[0] && rt[1]==='Return to The Pursuit of God', rt);
+  await pg.screenshot({path:__E.SCRATCH+'return_toast.png'});
+  await sleep(6000);
+  ok('it stays (not a 3-second toast)', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent.startsWith('Return to')));
+  await pg.evaluate(()=>toast('Bookmarked')); await sleep(3800);
+  ok('another message comes and goes, then it’s back', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent.startsWith('Return to')));
+  await pg.click('#toastMsg'); await sleep(2000);
+  ok('tapping it takes you back', await pg.evaluate(k=>R.meta.id==='shelf-pursuit' && Math.abs(R.pos-k)<30 && $('#toast').hidden, k), await pg.evaluate(()=>[R.meta.id,R.pos]));
+  // leaving the Bible ends it; flicking it away ends it
+  await pg.evaluate(async k=>{ R.refFor=null; await openRefPeek(k); }, k); await sleep(1500); await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
+  await pg.evaluate(()=>closeReader()); await sleep(500);
+  ok('navigating away from the Bible ends it', await pg.evaluate(()=>$('#toast').hidden || !$('#toastMsg').textContent.startsWith('Return to')));
+  await pg.evaluate(()=>openDoc('shelf-pursuit')); await sleep(1200);
+  await pg.evaluate(async k=>{ R.refFor=null; await openRefPeek(k); }, k); await sleep(1500); await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
+  { const bx=await pg.evaluate(()=>{ const r=$('#toast').getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; });
+    await pg.mouse.move(bx.x,bx.y); await pg.mouse.down(); await pg.mouse.move(bx.x,bx.y-40,{steps:5}); await pg.mouse.up(); await sleep(500); }
+  ok('flicking it away ends it', await pg.evaluate(()=>$('#toast').hidden && RT.back===null));
+  await pg.evaluate(()=>toast('Bookmarked')); await sleep(3800);
+  ok('…and it doesn’t come back', await pg.evaluate(()=>$('#toast').hidden));
+  ok('it would end by itself after ten minutes', await pg.evaluate(async()=>{ RT.back={id:'shelf-pursuit',pos:0}; RT.inId=R.meta.id; RT.t=Date.now()-600000+300; showReturnToast(); await new Promise(r=>setTimeout(r,1500)); return $('#toast').hidden && RT.back===null; }));
+  await pg.evaluate(()=>closeReader()); await pg.evaluate(()=>openDoc('shelf-pursuit')); await sleep(1200);
   ok('no marks inside a Bible itself', await pg.evaluate(async()=>{ await openDoc('shelf-kjv'); return scanRefs().length===0; }));
   // ranges and the ordinal books
   ok('ranges and "1 Cor." parse', await pg.evaluate(()=>{ R.refFor=null; const save=[R.words,R.n,R.wf,R.meta.chapters]; R.words=['See','1','Cor.','13:4–7;','and','Ps.','23:1.']; R.n=7; R.wf=null; R.meta={...R.meta, id:'x', chapters:[]}; R.vFor=null; const ri=scanRefs(); const out=ri.map(i=>refName(R.refMap.get(i))); [R.words,R.n,R.wf]=save; R.refFor=null; R.vFor=null; return [...new Set(out)].join('|'); })==='1 Corinthians 13:4–7|Psalm 23:1');
@@ -72,16 +95,8 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('Bible range: "John 3:16–18 (KJV)"', cit[1]==='John 3:16–18 (KJV)', cit[1]);
   ok('a book: author, title, part and chapter', cit[2]==='Thomas à Kempis, The Imitation of Christ, Book I, ch. XII', cit[2]);
 
-  // ---- a tick under the thumb ----
-  const t0=await pg.evaluate(()=>window.__ticks||0);
-  await pg.evaluate(()=>{ S.tocStyle='spine'; saveSettings(); setChrome(true); openToc('toc'); }); await sleep(900);
-  await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[0]; c.scrollTop=c.scrollTop+3*40; }); await sleep(400);
-  ok('a wheel landing on a new name ticks', await pg.evaluate(t=>(window.__ticks||0)>t, t0));
-  ok('the tick uses an iPhone switch (hidden)', await pg.evaluate(()=>!!document.querySelector('label[aria-hidden] input[switch]')));
-  await pg.evaluate(()=>closeSheet()); await sleep(400);
-
   // ---- open straight into your book ----
-  await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='XII'); goTo(c.i+50); }); await sleep(500);
+  await pg.evaluate(async()=>{ await openDoc('shelf-imitation'); const c=R.meta.chapters.find(c=>c.t==='XII'); goTo(c.i+50); }); await sleep(800);
   const before=await pg.evaluate(()=>[R.meta.id, R.pos]);
   await pg.evaluate(()=>{ saveProgress(true); }); await sleep(300);
   await pg.reload(); await sleep(2500);

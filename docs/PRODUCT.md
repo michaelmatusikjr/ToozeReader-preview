@@ -68,27 +68,28 @@ and move items out of **Pending changes** once they're built.
 - Archive keeps chosen progress/bookmarks/highlights/notes, DNF or finished status, optional 1–5 star rating and
   review, finish date. Re-adding an archived book restores its saved data.
 
-## The Nov 25 batch (built 2026.11.25.1; Mick chose these Nov 24, "decide what you can")
+## The Nov 25 batch (built 2026.11.25.1, revised 2026.11.25.3 after Mick's feedback)
 
-- **Where you were:** after any jump (contents, search, wheels, typed reference, footnote back-link), a hollow drop
-  sits on the progress line (scrubber with controls up, bottom line with them hidden) at the spot you left. Tap: go
-  back, and it moves to where you'd jumped to (back and forth). Across books (scripture peek) it sits at the start
-  of the line with a ‹ and takes you to the other book. Fades after 3 minutes unused. Replaces the back pill.
+- **Where you were (same book):** after any jump (contents, search, wheels, typed reference, footnote back-link), a
+  hollow drop sits on the progress line (scrubber with controls up, bottom line with them hidden) at the spot you
+  left. Tap: go back, and it moves to where you'd jumped to (back and forth). Fades after 3 minutes. Replaced the
+  back pill.
+- **Return toast (another book):** when a link takes you into another book (scripture peek → the Bible), no hollow
+  drop; instead a toast at the top, "Return to <book title>", that stays until you leave that book, flick it away,
+  or 10 minutes pass. Tap it to go back. Another toast in the meantime comes and goes, then it returns. (Mick, Nov 25.)
 - **Scripture peek:** references in any book that isn't itself a Bible (book name/abbreviation + ch:v, ranges,
   "1 Cor.", follow-on refs like "; 12:1") get a faint dotted underline; tap → a card with up to 8 verses from the
   Bible in the library (most recently read; downloaded first; the KJV by default; a not-yet-downloaded shelf Bible
-  is fetched), titled "Psalm 63:8 · KJV", with **Read it in context** (opens the Bible there; ghost brings you back).
+  is fetched), titled "Psalm 63:8 · KJV", with **Read it in context**.
 - **Exact citations:** in a Bible, copy/share/quote cards cite "John 3:16–18 (KJV)" (across chapters
-  "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII" (parts by short name; bare numbers get "ch.").
-  "Copy all highlights" in a book adds each highlight's place.
-- **Today's reading:** the tab-bar drop is a little gauge filling toward the day's goal (15 min if none is set) and
-  ripples once when it's met. In a book with controls hidden, touching the bottom drop shows "N min today · X left
-  in chapter".
-- **Ticks (haptics):** iOS 18's switch-checkbox tick, borrowed via a hidden one, on: wheel item changes, left-line
-  drag item changes, grabbing the scrubber, selection handles snapping to a new word, ghost and drop taps. Silent
-  elsewhere. Unverified on a real iPhone (needs a recent touch to count; momentum scrolling may not tick).
+  "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII". "Copy all highlights" adds each one's place.
+- **Daily goal circle:** a small progress circle at the bottom right of the page, only with the controls hidden and
+  only if a daily goal is set; no other context. Tap → "x minutes read today" / "Goal x minutes". (Mick rejected the
+  tab-bar gauge and the touchable bottom drop, Nov 25.)
 - **Opens where you left off:** leaving Tooz from inside a book reopens that book next launch; leaving from the
   library opens the library (the back button clears it). Not for the tutorial.
+- **Rejected: haptic ticks** (borrowing iOS 18's switch tick) — didn't work on his iPhone; iOS only ticks for a real
+  tap on a visible switch. Removed; don't retry.
 
 ## Notes, highlights, bookmarks
 

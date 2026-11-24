@@ -68,9 +68,8 @@ const Drop=(()=>{
       return;
     }
     if(!same(cur,t)){ const from=cur; cur=t; if(vis&&t.vis) flow(from,t); else put(el,t); }
-    el.dataset.kind=t.kind; ghostPlace(); hitPlace();
+    ghostPlace();
     if(t.vis!==vis){ vis=t.vis; el.style.opacity=vis?1:0; fade(el,vis?0:1,vis?1:0,200); }
-    hitPlace();
   }
   const later=()=>{ if(!queued){ queued=true; queueMicrotask(sync); } };
   function init(){
@@ -91,11 +90,6 @@ const Drop=(()=>{
     if(!rd.classList.contains('chrome-off') && sr && sr.width) return {l:sr.left+gFrac*(sr.width-36), t:sr.top+sr.height/2-6, w:36, h:12};
     return {l:gFrac*(innerWidth-36), t:innerHeight-Math.max(inset()*.5,7)-8, w:36, h:12};
   }
-  /* in a book with the controls hidden, the drop itself can be touched (the reader decides what that shows) */
-  let hit=null, onHit=null;
-  function hitPlace(){ if(!hit) return; const ok=cur&&cur.kind==='base'&&vis; hit.hidden=!ok; if(ok){ hit.style.left=px(cur.l-10); hit.style.top=px(cur.t-22); } }
-  function onTouch(fn){ onHit=fn; if(!hit){ hit=document.createElement('button'); hit.type='button'; hit.id='dropHit'; hit.hidden=true; hit.setAttribute('aria-label','Reading today');
-    hit.addEventListener('click',e=>{ e.stopPropagation(); if(onHit) onHit(); }); document.body.appendChild(hit); } hitPlace(); }
   function ghostPlace(){ if(!gh) return; const r=ghostSpot(); if(!r){ gh.hidden=true; return; } const was=gh.hidden; gh.hidden=false; put(gh,r);
     if(was && !RM.matches) gh.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.35)',opacity:1,offset:.45},{transform:'none',opacity:.9}],{duration:700,easing:SPRING}); }
   function ghost(f, onTap, away){
@@ -107,18 +101,6 @@ const Drop=(()=>{
     if(fresh) gh.hidden=true;   /* a new spot: it appears with a small pulse so you notice it */
     ghostPlace();
   }
-
-  /* ----- today's reading: on the tab bar the drop fills toward the day's goal, and ripples once when it's met ----- */
-  let today=0, rippledOn='';
-  function setToday(f, dayKey){
-    const was=today; today=Math.max(0,Math.min(1,+f||0)); if(!el) return;
-    el.style.setProperty('--fill', (today*100).toFixed(1)+'%');
-    if(was<1 && today>=1 && rippledOn!==dayKey){ rippledOn=dayKey; ripple(); }
-  }
-  function ripple(){ if(!el||RM.matches) return; const r=el.getBoundingClientRect(); if(!r.width) return;
-    const o=document.createElement('i'); o.className='drop-ripple'; o.style.left=px(r.left+r.width/2-18); o.style.top=px(r.top+r.height/2-18); document.body.appendChild(o);
-    o.animate([{transform:'scale(.3)',opacity:.9},{transform:'scale(2.4)',opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish=()=>o.remove();
-    el.animate([{transform:'scale(1)'},{transform:'scale(1.25,2)'},{transform:'scale(1)'}],{duration:520,easing:SPRING}); }
 
   /* ----- reading progress (0..1) ----- */
   function progress(f,live){
@@ -191,25 +173,6 @@ const Drop=(()=>{
   }
   function start(){ init(); watch(); }
   if(document.readyState==='loading') addEventListener('DOMContentLoaded',start); else start();
-  return {progress, sync:later, seg, ghost, today:setToday, onTouch, here:()=>cur&&{...cur}};
+  return {progress, sync:later, seg, ghost};
 })();
 
-/* ---------- a tiny tick under the thumb ----------
-   Web apps can't use the iPhone's haptics directly, but iOS 18 Safari gives a light tap when a switch-style checkbox
-   is toggled; toggling a hidden one borrows that. It needs a recent touch to count, so it's used right where the
-   thumb is: a wheel landing on a name, grabbing the drop, a selection handle snapping to a word. Elsewhere (or on
-   older iPhones) it simply does nothing. Never more than one tick every 40 ms. */
-const Haptic=(()=>{
-  let lab=null, last=0;
-  function tick(){
-    const now=performance.now(); if(now-last<40) return; last=now;
-    try{
-      if(!lab){ lab=document.createElement('label'); lab.setAttribute('aria-hidden','true');
-        lab.style.cssText='position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
-        const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); i.tabIndex=-1; lab.appendChild(i); document.body.appendChild(lab); }
-      lab.click(); window.__ticks=(window.__ticks||0)+1;
-    }catch(e){}
-    try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){}
-  }
-  return {tick};
-})();

@@ -5,6 +5,13 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — feedback on the Nov 25 batch (2026.11.25.3).** (2) A link into another book: no hollow drop; a toast
+  "Return to <title>" that lasts until he leaves the Bible, flicks it away, or 10 minutes. (3) He doesn't like the
+  tab-bar fill; instead a small progress circle in the reader, visible with the controls hidden, nothing else on it,
+  absent without a goal; tap → "x minutes read today" / "Goal x minutes". (4) Haptics didn't work → removed.
+  Claude's calls: the whole toast is the way back (no extra button); another toast in the meantime is followed by the
+  return toast again; the circle sits at the bottom right beside the page line; the same-book hollow drop stays.
+  Test: `delight.js` updated.
 - **Mick (screen recording) — Scroll mode glitch in The Imitation of Christ.** Past the "Book I" heading the page went
   blank and raced to chapter XX. Cause: Scroll mode keeps ~5 sections rendered and removes far ones above the screen
   with a scrollTop correction; iPhone Safari ignores that correction during a coasting swipe, and Imitation's

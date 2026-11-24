@@ -1,12 +1,11 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.2';
+const APP_VERSION='2026.11.25.3';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
-  ['Back to where you were','After any jump, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). It replaces the “Back to where you were” button.'],
-  ['Today’s reading in the drop','The drop on the tab bar fills as you read today, toward your daily goal (15 minutes if you haven’t set one), and ripples when you reach it. In a book, touch the drop at the bottom to see your time today and what’s left of the chapter.'],
+  ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a “Return to …” message stays at the top until you tap it, flick it away, or leave the Bible.'],
+  ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal.'],
   ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],
   ['Exact quotes','Copied and shared quotes from the Bible now say “John 3:16–18 (KJV)”; from other books they name the part and chapter.'],
-  ['A tick under your thumb','On iPhones with iOS 18, you feel a tiny tick when a contents wheel lands on a name, when you grab the drop, and when a selection handle snaps to a word.'],
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
   ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place; drag along it to race through the whole book: every wheel follows, and Go takes you to the exact page under your thumb.'],

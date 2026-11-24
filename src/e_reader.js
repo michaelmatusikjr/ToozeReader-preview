@@ -501,44 +501,51 @@ for(const t of ['gesturestart','gesturechange','gestureend']) document.addEventL
 document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
 
 /* ---------- moving around ---------- */
-function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); }
+function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing(); }
+/* the daily-goal circle: how much of today's goal is read; nothing at all without a goal */
+function goalRing(){ const g=$('#goalRing'); if(!g) return; const goal=(S.goalMins||0)*60000; g.hidden=!goal||!R.meta; if(g.hidden) return; const f=Math.min(1,todayMs()/goal); g.style.setProperty('--p', f.toFixed(3)); }
+$('#goalRing').addEventListener('click',e=>{
+  e.stopPropagation(); const goal=S.goalMins||0; if(!goal) return;
+  const m=Math.round(todayMs()/60000), r=$('#goalRing').getBoundingClientRect(), pl=n=>n===1?'minute':'minutes';
+  document.querySelectorAll('.goalpop').forEach(x=>x.remove());
+  const b=document.createElement('div'); b.className='goalpop'; b.innerHTML=`<b>${m} ${pl(m)} read today</b><br><span>Goal ${goal} ${pl(goal)}</span>`;
+  b.style.left=(r.right+4)+'px'; b.style.top=(r.top-10)+'px'; document.body.appendChild(b);
+  b.animate([{opacity:0,transform:'translate(-100%,-85%)'},{opacity:1,transform:'translate(-100%,-100%)'}],{duration:200,easing:'cubic-bezier(.2,.8,.2,1)'});
+  setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 3000);
+});
 function toggleChrome(){ setChrome(!R.chrome); }
 function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS.on) ttsStop(); }
 /* ---------- where you were: after a jump, a hollow drop waits on the progress line at the spot you left;
    tap it and you flow back (and it moves to where you'd jumped to, so you can go back and forth).
    Across books (a scripture peek) it waits at the start of the line and takes you back to the other book.
    It fades away after a few minutes of not being needed. ---------- */
-function setBack(prev){ R.backPos=prev; R.backDoc=null; showGhost(); }
+function setBack(prev){ R.backPos=prev; showGhost(); }
 function showGhost(){
   clearTimeout(R.backT);
-  if(!R.meta){ Drop.ghost(null); return; }
-  if(R.backDoc && R.backDoc.id!==R.meta.id) Drop.ghost(0, ghostBack, true);
-  else if(R.backPos!=null) Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
-  else { Drop.ghost(null); return; }
-  R.backT=setTimeout(()=>{ R.backPos=null; R.backDoc=null; Drop.ghost(null); }, 180000);
+  if(!R.meta || R.backPos==null){ Drop.ghost(null); return; }
+  Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
+  R.backT=setTimeout(()=>{ R.backPos=null; Drop.ghost(null); }, 180000);
 }
-async function ghostBack(){
-  Haptic.tick();
-  if(R.backDoc && R.backDoc.id!==R.meta.id){ const to=R.backDoc; await jumpDoc(to.id, to.pos); return; }
-  const p=R.backPos; if(p==null) return; goTo(p,true);
+function ghostBack(){ const p=R.backPos; if(p==null) return; goTo(p,true); }
+/* a link into another book (a scripture peek → the Bible): a toast "Return to <book>" stays until you leave that
+   book, flick it away, or ten minutes pass; tapping it takes you back (Mick, Nov 25) */
+const RT={back:null, inId:null, t:0};
+function showReturnToast(){
+  if(!RT.back || !R.meta || R.meta.id!==RT.inId) return;
+  const m=LIB.find(x=>x.id===RT.back.id); if(!m){ RT.back=null; return; }
+  const left=Math.max(1000, RT.t+600000-Date.now());
+  toast('Return to '+m.title, null, 0); const t=$('#toast'); t.dataset.ret='1'; t.classList.add('ret');
+  clearTimeout(RT.timer); RT.timer=setTimeout(endReturnToast, left);   /* ten minutes at most */
 }
-/* touch the drop while reading: how long you've read today, and what's left of the chapter */
-Drop.onTouch(()=>{
-  if(!R.meta) return; Haptic.tick();
-  const mins=Math.round(todayMs()/60000), left=fmtMins((chapterEnd(R.pos)-R.pos)/readWpm());
-  const d=Drop.here(); if(!d) return;
-  document.querySelectorAll('.drop-bubble').forEach(x=>x.remove());
-  const b=document.createElement('div'); b.className='drop-bubble'; b.innerHTML=`<b>${mins} min</b> today · ${esc(left)} left in chapter`;
-  b.style.top=(d.t-14)+'px'; document.body.appendChild(b); const bw=b.offsetWidth/2+10; b.style.left=clamp(d.l+d.w/2, bw, innerWidth-bw)+'px';
-  b.animate([{opacity:0,transform:'translate(-50%,-80%)'},{opacity:1,transform:'translate(-50%,-100%)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});
-  setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 2600);
-});
-/* go to a spot in another book, remembering this one so the ghost can bring you back */
+function endReturnToast(){ const t=$('#toast'); clearTimeout(RT.timer); RT.back=null; RT.inId=null; if(t.dataset.ret){ t.hidden=true; delete t.dataset.ret; t.classList.remove('ret'); } }
+$('#toast').addEventListener('click',e=>{ const t=$('#toast'); if(!t.dataset.ret || e.target.closest('button') || !RT.back) return;
+  const to=RT.back; endReturnToast(); (async()=>{ if(await openDoc(to.id)!==false) goTo(to.pos); })(); });
+/* go to a spot in another book; remember this one so the return toast can bring you back */
 async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
   if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
   await goTo(typeof pos==='function'? pos() : pos, true);
-  if(from && from.id!==R.meta.id){ R.backDoc=from; R.backPos=null; showGhost(); }
+  if(from && from.id!==R.meta.id){ R.backPos=null; Drop.ghost(null); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnToast(); }
   return true;
 }
 /* Endnotes: the number in front of each note leads back to where it was cited.
@@ -665,7 +672,6 @@ function updateChrome(){
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
 $('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
-$('#rScrub').addEventListener('pointerdown',()=>Haptic.tick());   /* grabbing the drop */
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
@@ -754,6 +760,7 @@ function dashSplitText(text, meta){
 }
 async function openDoc(id){
   const meta=LIB.find(x=>x.id===id); if(!meta){ toast('That document couldn’t be found.'); return false; }
+  if(RT.back && id!==RT.inId) endReturnToast();   /* leaving the linked-to book ends the return toast */
   if(meta.pending){ if(!await fetchShelfBook(meta)) return false; }
   R.anchor=null; LS.set('tutOpen', meta.kind==='sample');
   let text=await Store.get('texts',id).catch(()=>null);
@@ -781,7 +788,7 @@ async function openDoc(id){
       if(!m.has(bi)) m.set(bi,[]); m.get(bi).push(idx);
     });
   }
-  buildSections(); R.sIdx=null; R.backPos=null; R.backDoc=null; Drop.ghost(null); diffCache={s:-1,e:-1,f:1};
+  buildSections(); R.sIdx=null; R.backPos=null; Drop.ghost(null); goalRing(); diffCache={s:-1,e:-1,f:1};
   R.pos=clamp(meta.finished?0:meta.pos,0,R.n-1); if(meta.finished) meta.finished=false;
   R.tear=LS.get('tear.'+meta.id,null); if(R.tear!=null && !(R.tear>0 && R.tear<R.n)) R.tear=null;
   R.tearCenter= R.tear!=null && Math.abs(R.tear-R.pos)<400; R.tearShow=false;
@@ -818,7 +825,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; R.backDoc=null; LS.set('resume',null);   /* back in the library: next launch opens the library */
+  Drop.ghost(null); R.backPos=null; endReturnToast(); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -955,7 +962,7 @@ function wordNear(x,y){
 }
 function tsExtendTo(i){
   if(i==null) return;
-  if(i!==TS.lastTick){ TS.lastTick=i; Haptic.tick(); }   /* a tick each time the selection snaps to another word */
+  if(i!==TS.lastTick){ TS.lastTick=i; }   /* a tick each time the selection snaps to another word */
   if(TS.extending && TS.start) tsSet(TS.start.i, i);
   else if(TS.drag==='tsA') tsSet(Math.min(i,TS.b), TS.b);
   else if(TS.drag==='tsB') tsSet(TS.a, Math.max(i,TS.a));
@@ -1313,7 +1320,7 @@ function drawSpine(el){
     let raf=0, tm=0;
     c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
       const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
-      if(x!==c.x){ Haptic.tick(); c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      if(x!==c.x){ c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
       clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
     c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
   }
@@ -1330,7 +1337,7 @@ function drawSpine(el){
   const map=el.querySelector('.whmap'); let md=null;
   function seek(i){
     for(let n=0;n<cols.length;n++){ const c=cols[n], x=atPos(c.entries,i);
-      if(x!==c.x || c.stale){ Haptic.tick(); c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
+      if(x!==c.x || c.stale){ c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
   }
   const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.min(hi-1,Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)));
     exact=i; seek(i); label(); };
