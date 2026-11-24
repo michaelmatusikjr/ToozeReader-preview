@@ -102,46 +102,48 @@ const Drop=(()=>{
     ghostPlace();
   }
 
-  /* ----- reaching the daily goal: the drop comes alive as a little creature, hops and cheers, then melts back ----- */
+  /* ----- reaching the daily goal: the drop swells into a soft, faceless blob at the bottom of the screen; vague
+     limbs stretch out twice as it celebrates, then it settles back into the drop (Mick: amorphous, subtle) ----- */
+  function blobPath(t, cx, by){
+    const N=12, R=9.5, ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+    const grow=ease(t/.16)*(1-ease((t-.84)/.16));                 /* flat bead → round → flat bead */
+    const pulse=(c,w)=>Math.exp(-Math.pow((t-c)/w,2));
+    const reach=pulse(.38,.09)+pulse(.62,.09);                     /* two stretches */
+    const sy=.18+.82*grow, sx=1/Math.sqrt(Math.max(.25,sy));
+    const limbs=[[-2.55,1],[-0.6,1],[-1.57,.55]];                 /* upper left, upper right, a small one on top */
+    const pts=[];
+    for(let k=0;k<N;k++){
+      const a=-Math.PI/2+k*2*Math.PI/N;
+      let r=R*(1+.07*Math.sin(3*a+t*9)+.04*Math.sin(5*a-t*7));
+      for(const [la,amt] of limbs){ let d=Math.atan2(Math.sin(a-la),Math.cos(a-la)); r+=reach*amt*7*Math.exp(-Math.pow(d/.42,2)); }
+      const lift=1.5*grow+1.5*reach;
+      pts.push([cx+Math.cos(a)*r*sx, by-R*sy-lift+Math.sin(a)*r*sy]);
+    }
+    /* smooth closed curve through the points */
+    let d=`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+    for(let k=0;k<N;k++){ const p0=pts[(k-1+N)%N], p1=pts[k], p2=pts[(k+1)%N], p3=pts[(k+2)%N];
+      const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6], c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+      d+=` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`; }
+    return d+'Z';
+  }
   function celebrate(){
     if(RM.matches || document.querySelector('.drop-buddy')) return;
     /* where it starts: the drop itself if it's on screen, else the goal circle, else the bottom middle */
     let r=null; const ring=document.getElementById('goalRing');
-    if(el && vis && cur) r={x:cur.l+cur.w/2, y:cur.t+cur.h/2};
-    else if(ring && !ring.hidden){ const b=ring.getBoundingClientRect(); if(b.width) r={x:b.left+b.width/2, y:b.top+b.height/2}; }
-    if(!r) r={x:innerWidth/2, y:innerHeight-40};
-    const SZ=56, x=Math.max(SZ/2+8, Math.min(innerWidth-SZ/2-8, r.x)), up=Math.min(110, r.y-SZ-20);
-    const w=document.createElement('div'); w.className='drop-buddy'; w.setAttribute('aria-hidden','true');
-    w.style.left=px(x-SZ/2); w.style.top=px(r.y-SZ);
-    w.innerHTML=`<svg viewBox="0 0 56 56" width="56" height="56">
-      <g class="db-arm l"><path d="M14 33 Q6 28 5 19" /></g><g class="db-arm r"><path d="M42 33 Q50 28 51 19" /></g>
-      <path class="db-body" d="M28 6 C33 14 44 22 44 34 C44 44 37 50 28 50 C19 50 12 44 12 34 C12 22 23 14 28 6 Z"/>
-      <g class="db-eyes"><ellipse cx="22.5" cy="32" rx="3.2" ry="3.8"/><ellipse cx="33.5" cy="32" rx="3.2" ry="3.8"/><circle class="db-pupil" cx="23.3" cy="32.8" r="1.6"/><circle class="db-pupil" cx="34.3" cy="32.8" r="1.6"/></g>
-      <path class="db-smile" d="M23 39.5 Q28 44 33 39.5"/></svg>`;
-    document.body.appendChild(w);
-    if(el) el.animate([{opacity:el.style.opacity||1},{opacity:0,offset:.06},{opacity:0,offset:.94},{opacity:el.style.opacity||1}],{duration:3300});   /* the drop "becomes" the creature */
-    const E='cubic-bezier(.3,1.35,.45,1)';
-    w.animate([
-      {transform:'translateY(0) scale(.15,.06)',opacity:0},
-      {transform:'translateY(0) scale(.5,.25)',opacity:1,offset:.06},
-      {transform:`translateY(${-up}px) scale(.9,1.15)`,offset:.2,easing:E},
-      {transform:`translateY(${-up+6}px) scale(1.12,.86)`,offset:.28},
-      {transform:`translateY(${-up-26}px) scale(.94,1.08)`,offset:.38},
-      {transform:`translateY(${-up+4}px) scale(1.1,.88)`,offset:.48},
-      {transform:`translateY(${-up-22}px) scale(.95,1.06)`,offset:.58},
-      {transform:`translateY(${-up}px) scale(1)`,offset:.7},
-      {transform:`translateY(${-up}px) scale(1)`,offset:.8},
-      {transform:'translateY(0) scale(.6,.4)',opacity:1,offset:.94,easing:'ease-in'},
-      {transform:'translateY(0) scale(.15,.06)',opacity:0}],{duration:3300,easing:'ease-out'}).onfinish=()=>w.remove();
-    for(const [sel,a] of [['.db-arm.l',-1],['.db-arm.r',1]]){ const g=w.querySelector(sel);
-      g.animate([{transform:'rotate(0)'},{transform:`rotate(${a*28}deg)`,offset:.33},{transform:`rotate(${a*-10}deg)`,offset:.43},{transform:`rotate(${a*28}deg)`,offset:.53},{transform:`rotate(${a*-10}deg)`,offset:.63},{transform:'rotate(0)',offset:.75},{transform:'rotate(0)'}],{duration:3300}); }
-    w.querySelector('.db-eyes').animate([{transform:'scaleY(1)'},{transform:'scaleY(1)',offset:.72},{transform:'scaleY(.1)',offset:.75},{transform:'scaleY(1)',offset:.78},{transform:'scaleY(1)'}],{duration:3300});
-    /* a little burst of sparkles at the top of the first hop */
-    setTimeout(()=>{ if(!w.isConnected) return; const b=w.getBoundingClientRect(), cx=b.left+b.width/2, cy=b.top+b.height/2;
-      for(let k=0;k<9;k++){ const sp=document.createElement('i'); sp.className='db-spark'+(k%3===0?' gold':''); sp.style.left=px(cx-3); sp.style.top=px(cy-3); document.body.appendChild(sp);
-        const a=(k/9)*Math.PI*2+.3, d=44+((k*37)%22);
-        sp.animate([{transform:'translate(0,0) scale(.4)',opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) scale(1)`,opacity:1,offset:.6},{transform:`translate(${Math.cos(a)*(d+10)}px,${Math.sin(a)*(d+10)+12}px) scale(.3)`,opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish=()=>sp.remove(); }
-    }, 3300*.36);
+    if(el && vis && cur) r={x:cur.l+cur.w/2, y:cur.t+cur.h};
+    else if(ring && !ring.hidden){ const b=ring.getBoundingClientRect(); if(b.width) r={x:b.left+b.width/2, y:b.bottom}; }
+    if(!r) r={x:innerWidth/2, y:innerHeight-12};
+    const W=90, H=70, x=Math.max(W/2, Math.min(innerWidth-W/2, r.x));
+    const w=document.createElementNS('http://www.w3.org/2000/svg','svg'); w.setAttribute('class','drop-buddy'); w.setAttribute('aria-hidden','true');
+    w.setAttribute('width',W); w.setAttribute('height',H); w.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    w.style.left=px(x-W/2); w.style.top=px(r.y-H+2);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path'); w.appendChild(path); document.body.appendChild(w);
+    const D=3200, t0=performance.now(), was=el? (el.style.opacity||'1') : '1';
+    if(el) el.style.opacity='0';                                   /* the drop becomes the blob… */
+    document.body.classList.add('db-on');                           /* the page line steps aside while it celebrates */
+    const step=now=>{ const t=Math.min(1,(now-t0)/D); path.setAttribute('d', blobPath(t, W/2, H-2));
+      if(t<1) requestAnimationFrame(step); else { w.remove(); document.body.classList.remove('db-on'); if(el){ el.style.opacity=was; fade(el,0,+was||1,200); } } };   /* …and back */
+    path.setAttribute('d', blobPath(0, W/2, H-2)); requestAnimationFrame(step);
   }
 
   /* ----- reading progress (0..1) ----- */

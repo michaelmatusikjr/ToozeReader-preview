@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — the celebration creature should be amorphous:** no eyes or mouth, only vaguely apparent appendages that
+  stretch a bit, subtle, at the bottom of the screen. Rebuilt (2026.11.25.5): the outline is computed each frame
+  (12 points, smooth curve) so the blob flows; it stays within ~25 px of the bottom; the page line fades while it
+  plays (in narrow bottom space it would otherwise sit on the text). No sparkles.
 - **Mick — celebrate reaching the reading goal:** the drop comes alive as a little creature, plus a 7-second toast.
   Built 2026.11.25.4 (`Drop.celebrate` in `k_blob.js`, called from `recordStats`). Claude's calls: a drop-shaped
   body with eyes, smile and arms (the drop's own shape, so it reads as the drop waking up), two hops with waving

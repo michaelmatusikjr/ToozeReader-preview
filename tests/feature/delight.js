@@ -45,12 +45,17 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.evaluate(()=>{ recordStats(6*60000, 1200); }); await sleep(200);
   ok('meeting the goal fills it', await pg.evaluate(()=>$('#goalRing').style.getPropertyValue('--p')==='1.000'));
   // reaching the goal: the drop comes alive as a little creature, and a 7-second message (Mick, Nov 25)
-  ok('a little creature appears where the drop was', await pg.evaluate(()=>!!document.querySelector('.drop-buddy svg .db-eyes')));
+  ok('the drop swells into a faceless blob (one soft shape, no eyes or mouth)', await pg.evaluate(()=>{ const b=document.querySelector('.drop-buddy'); return !!b && b.querySelectorAll('path').length===1 && !b.querySelector('circle,ellipse'); }));
+  ok('the page line steps aside while it celebrates', await pg.evaluate(()=>document.body.classList.contains('db-on')));
+  await sleep(1000);
+  ok('it stays low, at the bottom of the screen', await pg.evaluate(()=>{ const r=document.querySelector('.drop-buddy path').getBoundingClientRect(); return r.top>innerHeight-110 && r.height<60; }), await pg.evaluate(()=>{ const r=document.querySelector('.drop-buddy path').getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height), innerHeight]; }));
+  ok('its shape changes as it celebrates (limbs stretch)', await pg.evaluate(async()=>{ const p=document.querySelector('.drop-buddy path'); const a=p.getBoundingClientRect().width; await new Promise(r=>setTimeout(r,250)); const b=p.getBoundingClientRect().width; return Math.abs(a-b)>2; }));
   ok('message: "You’ve reached your reading goal of 10 minutes."', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent==='You’ve reached your reading goal of 10 minutes.'), await pg.evaluate(()=>$('#toastMsg').textContent));
-  for(const [ms,name] of [[500,'buddy_rise'],[700,'buddy_hop']]){ await sleep(ms); await pg.screenshot({path:__E.SCRATCH+name+'.png'}); }
-  await sleep(2600);
-  ok('it melts back into the drop and is gone', await pg.evaluate(()=>!document.querySelector('.drop-buddy') && !document.querySelector('.db-spark')));
-  await sleep(1900);
+  await pg.screenshot({path:__E.SCRATCH+'buddy_hop.png'});
+  await sleep(2200);
+  ok('the page line came back afterwards', await pg.evaluate(()=>!document.body.classList.contains('db-on')));
+  ok('it settles back into the drop and is gone', await pg.evaluate(()=>!document.querySelector('.drop-buddy') && getComputedStyle($('#drop')).opacity!=='0'));
+  await sleep(2400);
   ok('the message is still there at 6 seconds', await pg.evaluate(()=>!$('#toast').hidden));
   await sleep(1400);
   ok('…and gone after 7', await pg.evaluate(()=>$('#toast').hidden));

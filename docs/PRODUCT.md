@@ -86,9 +86,10 @@ and move items out of **Pending changes** once they're built.
 - **Daily goal circle:** a small progress circle at the bottom right of the page, only with the controls hidden and
   only if a daily goal is set; no other context. Tap → "x minutes read today" / "Goal x minutes". (Mick rejected the
   tab-bar gauge and the touchable bottom drop, Nov 25.)
-- **Goal celebration** (Mick's idea, Nov 25, 2026.11.25.4): when the day's goal is reached, the drop (or, if it's
-  hidden, the goal circle's spot) gathers and pops up as a little drop-shaped creature with eyes, a smile and arms;
-  it hops twice waving, a small burst of sparkles, then melts back (~3.3 s). Message: "You've reached your reading
+- **Goal celebration** (Mick, Nov 25; revised 2026.11.25.5): when the day's goal is reached, the drop swells into a
+  small, faceless, amorphous blob at the bottom of the screen (no eyes, no mouth); vague limbs (upper left, upper
+  right, a small one on top) stretch out twice with a gentle wobble, then it flattens back into the drop (~3.2 s).
+  It barely rises; the page line and goal circle fade out while it's there. Message: "You've reached your reading
   goal of x minutes." for 7 seconds. Reduce Motion: message only.
 - **Opens where you left off:** leaving Tooz from inside a book reopens that book next launch; leaving from the
   library opens the library (the back button clears it). Not for the tutorial.
