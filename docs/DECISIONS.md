@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — the drop didn't flow in the reading options (Aa) panel like in Settings.** Causes: switching mode
+  rebuilds the panel (twice: before and after `switchMode`), so the mode control was new each time and the drop was
+  placed, not slid; controls in folds only woke when ≥90% in view inside the scrolling sheet, so many never did.
+  Fix in `k_blob.js` (2026.11.24.6), general for any screen: the drop remembers each control's last position (by
+  `id`/`data-set`) and a redrawn control slides from there, continuing mid-slide if a second redraw lands during the
+  slide (negative animation delay); a control woken by a tap slides; wake at 60% in view. Test: `aadrop.js`.
 - **Mick — feel check on 2026.11.24.4: very sluggish, and it jumps at the top/bottom.** Fix (2026.11.24.5): slow
   step 22→14px per item and normal speeds count as fast (0.5 px/ms, was 0.8); the end-snap is replaced by a
   room-aware catch-up in the last stretch of the line (the last item arrives exactly at the end). Tried making the

@@ -94,27 +94,39 @@ const Drop=(()=>{
     const key=g.id||g.dataset.set||''; let d=null, shown=false, at=null;
     const geo=()=>{ const b=g.querySelector('button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft,t:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight}:null; };
     const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className='drop-seg'; g.prepend(d); } return d; };
+    let resume=0;
+    const remember=(fly)=>{ if(key) seen.set(key,Object.assign({}, seen.get(key)||{}, {t:Date.now(), at}, fly||{})); };   /* keeps an in-flight slide's start */
     function reveal(animate){
-      const r=geo(); if(!r) return; shown=true; at=r; put(mk(),r); g.classList.add('lq-on'); seen.set(key,Date.now());
+      const r=geo(); if(!r) return; shown=true; at=r; put(mk(),r); g.classList.add('lq-on'); remember();
       if(!animate) return;
       if(RM.matches){ fade(d,0,1,260); return; }
       d.animate([{transform:'scale(.1,.3)',opacity:0,borderRadius:'999px'},{offset:.3,opacity:1,borderRadius:'999px'},{transform:'none',opacity:1,borderRadius:'0px'}],{duration:620,easing:SPRING});
     }
     function move(){
-      const to=geo(); if(!to||!shown) return; const from=at; at=to; mk(); put(d,to);
+      const to=geo(); if(!to||!shown) return; const from=at, off=resume; resume=0; at=to; mk(); put(d,to);
+      if(from&&from.l===to.l&&from.t===to.t&&from.w===to.w){ remember({from:null}); return; }
+      remember({from, start:performance.now()-off});
       if(!from||RM.matches){ fade(d,.2,1,220); return; }
       const L=Math.min(from.l,to.l), Rr=Math.max(from.l+from.w,to.l+to.w);
       d.animate([
         {...css(from),borderRadius:'0px',easing:DRAG},
         {offset:.4,left:px(L),width:px(Rr-L),top:px(from.t+4),height:px(from.h-8),borderRadius:'999px',easing:SPRING},
-        {...css(to),borderRadius:'0px'}],{duration:520});
+        {...css(to),borderRadius:'0px'}],{duration:520, delay:-off});   /* a redrawn control carries on mid-slide */
     }
     new MutationObserver(move).observe(g,{attributes:true,subtree:true,attributeFilter:['aria-pressed']});
-    new ResizeObserver(()=>{ if(!shown) return; const r=geo(); if(r){ at=r; put(mk(),r); } }).observe(g);
-    /* a group that was just on screen (a settings page redrawn) is placed at once; a new one waits until it's fully in view, then a beat */
-    if(key && Date.now()-(seen.get(key)||0)<4000){ reveal(false); if(shown) return; }
+    new ResizeObserver(()=>{ if(!shown) return; const r=geo(); if(r){ at=r; put(mk(),r); remember(); } }).observe(g);
+    /* touched before it woke up (e.g. in a fold that was never fully in view): wake it in place first, so the tap slides */
+    g.addEventListener('pointerdown',()=>{ if(!shown){ const r=geo(); if(r){ shown=true; at=r; put(mk(),r); g.classList.add('lq-on'); remember(); } } },true);
+    /* the same control redrawn (a panel rebuilt after a change): start where the old one was and slide to the new pick */
+    const prev=key&&seen.get(key);
+    if(prev && Date.now()-prev.t<4000){
+      if(prev.at){ const el=prev.from? performance.now()-prev.start : 1e9, mid=el<520;
+        shown=true; at= mid? prev.from : prev.at; resume= mid? el : 0; put(mk(),prev.at); g.classList.add('lq-on'); requestAnimationFrame(()=>move()); return; }
+      reveal(false); if(shown) return;
+    }
     if(!('IntersectionObserver' in window)){ reveal(false); return; }
-    const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting&&e.intersectionRatio>=.9)){ io.disconnect(); setTimeout(()=>reveal(true),260); } },{threshold:[.9,1]});
+    /* a new one waits until it's mostly in view, then a beat */
+    const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting&&e.intersectionRatio>=.6)){ io.disconnect(); setTimeout(()=>{ if(!shown) reveal(true); },260); } },{threshold:[.6,1]});
     io.observe(g);
   }
   const scan=root=>{ if(root.nodeType!==1) return; if(root.classList&&root.classList.contains('seg')) seg(root); root.querySelectorAll&&root.querySelectorAll('.seg').forEach(seg); };
