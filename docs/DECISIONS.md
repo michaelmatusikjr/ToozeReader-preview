@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — Aa drop works except going to Speed.** Switching to Speed rebuilds the panel twice within ~20 ms (Speed
+  needs no layout), and the new control's first ResizeObserver callback moved the drop to the end before the
+  queued slide ran. Fix (2026.11.24.12, `k_blob.js`): a `pending` flag blocks the ResizeObserver until the slide
+  starts. Test: `aadrop.js` (scroll → speed, speed → pages, mid-slide).
 - **Mick — the sidebar handle should scroll through all the pages, not just the first wheel** (Imitation: the bulk
   of the book is one section, pages 30–300+). Fix (2026.11.24.11): dragging the line seeks every wheel to the spot
   under the thumb and Go targets that exact spot (page shown under Go); moving a wheel clears it. Test: `spine.js`.

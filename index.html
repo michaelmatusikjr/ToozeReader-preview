@@ -1352,7 +1352,7 @@ const Drop=(()=>{
     const out= g.classList.contains('themes')? 3 : 0, rad=b=>parseFloat(getComputedStyle(b).borderTopLeftRadius)||10;
     const geo=()=>{ const b=g.querySelector(':scope > button[aria-pressed="true"]'); return b&&b.offsetWidth?{l:b.offsetLeft-out,t:b.offsetTop-out,w:b.offsetWidth+2*out,h:b.offsetHeight+2*out,r:rad(b)+out}:null; };
     const mk=()=>{ if(!d||!d.isConnected){ d=document.createElement('i'); d.className= ring?'drop-ring':'drop-seg'; g.prepend(d); } if(ring&&at) d.style.borderRadius=px(at.r); return d; };
-    let resume=0;
+    let resume=0, pending=false;   /* a slide is about to start: nothing may move the drop to the end first */
     const remember=(fly)=>{ if(key) seen.set(key,Object.assign({}, seen.get(key)||{}, {t:Date.now(), at}, fly||{})); };   /* keeps an in-flight slide's start */
     function reveal(animate){
       const r=geo(); if(!r) return; shown=true; at=r; put(mk(),r); g.classList.add('lq-on'); remember();
@@ -1361,6 +1361,7 @@ const Drop=(()=>{
       d.animate([{transform:'scale(.1,.3)',opacity:0,borderRadius:'999px'},{offset:.3,opacity:1,borderRadius:'999px'},{transform:'none',opacity:1,borderRadius:'0px'}],{duration:620,easing:SPRING});
     }
     function move(){
+      pending=false;
       const to=geo(); if(!to||!shown) return; const from=at, off=resume; resume=0; at=to; mk(); put(d,to);
       if(from&&from.l===to.l&&from.t===to.t&&from.w===to.w){ remember({from:null}); return; }
       remember({from, start:performance.now()-off});
@@ -1378,14 +1379,14 @@ const Drop=(()=>{
         {...css(to),borderRadius:'0px'}],{duration:520, delay:-off});   /* a redrawn control carries on mid-slide */
     }
     new MutationObserver(move).observe(g,{attributes:true,subtree:true,attributeFilter:['aria-pressed']});
-    new ResizeObserver(()=>{ if(!shown) return; const r=geo(); if(r){ at=r; put(mk(),r); remember(); } }).observe(g);
+    new ResizeObserver(()=>{ if(!shown||pending) return; const r=geo(); if(r){ at=r; put(mk(),r); remember(); } }).observe(g);
     /* touched before it woke up (e.g. in a fold that was never fully in view): wake it in place first, so the tap slides */
     g.addEventListener('pointerdown',()=>{ if(!shown){ const r=geo(); if(r){ shown=true; at=r; put(mk(),r); g.classList.add('lq-on'); remember(); } } },true);
     /* the same control redrawn (a panel rebuilt after a change): start where the old one was and slide to the new pick */
     const prev=key&&seen.get(key);
     if(prev && Date.now()-prev.t<4000){
       if(prev.at){ const el=prev.from? performance.now()-prev.start : 1e9, mid=el<520;
-        shown=true; at= mid? prev.from : prev.at; resume= mid? el : 0; put(mk(),prev.at); g.classList.add('lq-on'); requestAnimationFrame(()=>move()); return; }
+        shown=true; at= mid? prev.from : prev.at; resume= mid? el : 0; put(mk(),prev.at); g.classList.add('lq-on'); pending=true; requestAnimationFrame(()=>move()); return; }
       reveal(false); if(shown) return;
     }
     if(!('IntersectionObserver' in window)){ reveal(false); return; }
@@ -4150,7 +4151,7 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.11 preview';
+const APP_VERSION='2026.11.24.12 preview';
 const WHATSNEW=[
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],

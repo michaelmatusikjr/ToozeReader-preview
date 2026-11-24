@@ -25,6 +25,15 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.screenshot({path:__E.SCRATCH+'aa_mode_mid.png'});
   await sleep(900);
   ok('settles on Scroll', JSON.stringify(await dropX(M))===JSON.stringify(await btn(M,'scroll')), await dropX(M));
+  // to and from Speed (Mick, Nov 24: "except when going from pages or scroll to speed") — the panel is rebuilt twice
+  // within a few ms there, which used to land the drop before it could slide
+  for(const [fromV,toV] of [['scroll','speed'],['speed','pages']]){
+    await sleep(600); const a=await btn(M,fromV), z=await btn(M,toV);
+    await pg.click(`${M} [data-v=${toV}]`); await sleep(170); const mm=await dropX(M); await sleep(900); const end=await dropX(M);
+    const lo=Math.min(a[0],z[0]), hiR=Math.max(a[0]+a[1],z[0]+z[1]);
+    ok(`${fromV} → ${toV}: mid-slide the drop is between them, not already there`, mm && JSON.stringify(mm)!==JSON.stringify(z) && mm[0]>=lo-2 && mm[0]+mm[1]<=hiR+2 && mm[1]>a[1]+10, [mm,a,z]);
+    ok(`${fromV} → ${toV}: settles on ${toV}`, JSON.stringify(end)===JSON.stringify(await btn(M,toV)), end);
+  }
   // a fold: scroll a control into view and tap it
   await pg.click('#sheet details.aadet[data-k=text] summary'); await sleep(300);
   const G='#sheet [data-set=margin]';
