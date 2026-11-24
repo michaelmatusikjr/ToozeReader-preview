@@ -1161,15 +1161,17 @@ function drawSpine(el){
   const whs=el.querySelector('.whs'), go=el.querySelector('.whgo'), tgt=el.querySelector('.wh-tgt'), card=el.querySelector('.sp-card');
   const cols=[];          /* {el, entries, x} */
   const pickNow=()=>{ let e=null; for(const c of cols){ if(c.stale) break; e=c.entries[c.x]||e; } return e; };
-  const label=()=>{ const e=pickNow(); if(!e) return; const pl=placeLabel(e.i);
+  let exact=null;          /* set while/after dragging the left line: Go goes to that exact spot */
+  const label=()=>{ const e=pickNow(); if(!e) return; const at= exact!=null? exact : e.i, pl=placeLabel(at);
     go.querySelector('.wg-t').textContent='Go to '+e.full; go.querySelector('.wg-s').textContent=[e.path, e.full.includes(pl)? '' : pl].filter(Boolean).join(' · ');
-    go.dataset.i=e.i; tgt.style.top=y(e.i)+'px'; };
-  const atPos=list=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=R.pos) x=j; }); return x; };
-  function setCols(from){                /* (re)build the wheels right of column `from` from its pick */
+    go.dataset.i=at; tgt.style.top=y(at)+'px'; };
+  const atPos=(list,t=R.pos)=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=t) x=j; }); return x; };
+  function setCols(from, target){        /* (re)build the wheels right of column `from` from its pick */
+    const t= target!=null? target : R.pos;
     for(const c of cols.splice(from+1)) c.el.remove();
     let parent=cols[from].entries[cols[from].x];
     while(cols.length<3 && parent){ const list=inside(parent, cols.length-1); if(!list||!list.length) break;
-      const sel= R.pos>=parent.i && R.pos<(tocEnd(parent)) ? atPos(list) : 0;
+      const sel= t>=parent.i && t<(tocEnd(parent)) ? atPos(list,t) : 0;
       addCol(list, sel); parent= list[0]&&list[0].k!=null? list[cols[cols.length-1].x] : null; }
     layout(); label();
   }
@@ -1182,7 +1184,7 @@ function drawSpine(el){
     let raf=0, tm=0;
     c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
       const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
-      if(x!==c.x){ c.x=x; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      if(x!==c.x){ c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
       clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
     c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
   }
@@ -1194,11 +1196,15 @@ function drawSpine(el){
     cols.forEach((c,j)=>{ c.el.style.flex=`${need[j]} 1 0`; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
   addCol(L1, atPos(L1)); setCols(0);
   go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
-  /* drag the thin line on the left to run through the book: the first wheel follows the thumb; the wheels to its
-     right fill in when you let go */
+  /* drag the thin line on the left to run through the whole book: every wheel follows the thumb (section, chapter,
+     verse or page), and Go goes to the exact spot under it */
   const map=el.querySelector('.whmap'); let md=null;
-  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)), c=cols[0];
-    let x=0; c.entries.forEach((e,j)=>{ if(e.i<=i) x=j; }); c.el.scrollTop=x*IH; };
+  function seek(i){
+    for(let n=0;n<cols.length;n++){ const c=cols[n], x=atPos(c.entries,i);
+      if(x!==c.x || c.stale){ c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
+  }
+  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.min(hi-1,Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)));
+    exact=i; seek(i); label(); };
   map.addEventListener('pointerdown',e=>{ md=1; try{ map.setPointerCapture(e.pointerId); }catch(_){} map.classList.add('drag'); card.hidden=true; mapTo(e.clientY); e.preventDefault(); });
   map.addEventListener('pointermove',e=>{ if(md) mapTo(e.clientY); });
   const mapUp=()=>{ if(!md) return; md=null; map.classList.remove('drag'); };

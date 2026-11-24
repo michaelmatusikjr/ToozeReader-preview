@@ -117,6 +117,19 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   let w=await wst();
   ok('Imitation: wrapper skipped, two short wheels Book I | I', w[0].join('|')==='Book I|I', w[0]);
   ok('Imitation: Go gives the chapter’s real title', /^Go to I\. Of the imitation of Christ/.test(w[1]) && /^Book I · Page/.test(w[2]), w.slice(1));
+  // dragging the left line moves every wheel and Go follows the exact page (Mick, Nov 24)
+  { const m=await pg.evaluate(()=>{ const b=$('.whmap').getBoundingClientRect(); return {x:b.left+20, top:b.top, h:b.height}; });
+    const seen=new Set(); await pg.mouse.move(m.x, m.top+m.h*0.3); await pg.mouse.down();
+    for(let f=0.3; f<=0.62; f+=0.02){ await pg.mouse.move(m.x, m.top+m.h*f); await sleep(25); seen.add((await wst())[2]); }
+    const w1=await wst(); const want=await pg.evaluate(()=>+$('.whgo').dataset.i);
+    await pg.mouse.up(); await sleep(300);
+    const book=w1[0][0], chap=w1[0][1];
+    ok('line drag moves the chapter wheel too, not just the first', /^Book I/.test(book) && chap && chap!=='I', w1[0]);
+    ok('Go follows the exact page under the thumb', seen.size>8 && /Page \d/.test(w1[2]), [seen.size, w1[2]]);
+    const chk=await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[1], e=c.querySelector('.whi.on'); return e&&e.textContent; });
+    await pg.click('.whgo'); await sleep(900);
+    ok('Go lands on that page, inside the chosen chapter', await pg.evaluate(([w,c])=>Math.abs(R.pos-w)<400 && currentChapter(R.pos).t===c, [want, chk]), await pg.evaluate(()=>[R.pos, currentChapter(R.pos).t]));
+    await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(1000); }
   ok('front matter sits on the first wheel', await pg.evaluate(()=>[...document.querySelectorAll('.whc')[0].querySelectorAll('.whi')].some(x=>x.textContent==='Preface') && ![...document.querySelectorAll('.whc')[0].querySelectorAll('.whi')].some(x=>x.textContent==='The Imitation of Christ')));
   await pg.screenshot({path:__E.SCRATCH+'wheels_imitation.png'});
   await pg.evaluate(()=>{ closeSheet(); closeReader(); }); await pg.evaluate(()=>openDoc('shelf-miserables')); await sleep(1800);

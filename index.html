@@ -3007,15 +3007,17 @@ function drawSpine(el){
   const whs=el.querySelector('.whs'), go=el.querySelector('.whgo'), tgt=el.querySelector('.wh-tgt'), card=el.querySelector('.sp-card');
   const cols=[];          /* {el, entries, x} */
   const pickNow=()=>{ let e=null; for(const c of cols){ if(c.stale) break; e=c.entries[c.x]||e; } return e; };
-  const label=()=>{ const e=pickNow(); if(!e) return; const pl=placeLabel(e.i);
+  let exact=null;          /* set while/after dragging the left line: Go goes to that exact spot */
+  const label=()=>{ const e=pickNow(); if(!e) return; const at= exact!=null? exact : e.i, pl=placeLabel(at);
     go.querySelector('.wg-t').textContent='Go to '+e.full; go.querySelector('.wg-s').textContent=[e.path, e.full.includes(pl)? '' : pl].filter(Boolean).join(' · ');
-    go.dataset.i=e.i; tgt.style.top=y(e.i)+'px'; };
-  const atPos=list=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=R.pos) x=j; }); return x; };
-  function setCols(from){                /* (re)build the wheels right of column `from` from its pick */
+    go.dataset.i=at; tgt.style.top=y(at)+'px'; };
+  const atPos=(list,t=R.pos)=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=t) x=j; }); return x; };
+  function setCols(from, target){        /* (re)build the wheels right of column `from` from its pick */
+    const t= target!=null? target : R.pos;
     for(const c of cols.splice(from+1)) c.el.remove();
     let parent=cols[from].entries[cols[from].x];
     while(cols.length<3 && parent){ const list=inside(parent, cols.length-1); if(!list||!list.length) break;
-      const sel= R.pos>=parent.i && R.pos<(tocEnd(parent)) ? atPos(list) : 0;
+      const sel= t>=parent.i && t<(tocEnd(parent)) ? atPos(list,t) : 0;
       addCol(list, sel); parent= list[0]&&list[0].k!=null? list[cols[cols.length-1].x] : null; }
     layout(); label();
   }
@@ -3028,7 +3030,7 @@ function drawSpine(el){
     let raf=0, tm=0;
     c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
       const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
-      if(x!==c.x){ c.x=x; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      if(x!==c.x){ c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
       clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
     c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
   }
@@ -3040,11 +3042,15 @@ function drawSpine(el){
     cols.forEach((c,j)=>{ c.el.style.flex=`${need[j]} 1 0`; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
   addCol(L1, atPos(L1)); setCols(0);
   go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
-  /* drag the thin line on the left to run through the book: the first wheel follows the thumb; the wheels to its
-     right fill in when you let go */
+  /* drag the thin line on the left to run through the whole book: every wheel follows the thumb (section, chapter,
+     verse or page), and Go goes to the exact spot under it */
   const map=el.querySelector('.whmap'); let md=null;
-  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)), c=cols[0];
-    let x=0; c.entries.forEach((e,j)=>{ if(e.i<=i) x=j; }); c.el.scrollTop=x*IH; };
+  function seek(i){
+    for(let n=0;n<cols.length;n++){ const c=cols[n], x=atPos(c.entries,i);
+      if(x!==c.x || c.stale){ c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
+  }
+  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.min(hi-1,Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)));
+    exact=i; seek(i); label(); };
   map.addEventListener('pointerdown',e=>{ md=1; try{ map.setPointerCapture(e.pointerId); }catch(_){} map.classList.add('drag'); card.hidden=true; mapTo(e.clientY); e.preventDefault(); });
   map.addEventListener('pointermove',e=>{ if(md) mapTo(e.clientY); });
   const mapUp=()=>{ if(!md) return; md=null; map.classList.remove('drag'); };
@@ -4144,11 +4150,11 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.10 preview';
+const APP_VERSION='2026.11.24.11 preview';
 const WHATSNEW=[
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
-  ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place; drag along it to race through the book.'],
+  ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place; drag along it to race through the whole book: every wheel follows, and Go takes you to the exact page under your thumb.'],
   ['Type a Bible reference','In a Bible, type a reference like “jn 3:16” or “rev 22 3” in the contents search and the first result takes you straight there.'],
   ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings and in Aa flow from the old choice to the new one; theme swatches and fonts get a ring that slides across.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],

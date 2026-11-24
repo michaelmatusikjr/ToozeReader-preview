@@ -5,6 +5,9 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — the sidebar handle should scroll through all the pages, not just the first wheel** (Imitation: the bulk
+  of the book is one section, pages 30–300+). Fix (2026.11.24.11): dragging the line seeks every wheel to the spot
+  under the thumb and Go targets that exact spot (page shown under Go); moving a wheel clears it. Test: `spine.js`.
 - **Mick (screenshot, Imitation of Christ) — three wheels hard to read; Go doesn't include the chapter title.**
   Causes: a wrapper heading ("The Imitation of Christ") took the first wheel, pushing Book I–IV to the second and
   chapters to the third; long names truncated; contents list names chapters only "I". Fix (2026.11.24.10): skip
