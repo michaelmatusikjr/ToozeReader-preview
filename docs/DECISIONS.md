@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — the "Return to …" toast didn't look tappable and covered the title; "move it or do it another way".**
+  Claude's call (2026.11.25.6): the back arrow becomes "‹ <book>" in the link colour (iOS's "◀ Safari" pattern), plus
+  a small "‹ <book>" at the top left of the page with the controls hidden. No toast, nothing to swipe. Same end
+  rules (leave the book, 10 minutes). Test: `delight.js`.
 - **Mick — the celebration creature should be amorphous:** no eyes or mouth, only vaguely apparent appendages that
   stretch a bit, subtle, at the bottom of the screen. Rebuilt (2026.11.25.5): the outline is computed each frame
   (12 points, smooth curve) so the blob flows; it stays within ~25 px of the bottom; the page line fades while it

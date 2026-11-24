@@ -75,27 +75,31 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
   ok('Read it in context opens the Bible at that verse', await pg.evaluate(()=>R.meta.id==='shelf-kjv' && currentChapter(R.pos).t==='Psalm 63' && R.words[R.pos]==='8'), await pg.evaluate(()=>[R.meta.id, currentChapter(R.pos).t, R.words[R.pos]]));
   ok('no hollow drop for another book…', !(await ghost()));
-  const rt=await pg.evaluate(()=>[!$('#toast').hidden, $('#toastMsg').textContent]);
-  ok('…instead a toast: "Return to The Pursuit of God"', rt[0] && rt[1]==='Return to The Pursuit of God', rt);
-  await pg.screenshot({path:__E.SCRATCH+'return_toast.png'});
-  await sleep(6000);
-  ok('it stays (not a 3-second toast)', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent.startsWith('Return to')));
-  await pg.evaluate(()=>toast('Bookmarked')); await sleep(3800);
-  ok('another message comes and goes, then it’s back', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent.startsWith('Return to')));
-  await pg.click('#toastMsg'); await sleep(2000);
-  ok('tapping it takes you back', await pg.evaluate(k=>R.meta.id==='shelf-pursuit' && Math.abs(R.pos-k)<30 && $('#toast').hidden, k), await pg.evaluate(()=>[R.meta.id,R.pos]));
-  // leaving the Bible ends it; flicking it away ends it
+  const crumb=()=>pg.evaluate(()=>{ const b=$('#rBack'); return {top: b.classList.contains('has-crumb')? b.textContent : null, page: $('#runCrumb').hidden? null : $('#runCrumb').textContent}; });
+  let cr=await crumb();
+  ok('…instead the back arrow reads "‹ The Pursuit of God"', cr.top==='The Pursuit of God', cr);
+  ok('it doesn’t cover the title', await pg.evaluate(()=>{ const a=$('#rBack').getBoundingClientRect(), t=$('#rTop .title').getBoundingClientRect(); return a.right<=t.left+1 && t.width>80; }));
+  ok('it looks like a link (accent colour)', await pg.evaluate(()=>getComputedStyle($('#rBack')).color!==getComputedStyle($('#rTop .title')).color));
+  ok('no toast', await pg.evaluate(()=>$('#toast').hidden || !$('#toastMsg').textContent.startsWith('Return to')));
+  await pg.screenshot({path:__E.SCRATCH+'return_link.png'});
+  await pg.evaluate(()=>setChrome(false)); await sleep(400);
+  ok('with the controls hidden, the link sits at the top left of the page', await pg.evaluate(()=>{ const c=$('#runCrumb'); return !c.hidden && getComputedStyle(c).opacity==='1' && c.textContent==='‹ The Pursuit of God' && c.getBoundingClientRect().top<40; }));
+  await pg.screenshot({path:__E.SCRATCH+'return_link_hidden.png'});
+  await sleep(4000); await pg.evaluate(()=>toast('Bookmarked')); await sleep(3800);
+  ok('it lasts (and other messages don’t disturb it)', !!(await crumb()).page);
+  await pg.click('#runCrumb'); await sleep(2000);
+  ok('tapping it takes you back', await pg.evaluate(k=>R.meta.id==='shelf-pursuit' && Math.abs(R.pos-k)<30, k), await pg.evaluate(()=>[R.meta.id,R.pos]));
+  cr=await crumb(); ok('…and back here the arrow is plain again', !cr.top && !cr.page, cr);
+  // the top-bar link works too; leaving the Bible ends it; ten minutes ends it
   await pg.evaluate(async k=>{ R.refFor=null; await openRefPeek(k); }, k); await sleep(1500); await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
-  await pg.evaluate(()=>closeReader()); await sleep(500);
-  ok('navigating away from the Bible ends it', await pg.evaluate(()=>$('#toast').hidden || !$('#toastMsg').textContent.startsWith('Return to')));
-  await pg.evaluate(()=>openDoc('shelf-pursuit')); await sleep(1200);
+  await pg.evaluate(()=>setChrome(true)); await sleep(300); await pg.click('#rBack'); await sleep(2000);
+  ok('the top-bar link takes you back', await pg.evaluate(()=>R.meta.id==='shelf-pursuit' && !$('#v-reader').hidden));
   await pg.evaluate(async k=>{ R.refFor=null; await openRefPeek(k); }, k); await sleep(1500); await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
-  { const bx=await pg.evaluate(()=>{ const r=$('#toast').getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; });
-    await pg.mouse.move(bx.x,bx.y); await pg.mouse.down(); await pg.mouse.move(bx.x,bx.y-40,{steps:5}); await pg.mouse.up(); await sleep(500); }
-  ok('flicking it away ends it', await pg.evaluate(()=>$('#toast').hidden && RT.back===null));
-  await pg.evaluate(()=>toast('Bookmarked')); await sleep(3800);
-  ok('…and it doesn’t come back', await pg.evaluate(()=>$('#toast').hidden));
-  ok('it would end by itself after ten minutes', await pg.evaluate(async()=>{ RT.back={id:'shelf-pursuit',pos:0}; RT.inId=R.meta.id; RT.t=Date.now()-600000+300; showReturnToast(); await new Promise(r=>setTimeout(r,1500)); return $('#toast').hidden && RT.back===null; }));
+  await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(1200);
+  cr=await crumb(); ok('going to another book ends it', !cr.top && !cr.page, cr);
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rBack'); await sleep(600);
+  ok('…and the arrow goes to the library again', await pg.evaluate(()=>$('#v-reader').hidden));
+  ok('ten minutes end it', await pg.evaluate(async()=>{ await openDoc('shelf-kjv'); RT.back={id:'shelf-pursuit',pos:0}; RT.inId=R.meta.id; RT.t=Date.now()-600000+300; showReturnLink(); await new Promise(r=>setTimeout(r,1500)); return RT.back===null && !$('#rBack').classList.contains('has-crumb'); }));
   await pg.evaluate(()=>closeReader()); await pg.evaluate(()=>openDoc('shelf-pursuit')); await sleep(1200);
   ok('no marks inside a Bible itself', await pg.evaluate(async()=>{ await openDoc('shelf-kjv'); return scanRefs().length===0; }));
   // ranges and the ordinal books

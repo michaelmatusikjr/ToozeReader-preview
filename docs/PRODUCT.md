@@ -74,9 +74,11 @@ and move items out of **Pending changes** once they're built.
   hollow drop sits on the progress line (scrubber with controls up, bottom line with them hidden) at the spot you
   left. Tap: go back, and it moves to where you'd jumped to (back and forth). Fades after 3 minutes. Replaced the
   back pill.
-- **Return toast (another book):** when a link takes you into another book (scripture peek → the Bible), no hollow
-  drop; instead a toast at the top, "Return to <book title>", that stays until you leave that book, flick it away,
-  or 10 minutes pass. Tap it to go back. Another toast in the meantime comes and goes, then it returns. (Mick, Nov 25.)
+- **Return link (another book):** when a link takes you into another book (scripture peek → the Bible), no hollow
+  drop; the reader's back arrow becomes "‹ <book title>" in the link colour (like iOS's "◀ Safari"), and with the
+  controls hidden the same link sits at the top left of the page. Tap → back to that book. Ends when you leave that
+  book or after 10 minutes; then the arrow goes to the library again. (Mick, Nov 25: first a toast "Return to …"; he
+  found it didn't look tappable and covered the title, and asked for another way.)
 - **Scripture peek:** references in any book that isn't itself a Bible (book name/abbreviation + ch:v, ranges,
   "1 Cor.", follow-on refs like "; 12:1") get a faint dotted underline; tap → a card with up to 8 verses from the
   Bible in the library (most recently read; downloaded first; the KJV by default; a not-yet-downloaded shelf Bible

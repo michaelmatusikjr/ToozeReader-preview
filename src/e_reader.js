@@ -527,25 +527,30 @@ function showGhost(){
   R.backT=setTimeout(()=>{ R.backPos=null; Drop.ghost(null); }, 180000);
 }
 function ghostBack(){ const p=R.backPos; if(p==null) return; goTo(p,true); }
-/* a link into another book (a scripture peek → the Bible): a toast "Return to <book>" stays until you leave that
-   book, flick it away, or ten minutes pass; tapping it takes you back (Mick, Nov 25) */
-const RT={back:null, inId:null, t:0};
-function showReturnToast(){
+/* a link into another book (a scripture peek → the Bible): the back arrow becomes "‹ <book you came from>", like the
+   iPhone's own "◀ Safari" after a jump between apps. With the controls hidden the same link sits at the top left
+   of the page. It lasts until you leave that book or ten minutes pass; tap it to go back (Mick, Nov 25). */
+const RT={back:null, inId:null, t:0, timer:0};
+function showReturnLink(){
   if(!RT.back || !R.meta || R.meta.id!==RT.inId) return;
   const m=LIB.find(x=>x.id===RT.back.id); if(!m){ RT.back=null; return; }
-  const left=Math.max(1000, RT.t+600000-Date.now());
-  toast('Return to '+m.title, null, 0); const t=$('#toast'); t.dataset.ret='1'; t.classList.add('ret');
-  clearTimeout(RT.timer); RT.timer=setTimeout(endReturnToast, left);   /* ten minutes at most */
+  const b=$('#rBack'), c=$('#runCrumb'), name=esc(m.title);
+  b.innerHTML=ICON.back+`<span class="crumb">${name}</span>`; b.classList.add('has-crumb'); b.setAttribute('aria-label','Return to '+m.title);
+  c.innerHTML=`‹ ${name}`; c.hidden=false; c.setAttribute('aria-label','Return to '+m.title);
+  clearTimeout(RT.timer); RT.timer=setTimeout(endReturnLink, Math.max(1000, RT.t+600000-Date.now()));   /* ten minutes at most */
 }
-function endReturnToast(){ const t=$('#toast'); clearTimeout(RT.timer); RT.back=null; RT.inId=null; if(t.dataset.ret){ t.hidden=true; delete t.dataset.ret; t.classList.remove('ret'); } }
-$('#toast').addEventListener('click',e=>{ const t=$('#toast'); if(!t.dataset.ret || e.target.closest('button') || !RT.back) return;
-  const to=RT.back; endReturnToast(); (async()=>{ if(await openDoc(to.id)!==false) goTo(to.pos); })(); });
+function endReturnLink(){
+  clearTimeout(RT.timer); RT.back=null; RT.inId=null;
+  const b=$('#rBack'); b.innerHTML=ICON.back; b.classList.remove('has-crumb'); b.setAttribute('aria-label','Back to library'); $('#runCrumb').hidden=true;
+}
+async function returnBack(){ const to=RT.back; if(!to) return; endReturnLink(); if(await openDoc(to.id)!==false) goTo(to.pos); }
+$('#runCrumb').addEventListener('click',e=>{ e.stopPropagation(); returnBack(); });
 /* go to a spot in another book; remember this one so the return toast can bring you back */
 async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
   if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
   await goTo(typeof pos==='function'? pos() : pos, true);
-  if(from && from.id!==R.meta.id){ R.backPos=null; Drop.ghost(null); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnToast(); }
+  if(from && from.id!==R.meta.id){ R.backPos=null; Drop.ghost(null); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnLink(); }
   return true;
 }
 /* Endnotes: the number in front of each note leads back to where it was cited.
@@ -760,7 +765,7 @@ function dashSplitText(text, meta){
 }
 async function openDoc(id){
   const meta=LIB.find(x=>x.id===id); if(!meta){ toast('That document couldn’t be found.'); return false; }
-  if(RT.back && id!==RT.inId) endReturnToast();   /* leaving the linked-to book ends the return toast */
+  if(RT.back && id!==RT.inId) endReturnLink();   /* leaving the linked-to book ends the return link */
   if(meta.pending){ if(!await fetchShelfBook(meta)) return false; }
   R.anchor=null; LS.set('tutOpen', meta.kind==='sample');
   let text=await Store.get('texts',id).catch(()=>null);
@@ -825,7 +830,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; endReturnToast(); LS.set('resume',null);   /* back in the library: next launch opens the library */
+  Drop.ghost(null); R.backPos=null; endReturnLink(); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;

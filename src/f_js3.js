@@ -1050,9 +1050,8 @@ function toast(msg, action, ms, progress){
   $('#toastMsg').textContent=msg; const a=$('#toastAct'); const prog=$('#toastProg'); const bar=$('#toastBar');
   if(action){ a.hidden=false; a.textContent=action.label; a.onclick=()=>{ action.fn(); $('#toast').hidden=true; }; } else a.hidden=true;
   if(progress!=null){ prog.hidden=false; bar.style.width=Math.max(0,Math.min(100,progress))+'%'; } else { prog.hidden=true; }
-  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; delete tw.dataset.ret; tw.classList.remove('ret'); tw.hidden=false; clearTimeout(toastT);
-  /* another message while a "Return to…" toast is up: it comes back once this one is gone */
-  try{ if(RT.back && !/^Return to /.test(msg) && ms!==0) setTimeout(()=>{ if($('#toast').hidden) showReturnToast(); }, (ms||(action?5000:3200))+250); }catch(e){} if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
+  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT);
+ if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
 }
 /* flick a toast away: up, or sideways; let go short of that and it springs back and stays a little longer */
 (()=>{ const t=$('#toast'); let p=null; const rest=()=>{ t.style.transform=''; t.style.opacity=''; };
@@ -1061,7 +1060,7 @@ function toast(msg, action, ms, progress){
     t.style.transform=`translate(calc(-50% + ${dx}px), ${dy}px)`; t.style.opacity=String(Math.max(.2,1-(Math.abs(dx)+Math.max(0,-dy))/240)); });
   const up=()=>{ if(!p) return; const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
     if(dy<-26 || Math.abs(dx)>64){ t.style.transform= Math.abs(dx)>64? `translate(calc(-50% + ${Math.sign(dx)*480}px), ${dy}px)` : 'translate(-50%, calc(-100% - 40px))'; t.style.opacity='0';
-      setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; if(t.dataset.ret){ try{ endReturnToast(); }catch(e){} } },230); }
+      setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; },230); }
     else { rest(); setTimeout(()=>{ t.style.animation=''; },240); if(!t.dataset.sticky) toastT=setTimeout(()=>{ t.hidden=true; },2600); } };
   t.addEventListener('pointerup',up); t.addEventListener('pointercancel',up);
 })();
@@ -1074,13 +1073,13 @@ function showView(v){
 }
 const TABS={library:['book','Library'], words:['note','Notes'], stats:['stats','Stats'], settings:['gear','Settings']};
 document.querySelectorAll('#tabs button').forEach(b=>{ const [ic,l]=TABS[b.dataset.tab]; b.innerHTML=ICON[ic]+l; b.onclick=()=>showView(b.dataset.tab); });
-$('#rBack').innerHTML=ICON.back; $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
+$('#rBack').innerHTML=ICON.back; $('#rBack').onclick=()=>{ if(RT.back) returnBack(); else closeReader(); };   /* the back arrow can be a link back to another book */ $('#rToc').innerHTML=ICON.toc; $('#rMark').innerHTML=ICON.mark; $('#rTts').innerHTML=ICON.speaker;
 $('#bSent').innerHTML=ICON.bsent; $('#bWord').innerHTML=ICON.back; $('#fWord').innerHTML=ICON.fwd; $('#fSent').innerHTML=ICON.fsent;
 $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown').innerHTML=ICON.minus; $('#asUp').innerHTML=ICON.plus; $('#asPlay').innerHTML=ICON.play;
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=24;
+const SAMPLE_V=25;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1113,7 +1112,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
-<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, the “Return to …” message at the top takes you back to the book you came from.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, the back arrow at the top left names the book you came from: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>
