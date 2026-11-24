@@ -14,12 +14,16 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto('http://localhost:8750/'); await sleep(1200);
-  // Settings switch
+  // the switch lives in the reader's Aa panel (Mick, Nov 24), not app Settings
   await pg.click('#tabs [data-tab=settings]'); await sleep(300);
-  ok('Settings has Contents: List | Spine', await pg.evaluate(()=>[...document.querySelectorAll('#tocStyleSeg button')].map(x=>x.textContent).join('|'))==='List|Spine');
-  await pg.click('#tocStyleSeg [data-v=spine]'); await sleep(200);
-  ok('switch saves', await pg.evaluate(()=>S.tocStyle==='spine'));
+  ok('not in app Settings', await pg.evaluate(()=>!document.querySelector('#v-settings [data-set=tocStyle]')));
   await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(900);
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rAa'); await sleep(500);
+  await pg.click('#sheet details.aadet[data-k=text] summary'); await sleep(300);
+  ok('Aa → More text options has Contents: List | Spine', await pg.evaluate(()=>[...document.querySelectorAll('#sheet [data-set=tocStyle] button')].map(x=>x.textContent).join('|'))==='List|Spine');
+  await pg.click('#sheet [data-set=tocStyle] [data-v=spine]'); await sleep(200);
+  ok('switch saves', await pg.evaluate(()=>S.tocStyle==='spine'));
+  await pg.evaluate(()=>closeSheet()); await sleep(450);
   ok('no magnifying glass in the top bar', await pg.evaluate(()=>!document.getElementById('rSearch')));
   const ch=await pg.evaluate(()=>R.meta.chapters.map(c=>[c.t,c.i]));
   await pg.evaluate(([a,bb])=>{ goTo(a,true); R.meta.bookmarks=[{i:bb,name:'',at:1}]; R.meta.highlights=[{id:'h1',s:bb+200,e:bb+206,c:2,note:'a note'}]; touch(R.meta); }, [ch[8][1]+300, ch[11][1]+50]);

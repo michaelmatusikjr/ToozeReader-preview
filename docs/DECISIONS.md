@@ -5,6 +5,8 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — the List | Spine switch belongs in the reader's Aa panel, not app Settings.** Moved (2026.11.24.2) to Aa →
+  More text options → Contents (and Word display in Speed mode). Still one global setting.
 - **Mick — feel check: the drop between Contents and Notes didn't travel** (it shrank on one tab and grew on the
   other). Cause: switching tabs redrew the whole sheet, so the tab control was a new element and the drop grew in
   fresh. Fix (2026.11.24.1): the Contents | Notes control (`#tocTabs`) stays put and only `#tocPane` below it is

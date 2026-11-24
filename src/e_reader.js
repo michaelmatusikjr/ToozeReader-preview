@@ -1367,6 +1367,7 @@ function panelHTML(){
       ${pRange('lineH','Line spacing',1.2,2.2,0.05)}
       ${pSeg('margin',[['narrow','Narrow'],['normal','Normal'],['wide','Wide']],'Margins')}
       ${pSeg('para',[['indent','Indented'],['spaced','Spaced'],['both','Spaced and indented']],'Paragraphs')}
+      ${pSeg('tocStyle',[['list','List'],['spine','Spine']],'Contents')}
       ${pToggle('justify','Justify text')}
       ${pToggle('hyphen','Hyphenation','Breaks long words at line ends for even spacing.')}
       ${pToggle('boldText','Bold text')}
@@ -1377,6 +1378,7 @@ function panelHTML(){
       <div class="set"><div class="hd"><label>Focus letter color</label></div><div class="chips" data-set="focusColor" data-type="seg" style="align-items:center">${COLORS.map(([n,c])=>`<button class="swatch" type="button" data-v="${c}" aria-label="${n}" aria-pressed="${S.focusColor.toLowerCase()===c.toLowerCase()}" style="background:${c}"></button>`).join('')}<label class="note" style="display:flex;align-items:center;gap:8px">Custom <input type="color" data-set="focusColor" data-type="text" value="${esc(S.focusColor)}"></label></div></div>
       ${pToggle('context','Show the sentence when paused')}
       ${pToggle('boldText','Bold text')}
+      ${pSeg('tocStyle',[['list','List'],['spine','Spine']],'Contents')}
       </div>
       <p class="note" style="margin:6px 0 0">Speed, pauses and the speed ramp are under ${ICON.gear} on the Speed controls.</p>`);
   }

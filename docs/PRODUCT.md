@@ -79,7 +79,7 @@ and move items out of **Pending changes** once they're built.
   Both / Contents / Bookmarks switch shows only once the book has a bookmark (remembered). **Notes** tab: highlights
   and notes grouped by chapter, with their own search. The current chapter carries the drop. Deleting a bookmark
   offers Undo. The reader's magnifying glass is gone (Nov 23): the Contents search does its job.
-- **The spine** (built 2026.11.23.7, option C; Settings → Reading → Contents: List | Spine, default List). The Contents
+- **The spine** (built 2026.11.23.7, option C; Aa → More text options → Contents: List | Spine, default List; Mick moved it out of app Settings Nov 24). The Contents
   tab becomes the book as one line: chapter marks (labels thinned to never overlap, using the level that best fits:
   books in the Bible, chapters in a novel), highlights as coloured beads, bookmarks as flags, read part tinted, the
   drop at your place. Drag or tap along it: the chapter under the thumb shows big with two neighbours each side
