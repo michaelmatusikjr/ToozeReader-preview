@@ -47,8 +47,17 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('filter limits hits to the chapter', sc);
   await pg.click('#sheet [data-act=unscope]'); await sleep(300);
   await pg.fill('#tocQ',''); await sleep(400);
-  // notes tab
-  await pg.click('#sheet [data-act=tab][data-t=hls]'); await sleep(300);
+  // notes tab: the Contents|Notes control stays the same element, so the drop slides across (Mick, Nov 24)
+  await sleep(900);
+  const tabsEl=await pg.evaluateHandle(()=>$('#tocTabs'));
+  const x0=await pg.evaluate(()=>{ const d=$('#tocTabs .drop-seg'); return d? d.getBoundingClientRect().left : null; });
+  await pg.click('#sheet [data-act=tab][data-t=hls]'); await sleep(170);
+  const mid=await pg.evaluate(()=>{ const d=$('#tocTabs .drop-seg'); return d? [d.getBoundingClientRect().left, d.getBoundingClientRect().width, d.getAnimations().length] : null; });
+  await pg.screenshot({path:__E.SCRATCH+'sheet_tabslide.png'});
+  await sleep(500);
+  const x1=await pg.evaluate(()=>$('#tocTabs .drop-seg').getBoundingClientRect().left);
+  ok('tab control kept (not redrawn)', await pg.evaluate(t=>$('#tocTabs')===t, tabsEl));
+  ok('drop slides from Contents to Notes', x0!=null && mid && mid[2]>0 && x1>x0+50 && mid[1]>(x1-x0), [x0,mid,x1]);
   ok('notes tab lists highlights', await pg.evaluate(()=>document.querySelectorAll('#tocOut .hlrow').length===2));
   await pg.screenshot({path:__E.SCRATCH+'sheet_notes.png'});
   await pg.fill('#hlQ','green'); await sleep(300);

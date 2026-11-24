@@ -1149,19 +1149,19 @@ function openToc(tab, inPlace){
   if(!(R.meta.bookmarks||[]).length) R.tocShowNow='both';
   if(R.tocFor!==R.meta.id){ R.tocFor=R.meta.id; R.tocQ=''; R.hlQ=''; }
   const ch=R.meta.chapters||[], nb=(R.meta.bookmarks||[]).length, sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
-  const seg=`<div class="seg">${[['toc','Contents'],['hls','Notes']].map(([k,l])=>`<button type="button" data-act="tab" data-t="${k}" aria-pressed="${t===k}">${l}</button>`).join('')}</div>`;
+  const seg=`<div class="seg" id="tocTabs">${[['toc','Contents'],['hls','Notes']].map(([k,l])=>`<button type="button" data-act="tab" data-t="${k}" aria-pressed="${t===k}">${l}</button>`).join('')}</div>`;
   let body;
   if(t==='toc'){
     body=`<div class="tocbar"><input class="input" id="tocQ" type="search" placeholder="Search this book" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.tocQ||'')}">${ch.length?`<label class="icon-btn tocflt${sc>=0?' on':''}" aria-label="Show one section">${ICON.filter}<select id="tocScope">${tocScopeOpts()}</select></label>`:''}</div>`
       +(sc>=0&&ch[sc]?`<div class="tocscope"><span>${esc(ch[sc].t)}</span><button class="icon-btn" type="button" data-act="unscope" aria-label="Show the whole book">${ICON.close}</button></div>`:'')
-      +(nb&&S.tocStyle!=='spine'?`<div class="seg tocshow">${[['both','Both'],['toc','Contents'],['marks','Bookmarks']].map(([k,l])=>`<button type="button" data-act="show" data-s="${k}" aria-pressed="${R.tocShowNow===k}">${l}</button>`).join('')}</div>`:'')
+      +(nb&&S.tocStyle!=='spine'?`<div class="seg tocshow" id="tocShowSeg">${[['both','Both'],['toc','Contents'],['marks','Bookmarks']].map(([k,l])=>`<button type="button" data-act="show" data-s="${k}" aria-pressed="${R.tocShowNow===k}">${l}</button>`).join('')}</div>`:'')
       +`<div id="tocOut">${spineUse()?'<div class="spnmap" id="spine"></div>':tocList()}</div>`;
   } else {
     body=`<input class="input" id="hlQ" type="search" placeholder="Search highlights and notes" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(R.hlQ||'')}"><div id="tocOut">${hlList()}</div>`;
   }
   const acts={
     tab:(b)=>{ R.tocTab=b.dataset.t; openToc(b.dataset.t, true); },
-    show:(b)=>{ R.tocShowNow=b.dataset.s; LS.set('tocShow',R.tocShowNow); openToc(); },
+    show:(b)=>{ R.tocShowNow=b.dataset.s; LS.set('tocShow',R.tocShowNow); b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); $('#tocOut').innerHTML=tocList(); },
     unscope:()=>{ R.tocScope=null; openToc(); },
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
@@ -1173,8 +1173,12 @@ function openToc(tab, inPlace){
   };
   /* already open: swap the contents in place, so quick taps inside the sheet aren't eaten as ghost taps */
   const cls='toc'+(S.tocStyle==='spine'&&t==='toc'?' spine':'');
-  const sh=$('#sheet'); if(!sh.hidden && sh.classList.contains('toc') && (!tab||inPlace)){ sheetActs=acts; sh.className=cls; sh.querySelector('.sheet-body').innerHTML=seg+body; }
-  else openSheet(R.meta.title, seg+body, acts, cls);
+  const sh=$('#sheet'); if(!sh.hidden && sh.classList.contains('toc') && (!tab||inPlace)){ sheetActs=acts; sh.className=cls;
+    /* keep the Contents | Notes control itself, so the drop slides across instead of growing in anew */
+    const tabs=$('#tocTabs'), pane=$('#tocPane');
+    if(tabs&&pane){ tabs.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===t)); pane.innerHTML=body; }
+    else sh.querySelector('.sheet-body').innerHTML=seg+`<div id="tocPane">${body}</div>`; }
+  else openSheet(R.meta.title, seg+`<div id="tocPane">${body}</div>`, acts, cls);
   const sp=$('#spine'); if(sp) requestAnimationFrame(()=>drawSpine(sp));
   const out=$('#tocOut'), inp=$('#tocQ')||$('#hlQ'); let tm=null;
   inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(t==='toc'){ R.tocQ=inp.value; if(spineUse()){ if(!$('#spine')){ out.innerHTML='<div class="spnmap" id="spine"></div>'; drawSpine($('#spine')); } } else out.innerHTML=tocList(); } else { R.hlQ=inp.value; out.innerHTML=hlList(); } }, t==='toc'?260:120); });

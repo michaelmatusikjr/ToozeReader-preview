@@ -3,6 +3,15 @@
 Newest first. One short entry per decision: date, what was decided, why, who decided (Mick or Claude). Mick's
 feel-check feedback goes here too. Older history (before Nov 22) is summarized in `HISTORY.md` and `PRODUCT.md`.
 
+## 2026-11-24
+
+- **Mick — feel check: the drop between Contents and Notes didn't travel** (it shrank on one tab and grew on the
+  other). Cause: switching tabs redrew the whole sheet, so the tab control was a new element and the drop grew in
+  fresh. Fix (2026.11.24.1): the Contents | Notes control (`#tocTabs`) stays put and only `#tocPane` below it is
+  redrawn; the Both/Contents/Bookmarks switch also updates in place. Rule for the future: **to get the flowing drop
+  on a `.seg`, flip `aria-pressed` on the existing buttons; never re-render the control.** Test: `sheet.js`
+  checks the same element is kept and the drop is mid-stretch partway through.
+
 ## 2026-11-23
 
 - **Mick — one sheet for contents, bookmarks and notes: build A and C, switchable in Settings.** Shown three

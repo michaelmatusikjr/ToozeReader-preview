@@ -361,6 +361,8 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .li.on{color:var(--accent);font-weight:700}
 /* one sheet: contents (bookmarks in place) | notes */
 #sheet.toc{height:86%}
+#tocPane{display:contents}
+#tocPane>*{flex-shrink:0}
 #sheet.toc .li{position:relative}
 #sheet.toc .sheet-body{flex:1;min-height:0}
 #sheet.toc.spine .sheet-body{overflow:hidden}
