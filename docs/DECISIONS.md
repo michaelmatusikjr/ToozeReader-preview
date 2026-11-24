@@ -3,6 +3,22 @@
 Newest first. One short entry per decision: date, what was decided, why, who decided (Mick or Claude). Mick's
 feel-check feedback goes here too. Older history (before Nov 22) is summarized in `HISTORY.md` and `PRODUCT.md`.
 
+## 2026-11-25
+
+- **Mick — drop stage 2: unsure about the pool.** Saw mock-ups of the four pool takes, wasn't sure he likes the idea,
+  asked for other ways to make the app delightfully useful. Offered: where you were (A), today's reading (B),
+  chapter horizon (C), then scripture peek, exact citations, open into your book, sleep timer, today's highlight,
+  haptics. **He chose "all except 4 and 5" (read as: not the sleep timer, not today's highlight), all at once, and
+  went to bed: "make any decisions you can on your own".** Built as 2026.11.25.1. Claude's calls:
+  - Ghost: replaces the back pill; back-and-forth; 3-minute fade; cross-book ghost at the line's start with ‹.
+  - Peek: never inside a Bible; Bible = most recently read, downloaded first, KJV default; ≤8 verses; position
+    looked up again after opening (opening a book can renumber words — the first try landed a few words off).
+  - Today's drop: 15-minute default goal when none is set (so the gauge means something); ripple once a day.
+  - Haptics: best-effort borrowed iOS 18 switch tick; may not fire during momentum scrolling. Feel unverified.
+  - Resume: only if you left from inside a book; the back button means "next time, the library".
+  - Citations: verse ranges for Bibles, "Book I, ch. XII" style elsewhere.
+  Tests: `delight.js` (all six), older tests switched from `#backPill` to `#dropGhost`.
+
 ## 2026-11-24
 
 - **Mick — Aa drop works except going to Speed.** Switching to Speed rebuilds the panel twice within ~20 ms (Speed

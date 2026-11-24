@@ -5,11 +5,11 @@ and move items out of **Pending changes** once they're built.
 
 ## Pending changes (not yet built)
 
-- **The drop, stage 2 (only if he's happy with stage 1 on his phone):** the pull-up pool. Drag up on the bottom base
-  and it rises into a pool in the thumb zone with a few beads (read aloud, font size, speed…); slide onto one and
-  release to apply. Also: drag along the base to scrub through a book; a short wake-up pulse the first time a
-  non-obvious control (page-number pill, progress line) comes into view; flowing selection for chips, fonts and
-  themes; colour arriving on primary buttons and input frames. **Remind him to come back to this.**
+- **The drop, stage 2 — the pull-up pool: on hold.** Mock-ups of four takes (Nov 24: quick actions, + speed dial, quick
+  dials, fits-the-moment) left him unsure he likes the pool idea at all; he asked for other ideas instead and chose
+  the Nov 25 batch below. Don't rebuild the pool unless he brings it back.
+- **Not chosen (Nov 24 list):** a sleep timer for listening, and "Today's highlight" on the library. Also offered
+  then and not picked yet: the chapter horizon (bottom drop shows what's left of the chapter).
 
 ## The app
 
@@ -67,6 +67,28 @@ and move items out of **Pending changes** once they're built.
   unless at 100%.
 - Archive keeps chosen progress/bookmarks/highlights/notes, DNF or finished status, optional 1–5 star rating and
   review, finish date. Re-adding an archived book restores its saved data.
+
+## The Nov 25 batch (built 2026.11.25.1; Mick chose these Nov 24, "decide what you can")
+
+- **Where you were:** after any jump (contents, search, wheels, typed reference, footnote back-link), a hollow drop
+  sits on the progress line (scrubber with controls up, bottom line with them hidden) at the spot you left. Tap: go
+  back, and it moves to where you'd jumped to (back and forth). Across books (scripture peek) it sits at the start
+  of the line with a ‹ and takes you to the other book. Fades after 3 minutes unused. Replaces the back pill.
+- **Scripture peek:** references in any book that isn't itself a Bible (book name/abbreviation + ch:v, ranges,
+  "1 Cor.", follow-on refs like "; 12:1") get a faint dotted underline; tap → a card with up to 8 verses from the
+  Bible in the library (most recently read; downloaded first; the KJV by default; a not-yet-downloaded shelf Bible
+  is fetched), titled "Psalm 63:8 · KJV", with **Read it in context** (opens the Bible there; ghost brings you back).
+- **Exact citations:** in a Bible, copy/share/quote cards cite "John 3:16–18 (KJV)" (across chapters
+  "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII" (parts by short name; bare numbers get "ch.").
+  "Copy all highlights" in a book adds each highlight's place.
+- **Today's reading:** the tab-bar drop is a little gauge filling toward the day's goal (15 min if none is set) and
+  ripples once when it's met. In a book with controls hidden, touching the bottom drop shows "N min today · X left
+  in chapter".
+- **Ticks (haptics):** iOS 18's switch-checkbox tick, borrowed via a hidden one, on: wheel item changes, left-line
+  drag item changes, grabbing the scrubber, selection handles snapping to a new word, ghost and drop taps. Silent
+  elsewhere. Unverified on a real iPhone (needs a recent touch to count; momentum scrolling may not tick).
+- **Opens where you left off:** leaving Tooz from inside a book reopens that book next launch; leaving from the
+  library opens the library (the back button clears it). Not for the tutorial.
 
 ## Notes, highlights, bookmarks
 

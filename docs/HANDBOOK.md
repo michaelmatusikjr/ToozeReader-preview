@@ -26,6 +26,12 @@ whole.**
 | What read aloud says | `i_speech.js` | `speechChunk`, `refPhrase`, `acronymSpoken`, `ellipsisPause` |
 | Natural voices (Piper), live playback | `h_voice.js` | `PIP_VOICES`, `natSpeakFrom`, `natChunkAt`, `natPauseFor` |
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
+| Where you were (ghost drop), cross-book jumps | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `jumpDoc`, `Drop.ghost`, `#dropGhost` |
+| Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` |
+| Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
+| Today's reading in the drop; touch the bottom drop | `f_js3.js`, `k_blob.js`, `e_reader.js` | `updateToday`, `todayMs`, `Drop.today`, `Drop.onTouch`, `#dropHit` |
+| Ticks (haptics) | `k_blob.js` | `Haptic.tick` (hidden `input[switch]`; `window.__ticks` counts for tests) |
+| Reopen the book you were in | `e_reader.js`, `f_js3.js` | `LS 'resume'` (set in `openDoc`, cleared in `closeReader`, read in `boot`) |
 | Toasts (top, themed, flick away) | `f_js3.js`, `a_head.html` | `toast`, `#toast`, `toastT` |
 | Version, What's new, search, export, year stats | `g_extra.js` | `APP_VERSION`, `WHATSNEW`, `searchAllBooks`, `exportBook` |
 | Library, filters, tags, archive | `f_js3.js` | `renderLibrary`, `openFilter`, `suggestTags`, `archiveFlow` |

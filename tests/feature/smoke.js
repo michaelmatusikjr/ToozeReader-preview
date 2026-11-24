@@ -46,7 +46,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await pg.evaluate(()=>openToc('toc')); await sleep(500); await pg.fill('#tocQ','scene break'); await sleep(500);
   log('search', await pg.evaluate(()=>[($('#tocOut .tochd')||{}).textContent, document.querySelectorAll('#tocOut .result').length]));
   await pg.click('#tocOut .result'); await sleep(600);
-  log('after search jump', await pg.evaluate(()=>[R.pos, R.words.slice(R.pos,R.pos+3).join(' '), !$('#backPill').hidden, document.querySelectorAll('w.found').length]));
+  log('after search jump', await pg.evaluate(()=>[R.pos, R.words.slice(R.pos,R.pos+3).join(' '), !!document.querySelector('#dropGhost:not([hidden])'), document.querySelectorAll('w.found').length]));
   // toc + panel
   await pg.evaluate(()=>openToc('toc')); await sleep(150);
   log('toc', await pg.evaluate(()=>[...document.querySelectorAll('#sheet .li')].map(x=>x.textContent.trim())));

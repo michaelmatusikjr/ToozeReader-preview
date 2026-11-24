@@ -25,7 +25,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await pg.evaluate(k=>goTo(k,true),k); await sleep(600);
   console.log('nb rendered', await pg.evaluate(k=>{ const w=wordEl(k); return w&&w.className; },k));
   await pg.evaluate(k=>{ const w=wordEl(k); const r=w.getBoundingClientRect(); readerTap({clientX:r.left+r.width/2, clientY:r.top+r.height/2, target:w}); },k); await sleep(700);
-  console.log('tap backlink ->', await pg.evaluate(()=>[R.pos, R.words[R.pos], !$('#backPill').hidden]));
+  console.log('tap backlink ->', await pg.evaluate(()=>[R.pos, R.words[R.pos], !!document.querySelector('#dropGhost:not([hidden])')]));
   // paragraph option
   await pg.evaluate(()=>{ S.para='both'; saveSettings(); applyLook(); });
   console.log('para both', await pg.evaluate(()=>[getComputedStyle(document.documentElement).getPropertyValue('--pind'), getComputedStyle(document.documentElement).getPropertyValue('--pgap')]));

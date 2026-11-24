@@ -38,7 +38,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('words pane', await pg.evaluate(()=>[$('#wordsPane').hidden, $('#notesBm').hidden]));
   await pg.click('#notesSeg [data-n=hl]'); await sleep(400);
   await pg.click('#notesHl .hlrow .grow'); await sleep(900);
-  console.log('open from notes', await pg.evaluate(()=>[$('#v-reader').hidden, R.pos, !$('#backPill').hidden, R.playing]));
+  console.log('open from notes', await pg.evaluate(()=>[$('#v-reader').hidden, R.pos, !!document.querySelector('#dropGhost:not([hidden])'), R.playing]));
   await pg.evaluate(()=>closeReader()); await sleep(300);
   console.log('back returns to', await pg.evaluate(()=>[$('#v-words').hidden, $('#v-library').hidden]));
   // library options entry

@@ -26,7 +26,7 @@ Screenshots and other output go to `$TOOZ_SCRATCH` (default: `<system temp>/tooz
 
 - `feature/` — one script per feature or fix, newest first by date. The ones to run after read-aloud or reader
   changes: `smoke`, `batch14`, `batch15`, `selend`, `seledge`, `audioctl`, `piper`, `cadence`, `offline`, `refsplit`,
-  `range`, `dash`, `dashsplit`, `paren`, `ellip`, `acro`, `bmswipe`, `tear`, `sheet`, `spine`, `toc`, `aadrop`, `drop`, `toast`.
+  `range`, `dash`, `dashsplit`, `paren`, `ellip`, `acro`, `bmswipe`, `tear`, `sheet`, `spine`, `toc`, `aadrop`, `drop`, `toast`, `delight`.
   - `cadence.js` and `offline.js` use a real Piper voice from Hugging Face (network needed).
   - `piper.js` and `audioctl.js` use the tiny fake voice in `feature/fake-piper/` instead.
   - `dbg*.js`, `shots*.js`, `nshot.js` and `ttsbarshot.js` are one-off debugging or screenshot scripts, not tests.

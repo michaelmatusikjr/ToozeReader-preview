@@ -37,8 +37,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('unbookmark', await pg.evaluate(()=>[R.meta.bookmarks.length, $('#rMark').classList.contains('on')]));
   // scrub jump + back pill
   await pg.evaluate(()=>{ const s=$('#rScrub'); s.value=String(R.n-5); s.dispatchEvent(new Event('change')); }); await sleep(600);
-  console.log('scrub jump', await pg.evaluate(()=>[R.pos, !$('#backPill').hidden]));
-  await pg.click('#backGo'); await sleep(600);
+  console.log('scrub jump', await pg.evaluate(()=>[R.pos, !!document.querySelector('#dropGhost:not([hidden])')]));
+  await pg.click('#dropGhost'); await sleep(600);
   console.log('back', await pg.evaluate(()=>[R.pos]));
   // relayout on size change
   await pg.evaluate(()=>{ S.size=26; applyLook(); relayoutSoon(); }); await sleep(800);

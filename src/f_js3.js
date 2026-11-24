@@ -3,11 +3,15 @@
 /*@@OLD:1151-1203@@*/
 
 /* ---------- stats and daily goal ---------- */
+/* today's reading toward the goal (no goal set: a gentle 15 minutes), shown by the drop on the tab bar */
+function todayMs(){ const st=LS.get('stats',{}); return (st[dayKey()]||{}).ms||0; }
+function updateToday(){ try{ Drop.today(todayMs()/((S.goalMins||15)*60000), dayKey()); }catch(e){} }
 function recordStats(ms, words){
   if(words<1||ms<500) return; const st=LS.get('stats',{}); const k=dayKey(); const d=st[k]||{ms:0,words:0};
   const before=d.ms; d.ms+=ms; d.words+=words; st[k]=d; LS.set('stats',st);
   const goal=(S.goalMins||0)*60000;
   if(goal && before<goal && d.ms>=goal) toast('You reached today’s reading goal of '+S.goalMins+' minutes.', null, 5000);
+  updateToday();
 }
 function renderStats(){
   const st=LS.get('stats',{}); const days=Object.keys(st);
@@ -1064,7 +1068,7 @@ function showView(v){
   for(const x of VIEWS) $('#v-'+x).hidden=(x!==v);
   $('#v-reader').hidden=v!=='reader'; $('#tabs').hidden=v==='reader';
   document.querySelectorAll('#tabs button').forEach(b=>{ if(b.dataset.tab===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
-  if(v==='stats') renderStats(); if(v==='settings') renderSettings(); if(v==='words') renderNotes(); if(v==='library'){ renderLibrary(); setTimeout(nearFinishCheck, 600); }
+  updateToday(); if(v==='stats') renderStats(); if(v==='settings') renderSettings(); if(v==='words') renderNotes(); if(v==='library'){ renderLibrary(); setTimeout(nearFinishCheck, 600); }
 }
 const TABS={library:['book','Library'], words:['note','Notes'], stats:['stats','Stats'], settings:['gear','Settings']};
 document.querySelectorAll('#tabs button').forEach(b=>{ const [ic,l]=TABS[b.dataset.tab]; b.innerHTML=ICON[ic]+l; b.onclick=()=>showView(b.dataset.tab); });
@@ -1074,7 +1078,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=22;
+const SAMPLE_V=23;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1107,6 +1111,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere, a hollow drop waits on the progress line at the spot you left: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>
@@ -1118,7 +1123,7 @@ const SAMPLE_HTML=`
 <p>Tap the <strong>voice</strong> button on the audio controls to choose a voice. There are two kinds. <strong>Natural</strong> voices sound like a person reading and run on your phone; each one downloads once (about 60 MB) and then works offline. <strong>Lessac</strong> is a good place to start; tap <strong>Hear this voice</strong> to try others. <strong>iPhone</strong> voices start instantly but sound more robotic. To free up space, Settings → Storage has <strong>Remove all downloaded voices</strong>.</p>
 <p>To listen with the screen locked, open the voice settings and tap <strong>Download this book’s audio</strong> under <strong>Listen offline</strong>. Tooz makes the audio while the app is open and saves it on your phone, then plays it from the saved copy with the screen locked, with play, pause and skip on the lock screen. <strong>Save as audio files</strong> exports one MP3 per chapter, so you can play the book in the Files app or another audio app even with Tooz closed.</p>
 <h2>Helpful extras</h2>
-<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
+<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. The drop on the tab bar fills as you read each day; in a book, touch the drop at the bottom to see your time today and what’s left of the chapter.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
 <h2>How reading time is counted</h2>
 <p>Tooz counts time while you turn pages, scroll, speed read or listen. Touching the page, highlighting, defining a word and writing a note all count as reading too.</p>
 <ul><li>The clock stops when you switch to another app, lock the phone or close the book, and the page you were on when you closed it still counts.</li><li>If you don’t touch the screen for 5 minutes, Tooz assumes you may have stepped away and counts only as long as that stretch usually takes you. Change the limit to 3 or 10 minutes in Settings.</li><li>Auto-scroll and Speed pause after 10 minutes without a touch and ask <em>Still reading?</em></li></ul>
@@ -1173,10 +1178,12 @@ async function boot(){
   const onHash=()=>{ if(location.hash==='#paste'){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} openPaste(true); } };
   onHash(); window.addEventListener('hashchange', onHash);
   if(document.fonts) document.fonts.ready.then(()=>{ if(R.mode==='speed'&&!$('#v-reader').hidden) showChunk(R.pos); });
-  showView('library');
+  showView('library'); updateToday();
   /* the first time Tooz opens, the tutorial opens with it */
   checkUpdated(hadData && !firstRun);
   if(firstRun && !keepTutorial()) openDoc(firstRun);
+  /* open straight into the book you were reading (if you left Tooz from inside it); the library is one tap back */
+  else if(!firstRun && LS.get('resume',null)){ const m=LIB.find(x=>x.id===LS.get('resume',null) && !x.pending); if(m){ await openDoc(m.id); return; } LS.set('resume',null); }
   else if(LS.get('tutOpen',false) && !keepTutorial()){ LS.set('tutOpen',false); const sm=LIB.find(m=>m.kind==='sample'); if(sm) setTimeout(()=>tutorialPrompt(sm.id), 700); }
 }
 boot();

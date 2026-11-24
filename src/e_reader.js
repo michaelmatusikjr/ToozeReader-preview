@@ -167,6 +167,8 @@ function decorate(sec){
     if(h.e<a || h.s>=b) continue;
     for(let k=Math.max(h.s,a); k<=Math.min(h.e,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('hl'+h.c); if(h.note) w.classList.add('hn'); const d=k<h.e&&dashOf(w); if(d){ d.classList.add('hl'+h.c); if(h.note) d.classList.add('hn'); } } }
   }
+  if(R.meta){ const ri=scanRefs(); if(ri.length){ let lo=0, hi=ri.length; while(lo<hi){ const m=(lo+hi)>>1; if(ri[m]<a) lo=m+1; else hi=m; }
+    for(let q=lo;q<ri.length&&ri[q]<b;q++){ const w=sec._ws[ri[q]-a]; if(w) w.classList.add('sref'); } } }
   if(TTS.on && TTS.cur>=a && TTS.cur<b){ const w=sec._ws[TTS.cur-a]; if(w) w.classList.add('tts'); }
   if(TTS.pick!=null && TTS.pick>=a && TTS.pick<b){ const w=sec._ws[TTS.pick-a]; if(w) w.classList.add('ttspick'); }
   if(typeof TS!=='undefined' && TS.on) for(let k=Math.max(TS.a,a); k<=Math.min(TS.b,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('tsel'); const d=k<TS.b&&dashOf(w); if(d) d.classList.add('tsel'); } }
@@ -443,6 +445,7 @@ function readerTap(e){
   const w=t.closest&&t.closest('w');
   if(w && w.classList.contains('nb')){ goTo(R.back.get(idxOf(w)), true); return; }
   if(w && w.classList.contains('n')){ openFootnote(idxOf(w)); return; }
+  if(w && w.classList.contains('sref')){ openRefPeek(idxOf(w)); return; }
   if(w && /\bhl[1-4]\b/.test(w.className)){ const h=hlAt(idxOf(w)); if(h){ openHlMenu(h); return; } }
   if(R.mode==='pages'){
     const r=pgView.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
@@ -494,9 +497,43 @@ document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefau
 function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); }
 function toggleChrome(){ setChrome(!R.chrome); }
 function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS.on) ttsStop(); }
-function setBack(prev){ R.backPos=prev; $('#backPill').hidden=false; clearTimeout(R.backT); R.backT=setTimeout(()=>{ $('#backPill').hidden=true; }, 60000); }
-$('#backGo').onclick=()=>{ const p=R.backPos; if(p==null) return; $('#backPill').hidden=true; goTo(p,true); };
-$('#backX').onclick=()=>{ $('#backPill').hidden=true; R.backPos=null; };
+/* ---------- where you were: after a jump, a hollow drop waits on the progress line at the spot you left;
+   tap it and you flow back (and it moves to where you'd jumped to, so you can go back and forth).
+   Across books (a scripture peek) it waits at the start of the line and takes you back to the other book.
+   It fades away after a few minutes of not being needed. ---------- */
+function setBack(prev){ R.backPos=prev; R.backDoc=null; showGhost(); }
+function showGhost(){
+  clearTimeout(R.backT);
+  if(!R.meta){ Drop.ghost(null); return; }
+  if(R.backDoc && R.backDoc.id!==R.meta.id) Drop.ghost(0, ghostBack, true);
+  else if(R.backPos!=null) Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
+  else { Drop.ghost(null); return; }
+  R.backT=setTimeout(()=>{ R.backPos=null; R.backDoc=null; Drop.ghost(null); }, 180000);
+}
+async function ghostBack(){
+  Haptic.tick();
+  if(R.backDoc && R.backDoc.id!==R.meta.id){ const to=R.backDoc; await jumpDoc(to.id, to.pos); return; }
+  const p=R.backPos; if(p==null) return; goTo(p,true);
+}
+/* touch the drop while reading: how long you've read today, and what's left of the chapter */
+Drop.onTouch(()=>{
+  if(!R.meta) return; Haptic.tick();
+  const mins=Math.round(todayMs()/60000), left=fmtMins((chapterEnd(R.pos)-R.pos)/readWpm());
+  const d=Drop.here(); if(!d) return;
+  document.querySelectorAll('.drop-bubble').forEach(x=>x.remove());
+  const b=document.createElement('div'); b.className='drop-bubble'; b.innerHTML=`<b>${mins} min</b> today · ${esc(left)} left in chapter`;
+  b.style.top=(d.t-14)+'px'; document.body.appendChild(b); const bw=b.offsetWidth/2+10; b.style.left=clamp(d.l+d.w/2, bw, innerWidth-bw)+'px';
+  b.animate([{opacity:0,transform:'translate(-50%,-80%)'},{opacity:1,transform:'translate(-50%,-100%)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});
+  setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 2600);
+});
+/* go to a spot in another book, remembering this one so the ghost can bring you back */
+async function jumpDoc(id, pos){
+  const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
+  if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
+  await goTo(typeof pos==='function'? pos() : pos, true);
+  if(from && from.id!==R.meta.id){ R.backDoc=from; R.backPos=null; showGhost(); }
+  return true;
+}
 /* Endnotes: the number in front of each note leads back to where it was cited.
    R.backTo: a link inside a note that points at its reference (the book's own back-link). R.back: a plain note number. */
 function buildBacklinks(){
@@ -621,6 +658,7 @@ function updateChrome(){
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
 $('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
+$('#rScrub').addEventListener('pointerdown',()=>Haptic.tick());   /* grabbing the drop */
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
@@ -719,7 +757,8 @@ async function openDoc(id){
   if(!text.rangeJoin && rangeJoinText(text, meta)) fixed=true;
   if(fixed){ Store.put('texts',text).catch(()=>{}); touch(meta); }
   applySavedPos(meta);
-  R.meta=meta; R.text=text; R.words=text.words; R.n=text.words.length; R.ends=new Set(text.ends);
+  R.meta=meta; R.text=text; R.words=text.words; LS.set('resume', meta.kind==='sample'? null : meta.id); /* reopen here next launch */
+  R.n=text.words.length; R.ends=new Set(text.ends);
   R.wf=(text.wf && text.wf.length===R.n)? text.wf : null;
   R.blocks=deriveBlocks(text, meta.chapters);
   R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks();
@@ -735,7 +774,7 @@ async function openDoc(id){
       if(!m.has(bi)) m.set(bi,[]); m.get(bi).push(idx);
     });
   }
-  buildSections(); R.sIdx=null; R.backPos=null; $('#backPill').hidden=true; diffCache={s:-1,e:-1,f:1};
+  buildSections(); R.sIdx=null; R.backPos=null; R.backDoc=null; Drop.ghost(null); diffCache={s:-1,e:-1,f:1};
   R.pos=clamp(meta.finished?0:meta.pos,0,R.n-1); if(meta.finished) meta.finished=false;
   R.tear=LS.get('tear.'+meta.id,null); if(R.tear!=null && !(R.tear>0 && R.tear<R.n)) R.tear=null;
   R.tearCenter= R.tear!=null && Math.abs(R.tear-R.pos)<400; R.tearShow=false;
@@ -772,6 +811,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
+  Drop.ghost(null); R.backPos=null; R.backDoc=null; LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -845,9 +885,29 @@ $('#selBar').addEventListener('click',e=>{
 /* the word to define: the first real word in the selection (skipping note numbers and stray punctuation) */
 function defineIdx(s,e){ for(let k=s;k<=e;k++){ if(R.wf && (R.wf[k]&F_N)) continue; if(clean(R.words[k])) return k; } return s; }
 /* "quote" — Author, Title, chapter */
-function citation(s){ const ch=currentChapter(s); const t=R.meta.title, a=R.meta.author; return [a, t, ch&&ch.t&&ch.t!==t?ch.t:''].filter(Boolean).join(', '); }
+/* exact citations: a Bible gives the verses ("John 3:16–18 (KJV)"); other books give where in the book
+   ("Thomas à Kempis, The Imitation of Christ, Book I, ch. XII") */
+function verseAt(k, from){ for(let q=k;q>=from;q--) if(R.wf && (R.wf[q]&F_P) && /^\d{1,3}$/.test(R.words[q])) return +R.words[q]; return 0; }
+function verseRef(s,e){
+  const cs=currentChapter(s), ce=currentChapter(e); if(!cs) return '';
+  const v1=verseAt(s, cs.i), v2=verseAt(e, ce? ce.i : cs.i);
+  if(!v1) return cs.t;
+  if(ce && ce!==cs){ const short=ce.t.replace(/^.*?(\d+)$/,'$1'); return `${cs.t}:${v1}–${short}:${v2||1}`; }
+  return `${cs.t}:${v1}`+(v2&&v2!==v1? '–'+v2 : '');
+}
+function placeCite(s){
+  const ch=R.meta.chapters||[], cur=currentChapter(s); if(!cur) return ''; const k=ch.indexOf(cur), t=R.meta.title;
+  const path=[]; let d=cur.d||0;
+  for(let j=k-1;j>=0&&d>0;j--){ if((ch[j].d||0)<d){ d=ch[j].d||0; if(ch[j].t!==t) path.unshift(wheelLabel(j,null)); } }
+  const own=wheelLabel(k,null), bare=/^(?:[ivxlcdm]+|\d+)\.?$/i.test(own.trim());
+  return [...path, own===t? '' : (bare? 'ch. '+own : own)].filter(Boolean).join(', ');
+}
+function citation(s,e){
+  if(hasVerses()) return verseRef(s, e==null? s : e)+' ('+bibleAbbr(R.meta)+')';
+  return [R.meta.author, R.meta.title, placeCite(s)].filter(Boolean).join(', ');
+}
 async function copyQuote(s,e){
-  const t='“'+textOf(s,e)+'” — '+citation(s);
+  const t='“'+textOf(s,e)+'” — '+citation(s,e);
   try{ await navigator.clipboard.writeText(t); toast('Copied'); }catch(err){ toast('Couldn’t copy. Select the text and use the iPhone’s Copy instead.'); }
 }
 
@@ -888,6 +948,7 @@ function wordNear(x,y){
 }
 function tsExtendTo(i){
   if(i==null) return;
+  if(i!==TS.lastTick){ TS.lastTick=i; Haptic.tick(); }   /* a tick each time the selection snaps to another word */
   if(TS.extending && TS.start) tsSet(TS.start.i, i);
   else if(TS.drag==='tsA') tsSet(Math.min(i,TS.b), TS.b);
   else if(TS.drag==='tsB') tsSet(TS.a, Math.max(i,TS.a));
@@ -947,7 +1008,7 @@ document.addEventListener('pointerdown',e=>{ if(!TS.on || TS.extending) return; 
 function quoteImage(s,e, style){
   style=style||LS.get('qstyle','light');
   const q=textOf(s,e); const quote=q.length>700? q.slice(0,700).replace(/\s+\S*$/,'')+'…' : q;
-  const by=[R.meta.author, R.meta.title].filter(Boolean);
+  const by=[citation(s,e)];
   const STY={light:{bg:'#f6f1e7',ink:'#2a241c',mute:'#7a6d5c',acc:'#a8743a'}, dark:{bg:'#1d1f24',ink:'#efe9de',mute:'#a59d90',acc:'#d7a45f'}, sepia:{bg:'#e9dcc3',ink:'#3a2c1a',mute:'#6f5b40',acc:'#8a5a2b'}};
   const c=document.createElement('canvas'); c.width=c.height=1080; const x=c.getContext('2d'); const st=STY[style]||STY.light;
   x.fillStyle=st.bg; x.fillRect(0,0,1080,1080);
@@ -996,6 +1057,67 @@ function openHlMenu(h, focusNote){
 }
 
 /* ---------- footnotes ---------- */
+/* ---------- scripture peek: references like "Isa. 26:8" or "1 Cor. 13:4–7" in any book (not in a Bible itself) get a
+   faint dotted underline; tap one and a card shows the verses from your Bible. "Read it in context" opens the Bible
+   there, and the hollow drop brings you back. ---------- */
+const ORD_DIGIT={First:'1',Second:'2',Third:'3'};
+function scanRefs(){
+  if(R.refFor===R.meta.id) return R.refIdx;
+  R.refFor=R.meta.id; R.refMap=new Map(); R.refIdx=[];
+  if(hasVerses()) return R.refIdx;
+  let book=null, ord='', at=-99;
+  const parse=w=>{ const m=REF_RE.exec(coreOf(w)); return m? {c:+m[1], v:+m[2], x:m[3]?+m[3]:0, y:m[4]?+m[4]:0} : null; };
+  for(let k=0;k<R.n;k++){
+    const w=R.words[k]; if(!w) continue;
+    const bk=BIBLE_BOOKS[bookKey(w)];
+    if(bk && isRef(R.words[k+1])){ const o=BOOK_ORD[bookKey(R.words[k-1]||'')]; book=bk; ord=o?ORD_DIGIT[o]:'';
+      const r=Object.assign({book, ord}, parse(R.words[k+1])); if(o) R.refMap.set(k-1,r); R.refMap.set(k,r); R.refMap.set(k+1,r); at=k+1; k++; continue; }
+    if(book && k-at<=6 && isRef(w)){ R.refMap.set(k, Object.assign({book, ord}, parse(w))); at=k; }
+  }
+  R.refIdx=[...R.refMap.keys()].sort((a,b)=>a-b);
+  return R.refIdx;
+}
+function refName(r){ const b=(r.ord?r.ord+' ':'')+r.book; return `${b} ${r.c}:${r.v}`+(r.y? `–${r.x}:${r.y}` : r.x? `–${r.x}` : ''); }
+function bibleAbbr(m){ const t=(m.title||'')+' '+(m.author||''); return /king james/i.test(t)?'KJV' : /world english/i.test(t)?'WEB' : (m.title||'Bible'); }
+function pickBible(){
+  const isBible=m=>/bible/i.test(m.title||'') || /^shelf-(kjv|web)$/.test(m.id);
+  return LIB.filter(isBible).sort((a,b)=>(!a.pending-!b.pending)*-1 || (b.lastRead||0)-(a.lastRead||0) || (a.id==='shelf-kjv'?-1:1))[0] || null;
+}
+async function bibleText(m){
+  if(R.bible && R.bible.id===m.id) return R.bible.t;
+  if(m.pending){ toast('Getting the Bible…', null, 0); const ok=await fetchShelfBook(m); $('#toast').hidden=true; if(!ok) return null; }
+  const t=await Store.get('texts',m.id).catch(()=>null); if(t) R.bible={id:m.id, t}; return t;
+}
+/* where a reference is in a Bible: the chapter, then the verses (raised numbers) inside it */
+function findVerses(m, t, r){
+  const ch=m.chapters||[], key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const names=[(r.ord||'')+r.book]; if(r.book==='Psalm') names.push('psalms'); if(/^Song of/.test(r.book)) names.push('songofsolomon','songofsongs');
+  const j=ch.findIndex(c=>names.some(n=>key(c.t)===key(n)+r.c)); if(j<0) return null;
+  let b=t.words.length; for(let q=j+1;q<ch.length;q++) if((ch[q].d||0)<=(ch[j].d||0)){ b=ch[q].i; break; }
+  const vs=[]; for(let k=ch[j].i;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
+  const vi=vs.findIndex(v=>v.n===r.v); if(vi<0) return {i:ch[j].i, s:-1, e:-1};
+  const last= r.y? vs.length-1 : r.x? Math.max(vi, vs.findIndex(v=>v.n===r.x)) : vi;
+  const lastCap=Math.min(last, vi+7);
+  return {i:vs[vi].i, s:vs[vi].i, e: vs[lastCap+1]? vs[lastCap+1].i : b, more:lastCap<last};
+}
+function versesHTML(t, s, e){
+  let h=''; for(let k=s;k<e;k++){ const f=t.wf? t.wf[k]:0; if(f&F_N) continue; const w=esc(t.words[k]);
+    const sp= k>s && !(f&F_GLUE) ? ' ' : '';
+    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : sp+w; }
+  return h;
+}
+async function openRefPeek(i){
+  scanRefs(); const r=R.refMap.get(i); if(!r) return;
+  const m=pickBible(); const name=refName(r);
+  if(!m){ openSheet(name, '<p class="note">Add a Bible to your library to see verses here.</p>', {}, 'short'); return; }
+  const t=await bibleText(m); if(!t){ toast('Couldn’t get the Bible right now.'); return; }
+  const at=findVerses(m, t, r);
+  if(!at){ openSheet(name, `<p class="note">${esc(name)} isn’t in this Bible.</p>`, {}, 'short'); return; }
+  const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
+  openSheet(name+' · '+bibleAbbr(m), body+`<button class="btn primary block" type="button" data-act="ctx">Read it in context</button>`, {
+    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); return v? v.i : at.i; }); }   /* found again once open: opening can renumber words */
+  }, 'short');
+}
 function openFootnote(i){
   if(i==null) return; if(R.backTo && R.backTo.has(i)){ goTo(R.backTo.get(i), true); return; }
   const t=R.notes.get(i); if(t==null) return;
@@ -1184,7 +1306,7 @@ function drawSpine(el){
     let raf=0, tm=0;
     c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
       const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
-      if(x!==c.x){ c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      if(x!==c.x){ Haptic.tick(); c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
       clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
     c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
   }
@@ -1201,7 +1323,7 @@ function drawSpine(el){
   const map=el.querySelector('.whmap'); let md=null;
   function seek(i){
     for(let n=0;n<cols.length;n++){ const c=cols[n], x=atPos(c.entries,i);
-      if(x!==c.x || c.stale){ c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
+      if(x!==c.x || c.stale){ Haptic.tick(); c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
   }
   const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.min(hi-1,Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)));
     exact=i; seek(i); label(); };
@@ -1260,7 +1382,7 @@ function openToc(tab, inPlace){
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
-    copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.map(h=>'“'+textOf(h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
+    copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.slice().sort((a,b)=>a.s-b.s).map(h=>'“'+textOf(h.s,h.e)+'” — '+(hasVerses()? verseRef(h.s,h.e) : placeCite(h.s)||R.meta.title)+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
   };
   /* already open: swap the contents in place, so quick taps inside the sheet aren't eaten as ghost taps */
   const cls='toc'+(S.tocStyle==='spine'&&t==='toc'?' spine':'');

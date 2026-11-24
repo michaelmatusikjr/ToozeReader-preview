@@ -136,6 +136,9 @@ details.yr{margin-top:10px}
 .tdet summary span{opacity:.75}
 #tagSet .tdet{margin-top:0}#tagSet .tdet summary{font-size:.95rem;color:var(--ink);font-weight:600;padding:2px 0}
 #tagSet .tdet .list{margin-top:10px}
+.book w.sref{text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,var(--page-link) 70%,transparent);text-underline-offset:3px;cursor:pointer}
+.peek{font-family:var(--bfont);font-size:1.05rem;line-height:1.55;overflow-wrap:anywhere}
+.peek sup{font-size:.68em;color:var(--muted);font-family:var(--f-ui);margin-right:1px}
 .book w.nb{color:var(--link,var(--accent));text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .stars{display:flex;gap:4px;margin-top:4px}
 .stars button{font-size:2rem;line-height:1;background:none;border:0;color:var(--accent);padding:2px 4px;cursor:pointer}
@@ -163,6 +166,14 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #tabs button{transition:color .2s .14s}
 /* The drop (see k_blob.js): one fixed bit of the accent colour. It sits on the tab bar, and becomes progress in the reader. */
 #drop{position:fixed;left:0;top:0;z-index:6;width:36px;height:3px;border-radius:999px;background:var(--accent);pointer-events:none;opacity:0}
+#drop[data-kind="tab"]{background:linear-gradient(90deg,var(--accent) var(--fill,100%),color-mix(in srgb,var(--accent) 28%,transparent) var(--fill,100%))}   /* today's reading toward the goal */
+#dropHit{position:fixed;z-index:8;width:56px;height:34px;padding:0;border:0;background:transparent;cursor:pointer}
+.drop-bubble{position:fixed;z-index:30;transform:translate(-50%,-100%);background:var(--page-bg,var(--surface));color:var(--page-ink,var(--ink));border:1px solid var(--page-line,var(--line));border-radius:12px;padding:7px 12px;font-size:.85rem;font-weight:700;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.15);pointer-events:none}
+.drop-bubble b{color:var(--accent)}
+.drop-ripple{position:fixed;z-index:6;width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);pointer-events:none}
+#dropGhost{position:fixed;z-index:9;padding:0;border:2px solid var(--accent);background:var(--page-bg,var(--surface));border-radius:999px;opacity:.9;cursor:pointer;box-sizing:border-box}
+#dropGhost::before{content:"";position:absolute;inset:-16px -10px}   /* a thumb-sized target */
+#dropGhost.away::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-3px 0 0 -1px;border-left:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(45deg)}
 .seg.lq{position:relative;background:var(--raise)}
 .seg.lq button{position:relative;z-index:1;background:transparent;transition:color .18s .14s}
 .seg.lq button[aria-pressed="true"]{background:transparent;color:var(--accent-ink)}
@@ -335,9 +346,6 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
   #speedView input[type=range]{height:24px}
 }
 /* Floating reader bits */
-#backPill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 8px);z-index:8;display:flex;align-items:center;background:var(--ink);color:var(--paper);border-radius:20px;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
-#backPill button{background:none;border:0;color:inherit;font-weight:700;font-size:.85rem;padding:9px 6px 9px 14px;cursor:pointer}
-#backPill button+button{padding:9px 12px 9px 6px;opacity:.7}
 #selBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:12;display:flex;align-items:center;gap:2px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:4px 6px;box-shadow:0 8px 28px rgba(0,0,0,.22);max-width:calc(100% - 16px)}
 #selBar .dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;margin:0 3px;flex:none}
 #selBar .dot[data-hl="1"]{background:var(--hl1)} #selBar .dot[data-hl="2"]{background:var(--hl2)} #selBar .dot[data-hl="3"]{background:var(--hl3)} #selBar .dot[data-hl="4"]{background:var(--hl4)}
@@ -647,7 +655,6 @@ input[type=color]{width:44px;height:44px;border:0;padding:0;background:none;bord
       </div>
     </div>
     <footer class="rchrome" id="rFoot">
-      <div id="backPill" hidden><button type="button" id="backGo">Back to where you were</button><button type="button" id="backX" aria-label="Dismiss">✕</button></div>
       <div id="asBar" hidden>
         <button class="icon-btn" id="asPlay" type="button" aria-label="Start auto-scroll"></button>
         <button class="icon-btn" id="asDown" type="button" aria-label="Slower"></button>
@@ -1323,7 +1330,9 @@ const Drop=(()=>{
       return;
     }
     if(!same(cur,t)){ const from=cur; cur=t; if(vis&&t.vis) flow(from,t); else put(el,t); }
+    el.dataset.kind=t.kind; ghostPlace(); hitPlace();
     if(t.vis!==vis){ vis=t.vis; el.style.opacity=vis?1:0; fade(el,vis?0:1,vis?1:0,200); }
+    hitPlace();
   }
   const later=()=>{ if(!queued){ queued=true; queueMicrotask(sync); } };
   function init(){
@@ -1332,12 +1341,51 @@ const Drop=(()=>{
     const tabs=document.getElementById('tabs'), rd=document.getElementById('v-reader');
     if(tabs){ mo.observe(tabs,{attributes:true,subtree:true,attributeFilter:['aria-current','hidden']}); }
     if(rd){ mo.observe(rd,{attributes:true,attributeFilter:['hidden','class','data-mode']}); }
-    addEventListener('resize',()=>{ if(!el||!placed) return; const t=target(); if(t){ cur=t; put(el,t); } });
+    addEventListener('resize',()=>{ if(!el||!placed) return; const t=target(); if(t){ cur=t; put(el,t); } ghostPlace(); });
     requestAnimationFrame(sync);
   }
+  /* ----- where you were: a hollow drop on the same line, at the spot you left (see setBack in the reader) ----- */
+  let gh=null, gFrac=null, gTap=null, gAway=false;
+  function ghostSpot(){
+    const rd=document.getElementById('v-reader');
+    if(gFrac==null || !rd || rd.hidden || rd.dataset.mode==='speed') return null;
+    const sc=document.getElementById('rScrub'), sr=sc&&sc.getBoundingClientRect();
+    if(!rd.classList.contains('chrome-off') && sr && sr.width) return {l:sr.left+gFrac*(sr.width-36), t:sr.top+sr.height/2-6, w:36, h:12};
+    return {l:gFrac*(innerWidth-36), t:innerHeight-Math.max(inset()*.5,7)-8, w:36, h:12};
+  }
+  /* in a book with the controls hidden, the drop itself can be touched (the reader decides what that shows) */
+  let hit=null, onHit=null;
+  function hitPlace(){ if(!hit) return; const ok=cur&&cur.kind==='base'&&vis; hit.hidden=!ok; if(ok){ hit.style.left=px(cur.l-10); hit.style.top=px(cur.t-22); } }
+  function onTouch(fn){ onHit=fn; if(!hit){ hit=document.createElement('button'); hit.type='button'; hit.id='dropHit'; hit.hidden=true; hit.setAttribute('aria-label','Reading today');
+    hit.addEventListener('click',e=>{ e.stopPropagation(); if(onHit) onHit(); }); document.body.appendChild(hit); } hitPlace(); }
+  function ghostPlace(){ if(!gh) return; const r=ghostSpot(); if(!r){ gh.hidden=true; return; } const was=gh.hidden; gh.hidden=false; put(gh,r);
+    if(was && !RM.matches) gh.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.35)',opacity:1,offset:.45},{transform:'none',opacity:.9}],{duration:700,easing:SPRING}); }
+  function ghost(f, onTap, away){
+    if(!gh){ gh=document.createElement('button'); gh.type='button'; gh.id='dropGhost'; gh.hidden=true; gh.setAttribute('aria-label','Back to where you were');
+      gh.addEventListener('click',e=>{ e.stopPropagation(); const fn=gTap; if(fn) fn(); }); document.body.appendChild(gh); }
+    const fresh= f!=null && (gFrac==null || Math.abs(f-gFrac)>1e-6 || gAway!==!!away);
+    gFrac= f==null? null : Math.max(0,Math.min(1,+f||0)); gTap=onTap||null; gAway=!!away; gh.classList.toggle('away',gAway);
+    if(gFrac==null){ gh.hidden=true; return; }
+    if(fresh) gh.hidden=true;   /* a new spot: it appears with a small pulse so you notice it */
+    ghostPlace();
+  }
+
+  /* ----- today's reading: on the tab bar the drop fills toward the day's goal, and ripples once when it's met ----- */
+  let today=0, rippledOn='';
+  function setToday(f, dayKey){
+    const was=today; today=Math.max(0,Math.min(1,+f||0)); if(!el) return;
+    el.style.setProperty('--fill', (today*100).toFixed(1)+'%');
+    if(was<1 && today>=1 && rippledOn!==dayKey){ rippledOn=dayKey; ripple(); }
+  }
+  function ripple(){ if(!el||RM.matches) return; const r=el.getBoundingClientRect(); if(!r.width) return;
+    const o=document.createElement('i'); o.className='drop-ripple'; o.style.left=px(r.left+r.width/2-18); o.style.top=px(r.top+r.height/2-18); document.body.appendChild(o);
+    o.animate([{transform:'scale(.3)',opacity:.9},{transform:'scale(2.4)',opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish=()=>o.remove();
+    el.animate([{transform:'scale(1)'},{transform:'scale(1.25,2)'},{transform:'scale(1)'}],{duration:520,easing:SPRING}); }
+
   /* ----- reading progress (0..1) ----- */
   function progress(f,live){
     frac=Math.max(0,Math.min(1,+f||0));
+    ghostPlace(); later();
     if(live&&el&&placed&&cur&&cur.kind==='scrub'){ const t=target(); if(t&&t.kind==='scrub'){ if(anim){ anim.cancel(); anim=null; } cur=t; put(el,t); return; } }  /* dragging the scrubber: stick to the finger */
     later();
   }
@@ -1405,7 +1453,27 @@ const Drop=(()=>{
   }
   function start(){ init(); watch(); }
   if(document.readyState==='loading') addEventListener('DOMContentLoaded',start); else start();
-  return {progress, sync:later, seg};
+  return {progress, sync:later, seg, ghost, today:setToday, onTouch, here:()=>cur&&{...cur}};
+})();
+
+/* ---------- a tiny tick under the thumb ----------
+   Web apps can't use the iPhone's haptics directly, but iOS 18 Safari gives a light tap when a switch-style checkbox
+   is toggled; toggling a hidden one borrows that. It needs a recent touch to count, so it's used right where the
+   thumb is: a wheel landing on a name, grabbing the drop, a selection handle snapping to a word. Elsewhere (or on
+   older iPhones) it simply does nothing. Never more than one tick every 40 ms. */
+const Haptic=(()=>{
+  let lab=null, last=0;
+  function tick(){
+    const now=performance.now(); if(now-last<40) return; last=now;
+    try{
+      if(!lab){ lab=document.createElement('label'); lab.setAttribute('aria-hidden','true');
+        lab.style.cssText='position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+        const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); i.tabIndex=-1; lab.appendChild(i); document.body.appendChild(lab); }
+      lab.click(); window.__ticks=(window.__ticks||0)+1;
+    }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){}
+  }
+  return {tick};
 })();
 
 
@@ -2014,6 +2082,8 @@ function decorate(sec){
     if(h.e<a || h.s>=b) continue;
     for(let k=Math.max(h.s,a); k<=Math.min(h.e,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('hl'+h.c); if(h.note) w.classList.add('hn'); const d=k<h.e&&dashOf(w); if(d){ d.classList.add('hl'+h.c); if(h.note) d.classList.add('hn'); } } }
   }
+  if(R.meta){ const ri=scanRefs(); if(ri.length){ let lo=0, hi=ri.length; while(lo<hi){ const m=(lo+hi)>>1; if(ri[m]<a) lo=m+1; else hi=m; }
+    for(let q=lo;q<ri.length&&ri[q]<b;q++){ const w=sec._ws[ri[q]-a]; if(w) w.classList.add('sref'); } } }
   if(TTS.on && TTS.cur>=a && TTS.cur<b){ const w=sec._ws[TTS.cur-a]; if(w) w.classList.add('tts'); }
   if(TTS.pick!=null && TTS.pick>=a && TTS.pick<b){ const w=sec._ws[TTS.pick-a]; if(w) w.classList.add('ttspick'); }
   if(typeof TS!=='undefined' && TS.on) for(let k=Math.max(TS.a,a); k<=Math.min(TS.b,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('tsel'); const d=k<TS.b&&dashOf(w); if(d) d.classList.add('tsel'); } }
@@ -2290,6 +2360,7 @@ function readerTap(e){
   const w=t.closest&&t.closest('w');
   if(w && w.classList.contains('nb')){ goTo(R.back.get(idxOf(w)), true); return; }
   if(w && w.classList.contains('n')){ openFootnote(idxOf(w)); return; }
+  if(w && w.classList.contains('sref')){ openRefPeek(idxOf(w)); return; }
   if(w && /\bhl[1-4]\b/.test(w.className)){ const h=hlAt(idxOf(w)); if(h){ openHlMenu(h); return; } }
   if(R.mode==='pages'){
     const r=pgView.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
@@ -2341,9 +2412,43 @@ document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefau
 function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); }
 function toggleChrome(){ setChrome(!R.chrome); }
 function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS.on) ttsStop(); }
-function setBack(prev){ R.backPos=prev; $('#backPill').hidden=false; clearTimeout(R.backT); R.backT=setTimeout(()=>{ $('#backPill').hidden=true; }, 60000); }
-$('#backGo').onclick=()=>{ const p=R.backPos; if(p==null) return; $('#backPill').hidden=true; goTo(p,true); };
-$('#backX').onclick=()=>{ $('#backPill').hidden=true; R.backPos=null; };
+/* ---------- where you were: after a jump, a hollow drop waits on the progress line at the spot you left;
+   tap it and you flow back (and it moves to where you'd jumped to, so you can go back and forth).
+   Across books (a scripture peek) it waits at the start of the line and takes you back to the other book.
+   It fades away after a few minutes of not being needed. ---------- */
+function setBack(prev){ R.backPos=prev; R.backDoc=null; showGhost(); }
+function showGhost(){
+  clearTimeout(R.backT);
+  if(!R.meta){ Drop.ghost(null); return; }
+  if(R.backDoc && R.backDoc.id!==R.meta.id) Drop.ghost(0, ghostBack, true);
+  else if(R.backPos!=null) Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
+  else { Drop.ghost(null); return; }
+  R.backT=setTimeout(()=>{ R.backPos=null; R.backDoc=null; Drop.ghost(null); }, 180000);
+}
+async function ghostBack(){
+  Haptic.tick();
+  if(R.backDoc && R.backDoc.id!==R.meta.id){ const to=R.backDoc; await jumpDoc(to.id, to.pos); return; }
+  const p=R.backPos; if(p==null) return; goTo(p,true);
+}
+/* touch the drop while reading: how long you've read today, and what's left of the chapter */
+Drop.onTouch(()=>{
+  if(!R.meta) return; Haptic.tick();
+  const mins=Math.round(todayMs()/60000), left=fmtMins((chapterEnd(R.pos)-R.pos)/readWpm());
+  const d=Drop.here(); if(!d) return;
+  document.querySelectorAll('.drop-bubble').forEach(x=>x.remove());
+  const b=document.createElement('div'); b.className='drop-bubble'; b.innerHTML=`<b>${mins} min</b> today · ${esc(left)} left in chapter`;
+  b.style.top=(d.t-14)+'px'; document.body.appendChild(b); const bw=b.offsetWidth/2+10; b.style.left=clamp(d.l+d.w/2, bw, innerWidth-bw)+'px';
+  b.animate([{opacity:0,transform:'translate(-50%,-80%)'},{opacity:1,transform:'translate(-50%,-100%)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});
+  setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 2600);
+});
+/* go to a spot in another book, remembering this one so the ghost can bring you back */
+async function jumpDoc(id, pos){
+  const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
+  if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
+  await goTo(typeof pos==='function'? pos() : pos, true);
+  if(from && from.id!==R.meta.id){ R.backDoc=from; R.backPos=null; showGhost(); }
+  return true;
+}
 /* Endnotes: the number in front of each note leads back to where it was cited.
    R.backTo: a link inside a note that points at its reference (the book's own back-link). R.back: a plain note number. */
 function buildBacklinks(){
@@ -2468,6 +2573,7 @@ function updateChrome(){
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
 $('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
+$('#rScrub').addEventListener('pointerdown',()=>Haptic.tick());   /* grabbing the drop */
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
@@ -2566,7 +2672,8 @@ async function openDoc(id){
   if(!text.rangeJoin && rangeJoinText(text, meta)) fixed=true;
   if(fixed){ Store.put('texts',text).catch(()=>{}); touch(meta); }
   applySavedPos(meta);
-  R.meta=meta; R.text=text; R.words=text.words; R.n=text.words.length; R.ends=new Set(text.ends);
+  R.meta=meta; R.text=text; R.words=text.words; LS.set('resume', meta.kind==='sample'? null : meta.id); /* reopen here next launch */
+  R.n=text.words.length; R.ends=new Set(text.ends);
   R.wf=(text.wf && text.wf.length===R.n)? text.wf : null;
   R.blocks=deriveBlocks(text, meta.chapters);
   R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks();
@@ -2582,7 +2689,7 @@ async function openDoc(id){
       if(!m.has(bi)) m.set(bi,[]); m.get(bi).push(idx);
     });
   }
-  buildSections(); R.sIdx=null; R.backPos=null; $('#backPill').hidden=true; diffCache={s:-1,e:-1,f:1};
+  buildSections(); R.sIdx=null; R.backPos=null; R.backDoc=null; Drop.ghost(null); diffCache={s:-1,e:-1,f:1};
   R.pos=clamp(meta.finished?0:meta.pos,0,R.n-1); if(meta.finished) meta.finished=false;
   R.tear=LS.get('tear.'+meta.id,null); if(R.tear!=null && !(R.tear>0 && R.tear<R.n)) R.tear=null;
   R.tearCenter= R.tear!=null && Math.abs(R.tear-R.pos)<400; R.tearShow=false;
@@ -2619,6 +2726,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
+  Drop.ghost(null); R.backPos=null; R.backDoc=null; LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -2692,9 +2800,29 @@ $('#selBar').addEventListener('click',e=>{
 /* the word to define: the first real word in the selection (skipping note numbers and stray punctuation) */
 function defineIdx(s,e){ for(let k=s;k<=e;k++){ if(R.wf && (R.wf[k]&F_N)) continue; if(clean(R.words[k])) return k; } return s; }
 /* "quote" — Author, Title, chapter */
-function citation(s){ const ch=currentChapter(s); const t=R.meta.title, a=R.meta.author; return [a, t, ch&&ch.t&&ch.t!==t?ch.t:''].filter(Boolean).join(', '); }
+/* exact citations: a Bible gives the verses ("John 3:16–18 (KJV)"); other books give where in the book
+   ("Thomas à Kempis, The Imitation of Christ, Book I, ch. XII") */
+function verseAt(k, from){ for(let q=k;q>=from;q--) if(R.wf && (R.wf[q]&F_P) && /^\d{1,3}$/.test(R.words[q])) return +R.words[q]; return 0; }
+function verseRef(s,e){
+  const cs=currentChapter(s), ce=currentChapter(e); if(!cs) return '';
+  const v1=verseAt(s, cs.i), v2=verseAt(e, ce? ce.i : cs.i);
+  if(!v1) return cs.t;
+  if(ce && ce!==cs){ const short=ce.t.replace(/^.*?(\d+)$/,'$1'); return `${cs.t}:${v1}–${short}:${v2||1}`; }
+  return `${cs.t}:${v1}`+(v2&&v2!==v1? '–'+v2 : '');
+}
+function placeCite(s){
+  const ch=R.meta.chapters||[], cur=currentChapter(s); if(!cur) return ''; const k=ch.indexOf(cur), t=R.meta.title;
+  const path=[]; let d=cur.d||0;
+  for(let j=k-1;j>=0&&d>0;j--){ if((ch[j].d||0)<d){ d=ch[j].d||0; if(ch[j].t!==t) path.unshift(wheelLabel(j,null)); } }
+  const own=wheelLabel(k,null), bare=/^(?:[ivxlcdm]+|\d+)\.?$/i.test(own.trim());
+  return [...path, own===t? '' : (bare? 'ch. '+own : own)].filter(Boolean).join(', ');
+}
+function citation(s,e){
+  if(hasVerses()) return verseRef(s, e==null? s : e)+' ('+bibleAbbr(R.meta)+')';
+  return [R.meta.author, R.meta.title, placeCite(s)].filter(Boolean).join(', ');
+}
 async function copyQuote(s,e){
-  const t='“'+textOf(s,e)+'” — '+citation(s);
+  const t='“'+textOf(s,e)+'” — '+citation(s,e);
   try{ await navigator.clipboard.writeText(t); toast('Copied'); }catch(err){ toast('Couldn’t copy. Select the text and use the iPhone’s Copy instead.'); }
 }
 
@@ -2735,6 +2863,7 @@ function wordNear(x,y){
 }
 function tsExtendTo(i){
   if(i==null) return;
+  if(i!==TS.lastTick){ TS.lastTick=i; Haptic.tick(); }   /* a tick each time the selection snaps to another word */
   if(TS.extending && TS.start) tsSet(TS.start.i, i);
   else if(TS.drag==='tsA') tsSet(Math.min(i,TS.b), TS.b);
   else if(TS.drag==='tsB') tsSet(TS.a, Math.max(i,TS.a));
@@ -2794,7 +2923,7 @@ document.addEventListener('pointerdown',e=>{ if(!TS.on || TS.extending) return; 
 function quoteImage(s,e, style){
   style=style||LS.get('qstyle','light');
   const q=textOf(s,e); const quote=q.length>700? q.slice(0,700).replace(/\s+\S*$/,'')+'…' : q;
-  const by=[R.meta.author, R.meta.title].filter(Boolean);
+  const by=[citation(s,e)];
   const STY={light:{bg:'#f6f1e7',ink:'#2a241c',mute:'#7a6d5c',acc:'#a8743a'}, dark:{bg:'#1d1f24',ink:'#efe9de',mute:'#a59d90',acc:'#d7a45f'}, sepia:{bg:'#e9dcc3',ink:'#3a2c1a',mute:'#6f5b40',acc:'#8a5a2b'}};
   const c=document.createElement('canvas'); c.width=c.height=1080; const x=c.getContext('2d'); const st=STY[style]||STY.light;
   x.fillStyle=st.bg; x.fillRect(0,0,1080,1080);
@@ -2843,6 +2972,67 @@ function openHlMenu(h, focusNote){
 }
 
 /* ---------- footnotes ---------- */
+/* ---------- scripture peek: references like "Isa. 26:8" or "1 Cor. 13:4–7" in any book (not in a Bible itself) get a
+   faint dotted underline; tap one and a card shows the verses from your Bible. "Read it in context" opens the Bible
+   there, and the hollow drop brings you back. ---------- */
+const ORD_DIGIT={First:'1',Second:'2',Third:'3'};
+function scanRefs(){
+  if(R.refFor===R.meta.id) return R.refIdx;
+  R.refFor=R.meta.id; R.refMap=new Map(); R.refIdx=[];
+  if(hasVerses()) return R.refIdx;
+  let book=null, ord='', at=-99;
+  const parse=w=>{ const m=REF_RE.exec(coreOf(w)); return m? {c:+m[1], v:+m[2], x:m[3]?+m[3]:0, y:m[4]?+m[4]:0} : null; };
+  for(let k=0;k<R.n;k++){
+    const w=R.words[k]; if(!w) continue;
+    const bk=BIBLE_BOOKS[bookKey(w)];
+    if(bk && isRef(R.words[k+1])){ const o=BOOK_ORD[bookKey(R.words[k-1]||'')]; book=bk; ord=o?ORD_DIGIT[o]:'';
+      const r=Object.assign({book, ord}, parse(R.words[k+1])); if(o) R.refMap.set(k-1,r); R.refMap.set(k,r); R.refMap.set(k+1,r); at=k+1; k++; continue; }
+    if(book && k-at<=6 && isRef(w)){ R.refMap.set(k, Object.assign({book, ord}, parse(w))); at=k; }
+  }
+  R.refIdx=[...R.refMap.keys()].sort((a,b)=>a-b);
+  return R.refIdx;
+}
+function refName(r){ const b=(r.ord?r.ord+' ':'')+r.book; return `${b} ${r.c}:${r.v}`+(r.y? `–${r.x}:${r.y}` : r.x? `–${r.x}` : ''); }
+function bibleAbbr(m){ const t=(m.title||'')+' '+(m.author||''); return /king james/i.test(t)?'KJV' : /world english/i.test(t)?'WEB' : (m.title||'Bible'); }
+function pickBible(){
+  const isBible=m=>/bible/i.test(m.title||'') || /^shelf-(kjv|web)$/.test(m.id);
+  return LIB.filter(isBible).sort((a,b)=>(!a.pending-!b.pending)*-1 || (b.lastRead||0)-(a.lastRead||0) || (a.id==='shelf-kjv'?-1:1))[0] || null;
+}
+async function bibleText(m){
+  if(R.bible && R.bible.id===m.id) return R.bible.t;
+  if(m.pending){ toast('Getting the Bible…', null, 0); const ok=await fetchShelfBook(m); $('#toast').hidden=true; if(!ok) return null; }
+  const t=await Store.get('texts',m.id).catch(()=>null); if(t) R.bible={id:m.id, t}; return t;
+}
+/* where a reference is in a Bible: the chapter, then the verses (raised numbers) inside it */
+function findVerses(m, t, r){
+  const ch=m.chapters||[], key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const names=[(r.ord||'')+r.book]; if(r.book==='Psalm') names.push('psalms'); if(/^Song of/.test(r.book)) names.push('songofsolomon','songofsongs');
+  const j=ch.findIndex(c=>names.some(n=>key(c.t)===key(n)+r.c)); if(j<0) return null;
+  let b=t.words.length; for(let q=j+1;q<ch.length;q++) if((ch[q].d||0)<=(ch[j].d||0)){ b=ch[q].i; break; }
+  const vs=[]; for(let k=ch[j].i;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
+  const vi=vs.findIndex(v=>v.n===r.v); if(vi<0) return {i:ch[j].i, s:-1, e:-1};
+  const last= r.y? vs.length-1 : r.x? Math.max(vi, vs.findIndex(v=>v.n===r.x)) : vi;
+  const lastCap=Math.min(last, vi+7);
+  return {i:vs[vi].i, s:vs[vi].i, e: vs[lastCap+1]? vs[lastCap+1].i : b, more:lastCap<last};
+}
+function versesHTML(t, s, e){
+  let h=''; for(let k=s;k<e;k++){ const f=t.wf? t.wf[k]:0; if(f&F_N) continue; const w=esc(t.words[k]);
+    const sp= k>s && !(f&F_GLUE) ? ' ' : '';
+    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : sp+w; }
+  return h;
+}
+async function openRefPeek(i){
+  scanRefs(); const r=R.refMap.get(i); if(!r) return;
+  const m=pickBible(); const name=refName(r);
+  if(!m){ openSheet(name, '<p class="note">Add a Bible to your library to see verses here.</p>', {}, 'short'); return; }
+  const t=await bibleText(m); if(!t){ toast('Couldn’t get the Bible right now.'); return; }
+  const at=findVerses(m, t, r);
+  if(!at){ openSheet(name, `<p class="note">${esc(name)} isn’t in this Bible.</p>`, {}, 'short'); return; }
+  const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
+  openSheet(name+' · '+bibleAbbr(m), body+`<button class="btn primary block" type="button" data-act="ctx">Read it in context</button>`, {
+    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); return v? v.i : at.i; }); }   /* found again once open: opening can renumber words */
+  }, 'short');
+}
 function openFootnote(i){
   if(i==null) return; if(R.backTo && R.backTo.has(i)){ goTo(R.backTo.get(i), true); return; }
   const t=R.notes.get(i); if(t==null) return;
@@ -3031,7 +3221,7 @@ function drawSpine(el){
     let raf=0, tm=0;
     c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
       const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
-      if(x!==c.x){ c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      if(x!==c.x){ Haptic.tick(); c.x=x; exact=null; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
       clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
     c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
   }
@@ -3048,7 +3238,7 @@ function drawSpine(el){
   const map=el.querySelector('.whmap'); let md=null;
   function seek(i){
     for(let n=0;n<cols.length;n++){ const c=cols[n], x=atPos(c.entries,i);
-      if(x!==c.x || c.stale){ c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
+      if(x!==c.x || c.stale){ Haptic.tick(); c.x=x; c.el.scrollTop=x*IH; shade(c); setCols(n,i); return; } }
   }
   const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.min(hi-1,Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)));
     exact=i; seek(i); label(); };
@@ -3107,7 +3297,7 @@ function openToc(tab, inPlace){
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
-    copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.map(h=>'“'+textOf(h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
+    copyall:async()=>{ const txt=R.meta.title+'\n\n'+R.meta.highlights.slice().sort((a,b)=>a.s-b.s).map(h=>'“'+textOf(h.s,h.e)+'” — '+(hasVerses()? verseRef(h.s,h.e) : placeCite(h.s)||R.meta.title)+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+R.meta.highlights.length+' highlight'+(R.meta.highlights.length===1?'':'s')); }catch(e){ toast('Couldn’t copy on this device.'); } }
   };
   /* already open: swap the contents in place, so quick taps inside the sheet aren't eaten as ghost taps */
   const cls='toc'+(S.tocStyle==='spine'&&t==='toc'?' spine':'');
@@ -4151,8 +4341,14 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.12 preview';
+const APP_VERSION='2026.11.25.1 preview';
 const WHATSNEW=[
+  ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
+  ['Back to where you were','After any jump, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). It replaces the “Back to where you were” button.'],
+  ['Today’s reading in the drop','The drop on the tab bar fills as you read today, toward your daily goal (15 minutes if you haven’t set one), and ripples when you reach it. In a book, touch the drop at the bottom to see your time today and what’s left of the chapter.'],
+  ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],
+  ['Exact quotes','Copied and shared quotes from the Bible now say “John 3:16–18 (KJV)”; from other books they name the part and chapter.'],
+  ['A tick under your thumb','On iPhones with iOS 18, you feel a tiny tick when a contents wheel lands on a name, when you grab the drop, and when a selection handle snaps to a word.'],
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
   ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place; drag along it to race through the whole book: every wheel follows, and Go takes you to the exact page under your thumb.'],
@@ -4421,11 +4617,15 @@ const endSwipe=()=>{ const r=swipe.row; if(!r) return; swipe.row=null; r.classLi
 $('#wordList').addEventListener('pointerup',endSwipe); $('#wordList').addEventListener('pointercancel',endSwipe);
 
 /* ---------- stats and daily goal ---------- */
+/* today's reading toward the goal (no goal set: a gentle 15 minutes), shown by the drop on the tab bar */
+function todayMs(){ const st=LS.get('stats',{}); return (st[dayKey()]||{}).ms||0; }
+function updateToday(){ try{ Drop.today(todayMs()/((S.goalMins||15)*60000), dayKey()); }catch(e){} }
 function recordStats(ms, words){
   if(words<1||ms<500) return; const st=LS.get('stats',{}); const k=dayKey(); const d=st[k]||{ms:0,words:0};
   const before=d.ms; d.ms+=ms; d.words+=words; st[k]=d; LS.set('stats',st);
   const goal=(S.goalMins||0)*60000;
   if(goal && before<goal && d.ms>=goal) toast('You reached today’s reading goal of '+S.goalMins+' minutes.', null, 5000);
+  updateToday();
 }
 function renderStats(){
   const st=LS.get('stats',{}); const days=Object.keys(st);
@@ -5482,7 +5682,7 @@ function showView(v){
   for(const x of VIEWS) $('#v-'+x).hidden=(x!==v);
   $('#v-reader').hidden=v!=='reader'; $('#tabs').hidden=v==='reader';
   document.querySelectorAll('#tabs button').forEach(b=>{ if(b.dataset.tab===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
-  if(v==='stats') renderStats(); if(v==='settings') renderSettings(); if(v==='words') renderNotes(); if(v==='library'){ renderLibrary(); setTimeout(nearFinishCheck, 600); }
+  updateToday(); if(v==='stats') renderStats(); if(v==='settings') renderSettings(); if(v==='words') renderNotes(); if(v==='library'){ renderLibrary(); setTimeout(nearFinishCheck, 600); }
 }
 const TABS={library:['book','Library'], words:['note','Notes'], stats:['stats','Stats'], settings:['gear','Settings']};
 document.querySelectorAll('#tabs button').forEach(b=>{ const [ic,l]=TABS[b.dataset.tab]; b.innerHTML=ICON[ic]+l; b.onclick=()=>showView(b.dataset.tab); });
@@ -5492,7 +5692,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=22;
+const SAMPLE_V=23;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -5525,6 +5725,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere, a hollow drop waits on the progress line at the spot you left: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>
@@ -5536,7 +5737,7 @@ const SAMPLE_HTML=`
 <p>Tap the <strong>voice</strong> button on the audio controls to choose a voice. There are two kinds. <strong>Natural</strong> voices sound like a person reading and run on your phone; each one downloads once (about 60 MB) and then works offline. <strong>Lessac</strong> is a good place to start; tap <strong>Hear this voice</strong> to try others. <strong>iPhone</strong> voices start instantly but sound more robotic. To free up space, Settings → Storage has <strong>Remove all downloaded voices</strong>.</p>
 <p>To listen with the screen locked, open the voice settings and tap <strong>Download this book’s audio</strong> under <strong>Listen offline</strong>. Tooz makes the audio while the app is open and saves it on your phone, then plays it from the saved copy with the screen locked, with play, pause and skip on the lock screen. <strong>Save as audio files</strong> exports one MP3 per chapter, so you can play the book in the Files app or another audio app even with Tooz closed.</p>
 <h2>Helpful extras</h2>
-<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
+<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. The drop on the tab bar fills as you read each day; in a book, touch the drop at the bottom to see your time today and what’s left of the chapter.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
 <h2>How reading time is counted</h2>
 <p>Tooz counts time while you turn pages, scroll, speed read or listen. Touching the page, highlighting, defining a word and writing a note all count as reading too.</p>
 <ul><li>The clock stops when you switch to another app, lock the phone or close the book, and the page you were on when you closed it still counts.</li><li>If you don’t touch the screen for 5 minutes, Tooz assumes you may have stepped away and counts only as long as that stretch usually takes you. Change the limit to 3 or 10 minutes in Settings.</li><li>Auto-scroll and Speed pause after 10 minutes without a touch and ask <em>Still reading?</em></li></ul>
@@ -5591,10 +5792,12 @@ async function boot(){
   const onHash=()=>{ if(location.hash==='#paste'){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} openPaste(true); } };
   onHash(); window.addEventListener('hashchange', onHash);
   if(document.fonts) document.fonts.ready.then(()=>{ if(R.mode==='speed'&&!$('#v-reader').hidden) showChunk(R.pos); });
-  showView('library');
+  showView('library'); updateToday();
   /* the first time Tooz opens, the tutorial opens with it */
   checkUpdated(hadData && !firstRun);
   if(firstRun && !keepTutorial()) openDoc(firstRun);
+  /* open straight into the book you were reading (if you left Tooz from inside it); the library is one tap back */
+  else if(!firstRun && LS.get('resume',null)){ const m=LIB.find(x=>x.id===LS.get('resume',null) && !x.pending); if(m){ await openDoc(m.id); return; } LS.set('resume',null); }
   else if(LS.get('tutOpen',false) && !keepTutorial()){ LS.set('tutOpen',false); const sm=LIB.find(m=>m.kind==='sample'); if(sm) setTimeout(()=>tutorialPrompt(sm.id), 700); }
 }
 boot();
