@@ -60,7 +60,7 @@ subagents" in the handbook); you are responsible for the result either way.
 10. **Be efficient and cheap without drifting.** Search before opening; read only what you need; don't re-read big
     files the handbook already summarizes. Batch related small fixes into one preview release instead of many tiny
     ones. Prefer automated checks over manual review, and **add a test for every bug you fix** so it never needs a
-    human again.
+    human again (except very minor visual or wording fixes; see "Match the checking" below).
 
 ### Standing rules
 
@@ -71,15 +71,26 @@ subagents" in the handbook); you are responsible for the result either way.
   raise `SAMPLE_V` so existing installs get the new copy.
 - He cancelled the daily scheduled review of pending changes (Nov 17, 2026). Don't set one up again unless asked.
 - Ask before anything that touches his calendar or sends email (his standing preference).
-- **Delegate by role (standing permission from Mick).** When the main session is Opus, Opus does the thinking
-  (interpreting notes, the 3 options, briefs, final review, decisions for Mick) and hands bounded work to cheaper
-  subagents with the Agent tool, using the `model` setting from the roster in `docs/HANDBOOK.md`:
-  - **Haiku:** copying notes into Pending changes, version/cache/What's new bumps, writing and running tests,
-    docs chores.
-  - **Sonnet:** building a change from a written brief in `docs/briefs/`.
-  - **Opus stays on:** interpreting notes, options for new features, debugging hard issues, reviewing Sonnet's diff.
-  Each delegation gives a tight brief (files, names, acceptance test, when to stop). Opus reviews the result before
-  anything goes to preview. Tiny edits (a few lines) Opus does itself; spinning up a subagent costs more than it saves.
+- **Delegate by role (standing permission from Mick).** The main session does the thinking (interpreting notes,
+  the 3 options, briefs, final review, decisions for Mick) and hands bounded work **below its own tier** to cheaper
+  subagents. Always delegate by **agent type** (`subagent_type`), never a bare Agent call: the types in
+  `.claude/agents/` fix the model, so nothing runs on the expensive model by accident.
+  - **`mechanic` (Haiku):** copying notes into Pending changes, version/cache/What's new bumps, docs chores.
+  - **`tester` (Haiku):** writing and running tests.
+  - **`builder` (Sonnet):** building a change from a written brief in `docs/briefs/`.
+  - **`reviewer` (Sonnet):** fresh-eyes review, **only for large or risky changes** (many files, audio timing,
+    Safari quirks). Reports problems; doesn't fix.
+  - **Opus stays on:** interpreting notes, options for new features, debugging hard issues, final review.
+  If the main session is Sonnet, it builds itself and still hands Haiku work to `mechanic`/`tester`.
+  Each delegation gives a tight brief (files, names, acceptance test, when to stop). **Review happens once:** the
+  main session reviews every delegated diff before preview (after tests pass, and after `reviewer` when used).
+  Tiny edits (a few lines) the main session does itself; spinning up a subagent costs more than it saves.
+- **Match the checking to the size of the change.** Very minor edits — a typo or wording fix, a color, spacing or
+  font-size tweak, a doc-only change — get **no QA**: no Playwright tests, no reviewer, no new test, no screenshot.
+  For app changes, building with `sh tools/build.sh` and the syntax check is enough (it takes seconds and catches a
+  broken build); doc-only changes need nothing. Full QA (tests, plus `reviewer` if large) is for behavior changes,
+  new features and real bug fixes. When unsure, ask "could this break something other than what I touched?" — if
+  no, it's minor.
 
 ## Build
 

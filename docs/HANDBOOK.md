@@ -70,17 +70,20 @@ The main session is the director. Spawn a subagent only for genuinely parallel w
 a cheaper model can do just as well. Every brief states: the role, the goal in delightful-usefulness terms, the exact
 files/names to look at (from the table above), what "done" looks like, and when to stop and report back.
 
-| Role | When | Model |
-|---|---|---|
-| **Designer** | Drafting the 3 options for a new feature, interaction and motion design, "what can we take away?" | opus |
-| **Debugger** | Tricky bugs: timing, Safari quirks, audio, layout that only breaks sometimes | opus |
-| **Builder** | Implementing a chosen, well-specified design | sonnet |
-| **Fresh-eyes reviewer** | Reviewing a finished change for bugs and clutter before preview | sonnet |
-| **Tester** | Writing a Playwright test for a fixed bug, running test batches, reporting PASS/FAIL | haiku |
-| **Mechanic** | Version/cache/What's new bumps, doc updates, renames, search-and-list chores | haiku |
+| Role | When | Model | Agent type |
+|---|---|---|---|
+| **Designer** | Drafting the 3 options for a new feature, interaction and motion design, "what can we take away?" | opus | main session |
+| **Debugger** | Tricky bugs: timing, Safari quirks, audio, layout that only breaks sometimes | opus | main session |
+| **Builder** | Implementing a chosen, well-specified design | sonnet | `builder` |
+| **Fresh-eyes reviewer** | Only for large or risky changes: reviews for bugs and clutter, reports to the main session, doesn't fix | sonnet | `reviewer` |
+| **Tester** | Writing a Playwright test for a fixed bug, running test batches, reporting PASS/FAIL | haiku | `tester` |
+| **Mechanic** | Version/cache/What's new bumps, doc updates, renames, search-and-list chores | haiku | `mechanic` |
 
-Standing permission (CLAUDE.md, "Delegate by role"): when Opus is the main session, it delegates Haiku and Sonnet
-work itself. Briefs live in `docs/briefs/`. Opus reviews every delegated diff before preview.
+The agent types live in `.claude/agents/*.md`; each one's `model:` line fixes its model, so always pass
+`subagent_type` (a bare Agent call inherits the main session's model). Standing permission (CLAUDE.md, "Delegate
+by role"): the main session delegates work below its own tier itself. Briefs live in `docs/briefs/`. Order for a
+normal change: build → `tester` → (`reviewer`, large/risky only) → main session's single final review → preview.
+Very minor edits (typo, color, spacing, docs) skip tests and review entirely; see CLAUDE.md "Match the checking".
 
 Small tasks (a one-line fix, a version bump) are faster done directly than briefed. Don't spawn a subagent to
 re-read files you already have in context.

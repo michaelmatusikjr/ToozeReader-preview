@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — subagents must use the cheapest fitting model; very minor edits need no QA.** Added agent types in
+  `.claude/agents/` (`mechanic`, `tester` on Haiku; `builder`, `reviewer` on Sonnet) so the model is fixed by the
+  type, not remembered per call. Delegation now applies to any main session ("below its own tier"), not only Opus.
+  Review happens once (main session); the Sonnet `reviewer` is only for large or risky changes. Typos, colors,
+  spacing and doc-only edits skip tests and review: build + syntax check only. No app change, no preview release.
 - **Mick — likes the way back, wants it on its own line under the header, readable, visible in the same place with
   the controls hidden, without overlapping the text.** Built 2026.11.25.8: `#rCrumb` row (32 px) under `#rTop`; in
   overlay (focus) mode it's absolutely placed at 49 px and the text area moves down (`.crumbing`); otherwise it's a
