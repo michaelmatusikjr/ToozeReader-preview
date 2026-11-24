@@ -1115,9 +1115,9 @@ function drawSpine(el){
   for(const x of (R.meta.highlights||[])) if(x.s>=lo&&x.s<hi) h+=`<button type="button" class="sp-bead" data-h="${x.id}" style="top:${y(x.s)}px;left:${X}px;--hc:var(--hl${x.c})" aria-label="Highlight"></button>`;
   (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X-28}px" aria-label="Bookmark">${ICON.mark}</button>`; });
   if(R.pos>=lo&&R.pos<hi) h+=`<i class="sp-drop" style="top:${y(R.pos)}px;left:${X}px"></i>`;
-  h+=`<div class="sp-lens" hidden></div><i class="sp-thumb" hidden></i><button type="button" class="sp-card" hidden></button>`;
+  h+=`<i class="sp-omark" style="left:${X}px"></i><div class="sp-lens" hidden></div><i class="sp-thumb" hidden></i><button type="button" class="sp-card" hidden></button>`;
   el.innerHTML=h;
-  const lens=el.querySelector('.sp-lens'), thumb=el.querySelector('.sp-thumb'), card=el.querySelector('.sp-card');
+  const lens=el.querySelector('.sp-lens'), thumb=el.querySelector('.sp-thumb'), card=el.querySelector('.sp-card'), omark=el.querySelector('.sp-omark');
   const showCard=(i,html)=>{ card.innerHTML=html; card.dataset.i=i; card.hidden=false; const ch2=card.offsetHeight; card.style.top=clamp(y(i)-ch2/2,4,H-ch2-4)+'px'; };
   el.onclick=e=>{ const bd=e.target.closest('.sp-bead'), fl=e.target.closest('.sp-flag'), cd=e.target.closest('.sp-card');
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
@@ -1142,11 +1142,18 @@ function drawSpine(el){
       const fs= big? Math.max(18,Math.min(28,(W-lx-10)/(Math.max(4,t.length)*.56))) : [13,17,0,17,13][d+2];
       s+=`<div class="sp-l${big?' on':''}" style="left:${lx}px;top:${py+d*30+(d>0?14:0)-(big?18:9)}px;font-size:${fs}px;opacity:${[.45,.75,1,.75,.45][d+2]}">${esc(t)}${big&&sub?`<small>${esc(sub)}</small>`:''}</div>`; } return s; };
   let drag=null;
-  function outerAt(py){
+  /* pointer-style control: slow movement is precise (about a fingertip per item), a quick swipe covers ground;
+     touching starts where you touch, and the ends of the line always reach the first and last item */
+  const pitch=(n,v)=>{ const P=U/Math.max(1,n), slow=Math.max(P,22), fast=Math.min(slow,P*.7), t=clamp((v-.1)/.7,0,1); return slow+(fast-slow)*t; };
+  const nearEnd=(py,dy)=>py<PAD+10&&dy<0? -1 : py>PAD+U-10&&dy>0? 1 : 0;   /* only when heading for that end */
+  function outerAt(py, dy){
     thumb.style.top=py+'px'; thumb.style.left=X+'px';
     const i=iAt(py);
     if(!items.length){ lens.innerHTML=lensHTML([placeLabel(i)],0,py,'',X+36); drag.k=-1; return i; }
-    const k=drag.hold!=null? drag.hold : itemAt(i), inn=innerOf(k);
+    if(drag.s==null) drag.s=items.indexOf(itemAt(i));
+    else if(drag.hold==null){ drag.s=clamp(drag.s+(dy||0)/pitch(items.length,drag.v),0,items.length-1); const e=nearEnd(py,dy||0); if(e) drag.s= e<0? 0 : items.length-1; }
+    const k=drag.hold!=null? drag.hold : items[Math.round(drag.s)], inn=innerOf(k);
+    omark.style.top=y(ch[k].i)+'px';
     lens.innerHTML=lensHTML(items.map(kk=>ch[kk].t), items.indexOf(k), py, inn.kind==='ch'? inn.list.length+' chapters' : placeLabel(ch[k].i), X+36);
     drag.k=k; return ch[k].i;
   }
@@ -1164,7 +1171,7 @@ function drawSpine(el){
     el.classList.add('inner');
     if(!RM.matches) box.animate([{transform:'scaleY(0)',opacity:0},{transform:'none',opacity:1}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
   }
-  function leave(){ if(drag.box) drag.box.remove(); drag.box=null; drag.inner=null; drag.hold=null; el.classList.remove('inner'); }
+  function leave(){ if(drag.box) drag.box.remove(); if(drag.hold!=null) drag.s=items.indexOf(drag.hold); drag.box=null; drag.inner=null; drag.hold=null; el.classList.remove('inner'); }
   function innerAt(py){
     const inn=drag.inner, f=drag.frac, yy=PAD+U*f; drag.box.querySelector('.sp-imark').style.top=yy+'px';
     thumb.style.top=py+'px'; thumb.style.left=drag.px+'px';
@@ -1177,21 +1184,24 @@ function drawSpine(el){
   }
   const RM=matchMedia('(prefers-reduced-motion: reduce)');
   el.onpointerdown=e=>{ if(e.target.closest('.sp-bead,.sp-flag,.sp-card')) return; if(!card.hidden){ card.hidden=true; return; }
-    const r=el.getBoundingClientRect(); drag={r, tgt:0, x0:e.clientX-r.left, px:e.clientX-r.left, py:e.clientY-r.top, hold:null, inner:null, box:null};
+    const r=el.getBoundingClientRect(); drag={r, tgt:0, x0:e.clientX-r.left, px:e.clientX-r.left, py:e.clientY-r.top, hold:null, inner:null, box:null, s:null, v:0, t:e.timeStamp||performance.now()};
     el.setPointerCapture&&el.setPointerCapture(e.pointerId);
     el.classList.add('dragging'); lens.hidden=false; thumb.hidden=false; drag.tgt=outerAt(drag.py); };
   el.onpointermove=e=>{ if(!drag) return; e.preventDefault();
     const px=e.clientX-drag.r.left, py=e.clientY-drag.r.top, dy=py-drag.py, dx=px-drag.x0; drag.px=px; drag.py=py;
+    const now=e.timeStamp||performance.now(), dt=Math.max(1,now-(drag.t||now-16)); drag.t=now; drag.v=drag.v*.6+.4*Math.min(3,Math.abs(dy)/dt);
     if(drag.inner){
       if(px-drag.fx < -40){ leave(); }
-      else { const out=px-drag.fx, sp= out<70? 1 : out<140? .5 : .25;   /* further right, finer */
-        drag.frac=clamp(drag.frac+dy*sp/U,0,1); drag.tgt=innerAt(py); return; }
+      else { const out=px-drag.fx, sp= out<70? 1 : out<140? .5 : .25, inn=drag.inner;   /* further right, finer */
+        const steps= inn.kind==='ch'? inn.list.length-1 : Math.max(1,Math.round(U/8));
+        drag.frac=clamp(drag.frac+dy*sp/(pitch(steps,drag.v)*steps),0,1); const e=nearEnd(py,dy); if(e&&sp===1) drag.frac= e<0? 0 : 1;
+        drag.tgt=innerAt(py); return; }
     }
     if(items.length){
       if(dx>16){ if(drag.hold==null) drag.hold=drag.k; } else drag.hold=null;   /* moving right holds the item, so a drift doesn't change it */
       if(dx>56 && drag.hold!=null){ enter(drag.hold); drag.tgt=innerAt(py); return; }
     }
-    drag.tgt=outerAt(py); };
+    drag.tgt=outerAt(py,dy); };
   const end=(e,cancel)=>{ if(!drag) return; const r=drag.r, out=cancel|| e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-30||e.clientY>r.bottom+30, tgt=drag.tgt;
     leave(); drag=null; el.classList.remove('dragging'); lens.hidden=true; thumb.hidden=true; if(!out){ closeSheet(); goTo(tgt,true); } };
   el.onpointerup=e=>end(e,false); el.onpointercancel=e=>end(e,true);

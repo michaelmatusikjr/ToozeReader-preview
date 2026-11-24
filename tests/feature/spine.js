@@ -5,6 +5,7 @@
 const __E=require('../env');
 const { chromium } = require('playwright');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const slow=async(pg,x,y0,y1,stepPx=2,ms=28)=>{ const n=Math.max(1,Math.round(Math.abs(y1-y0)/stepPx)); for(let k=1;k<=n;k++){ await pg.mouse.move(x, y0+(y1-y0)*k/n); await sleep(ms); } };
 let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefined?' '+JSON.stringify(x):'')); if(!c) fails++; };
 (async()=>{
   const b=await chromium.launch({});
@@ -35,8 +36,8 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   // drag: press at top, move to chapter VI's position, check lens, release -> goes there
   const box=await pg.evaluate(()=>{ const r=$('#spine').getBoundingClientRect(); return {x:r.left,y:r.top,w:r.width,h:r.height}; });
   const yOf=await pg.evaluate((i)=>{ const r=$('#spine').getBoundingClientRect(), H=r.height, U=H-36; return r.top+18+U*i/R.n; }, ch[10][1]+20);
-  await pg.mouse.move(box.x+60, box.y+30); await pg.mouse.down(); await sleep(50);
-  await pg.mouse.move(box.x+70, yOf, {steps:8}); await sleep(100);
+  await pg.mouse.move(box.x+60, yOf); await pg.mouse.down(); await sleep(50);
+  await pg.mouse.move(box.x+62, yOf+1); await sleep(100);
   const lens=await pg.evaluate(()=>[$('.sp-l.on')&&$('.sp-l.on').firstChild.textContent, document.querySelectorAll('.sp-l').length, $('#spine').classList.contains('dragging')]);
   ok('chapter under the thumb shows big', lens[0]===ch[10][0] && lens[1]>=3 && lens[2], lens);
   await pg.screenshot({path:__E.SCRATCH+'spine_drag.png'});
@@ -82,7 +83,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('step right unrolls Revelation’s chapters', await pg.evaluate(()=>!!$('.sp-inner') && $('.sp-chip').textContent==='Revelation'));
   ok('thumb is already on Revelation 22', (await lensTxt())==='Revelation 22', await lensTxt());
   await pg.screenshot({path:__E.SCRATCH+'spine_step22.png'});
-  await pg.mouse.move(bb.x+150, bb.y+18+(bb.h-36)*11/21, {steps:10}); await sleep(80);
+  { let yy=bb.y+bb.h-20; for(let k=0;k<400 && (await lensTxt())!=='Revelation 12';k++){ yy-=2; await pg.mouse.move(bb.x+150, yy); await sleep(28); } }
   ok('slide up to Revelation 12', (await lensTxt())==='Revelation 12', await lensTxt());
   await pg.screenshot({path:__E.SCRATCH+'spine_step12.png'});
   await pg.mouse.up(); await sleep(800);
@@ -91,11 +92,29 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
   await pg.mouse.move(bb.x+58, bb.y+bb.h/2); await pg.mouse.down(); await pg.mouse.move(bb.x+90, bb.y+bb.h/2,{steps:3}); await pg.mouse.move(bb.x+150, bb.y+bb.h/2,{steps:3}); await sleep(80);
   const psIn=await pg.evaluate(()=>$('.sp-chip')&&$('.sp-chip').textContent);
-  await pg.mouse.move(bb.x+300, bb.y+bb.h/2,{steps:6}); const f0=await pg.evaluate(()=>parseFloat($('.sp-imark').style.top));
-  await pg.mouse.move(bb.x+300, bb.y+bb.h/2+80,{steps:8}); const f1=await pg.evaluate(()=>parseFloat($('.sp-imark').style.top));
-  ok('far right moves a quarter as fast', Math.abs((f1-f0)-20)<4, [psIn, f1-f0]);
+  const mk=()=>pg.evaluate(()=>parseFloat($('.sp-imark').style.top));
+  let a0=await mk(); await slow(pg,bb.x+160,bb.y+bb.h/2,bb.y+bb.h/2+40); const near=(await mk())-a0;
+  await pg.mouse.move(bb.x+300, bb.y+bb.h/2+40,{steps:6}); await sleep(60);
+  a0=await mk(); await slow(pg,bb.x+300,bb.y+bb.h/2+40,bb.y+bb.h/2+80); const far=(await mk())-a0;
+  ok('far right moves a quarter as fast', near>0 && Math.abs(near/far-4)<1, [psIn, near, far]);
   await pg.mouse.move(bb.x+60, bb.y+bb.h/2,{steps:8}); await sleep(80);
   ok('step back left returns to the books', await pg.evaluate(()=>!$('.sp-inner') && !$('#spine').classList.contains('inner')) && !/\d$/.test(await lensTxt()||'1'), await lensTxt());
+  await pg.mouse.move(bb.x+58, bb.y-200); await pg.mouse.up(); await sleep(300);
+  // Jude (Mick, Nov 24: too sensitive): slow movement is about a fingertip per book
+  await pg.evaluate(()=>closeSheet()); await sleep(450); await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
+  await pg.mouse.move(bb.x+58, bb.y+bb.h-12); await pg.mouse.down(); await sleep(40);
+  ok('bottom touch starts on Revelation', (await lensTxt())==='Revelation', await lensTxt());
+  await slow(pg,bb.x+58,bb.y+bb.h-12,bb.y+bb.h-36);
+  const j1=await lensTxt(); await slow(pg,bb.x+58,bb.y+bb.h-36,bb.y+bb.h-42); const j2=await lensTxt();
+  ok('a slow fingertip up lands on Jude and holds it', j1==='Jude' && j2==='Jude', [j1,j2]);
+  ok('a dot on the line marks the pick', await pg.evaluate(()=>getComputedStyle($('.sp-omark')).display==='block'));
+  await pg.screenshot({path:__E.SCRATCH+'spine_jude.png'});
+  await pg.mouse.up(); await sleep(800);
+  ok('lands in Jude', await pg.evaluate(()=>/^Jude/.test(currentChapter(R.pos).t)), await pg.evaluate(()=>currentChapter(R.pos).t));
+  // a quick swipe still crosses the whole book
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
+  await pg.mouse.move(bb.x+58, bb.y+bb.h-60); await pg.mouse.down(); await pg.mouse.move(bb.x+58, bb.y+40,{steps:6}); await sleep(30);
+  const sw=await lensTxt(); ok('a quick swipe up reaches the early books', [await pg.evaluate(()=>R.meta.chapters[0].t),'Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth'].includes(sw), sw);
   await pg.mouse.move(bb.x+58, bb.y-200); await pg.mouse.up(); await sleep(300);
   // a plain novel: step into a chapter -> its pages
   await pg.evaluate(()=>{ closeSheet(); closeReader(); }); await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(900);

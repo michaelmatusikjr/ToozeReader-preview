@@ -91,6 +91,10 @@ and move items out of **Pending changes** once they're built.
   unrolls from it (scales out from the item, bridge + name chip): its chapters evenly spaced, or its pages if
   nothing is nested. The thumb lands on the matching height (bottom of Revelation = Revelation 22). Further right is
   finer (70px+: half speed, 140px+: quarter). 40px back left returns to the main line. Release goes there.
+  **Pointer-style selection** (Nov 24, 2026.11.24.4, after "too sensitive, hard to get to Jude"): touch-down picks
+  the item under the thumb; after that, movement is relative and speed-sensitive: slow ≈ 22px per item (or the
+  natural spacing if larger), fast ≈ 0.7× the even spacing; moving into an end of the line snaps to the first/last
+  item. A dot on the main line marks the pick. Same on the inner line (times the further-right factor).
 - Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, bookmark lines in the contents have an ×.
 - A highlight must be able to stop right before a dash (dash-joined words are separate words).
 

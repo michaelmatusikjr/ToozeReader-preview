@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — feel check: the spine is too sensitive; Jude is hard to get to.** Cause: the main line followed the
+  thumb absolutely and is proportional to length, so Jude was ~1px and 66 books got ~6px each. Fix
+  (2026.11.24.4): pointer-style selection — touch-down is absolute, then relative and speed-sensitive (slow ≈ a
+  fingertip, 22px, per book; a quick swipe still covers the whole Bible); ends snap only when heading for them; a
+  dot marks the pick on the line. Inner line the same. Test: `spine.js` (slow fingertip from Revelation → Jude and
+  holds; quick swipe reaches the start).
 - **Mick — spine for big books: step sideways (option 1 + a bit of 2).** His idea: slide to the book, slide right
   into its chapters, slide up/down to pick. He asked how Revelation 22 works at the bottom edge: the inner line is
   always full height and starts at the matching spot, so the bottom of Revelation lands on 22 and there's room to
