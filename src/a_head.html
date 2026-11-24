@@ -372,7 +372,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 #sheet.toc .sheet-body{flex:1;min-height:0}
 #sheet.toc.spine .sheet-body{overflow:hidden}
 #sheet.toc.spine #tocOut{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
-.spnmap{position:relative;flex:1;min-height:240px;touch-action:none;-webkit-user-select:none;user-select:none;overflow:hidden;cursor:pointer}
+.spnmap{position:relative;flex:1;min-height:240px;-webkit-user-select:none;user-select:none;overflow:hidden}
 .spnmap>*{position:absolute}
 .spnmap>[hidden]{display:none}
 .sp-track{width:4px;border-radius:4px;background:var(--line)}
@@ -383,7 +383,8 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .sp-flag{width:26px;height:28px;margin-top:-14px;border:0;padding:0;background:none;color:var(--accent);cursor:pointer;display:grid;place-items:center;transition:opacity .2s}
 .sp-flag svg{width:15px;height:15px}
 .sp-drop{width:14px;height:32px;margin:-16px 0 0 -7px;border-radius:999px;background:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 45%,transparent)}
-.whmap{position:absolute;left:0;top:0;bottom:0;width:36px;pointer-events:none}
+.whmap{position:absolute;left:0;top:0;bottom:0;width:40px;touch-action:none;cursor:ns-resize}   /* drag it to run through the book */
+.whmap.drag .sp-track{background:var(--accent);opacity:.5}
 .whmap>*{position:absolute}
 .wh-tgt{width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--accent);background:var(--surface);transition:top .18s cubic-bezier(.2,.8,.2,1);pointer-events:none;z-index:1}
 .whs{position:absolute;left:40px;right:0;top:0;display:flex;gap:4px}

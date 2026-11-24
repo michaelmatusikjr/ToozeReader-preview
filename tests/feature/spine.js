@@ -45,6 +45,33 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.screenshot({path:__E.SCRATCH+'wheels_rev.png'});
   await pg.click('.whgo'); await sleep(900);
   ok('Go lands on Revelation 22:3', await pg.evaluate(()=>$('#sheet').hidden && currentChapter(R.pos).t==='Revelation 22' && R.words[R.pos]==='3'), await pg.evaluate(()=>[currentChapter(R.pos).t, R.words.slice(R.pos,R.pos+4).join(' ')]));
+  // a touch flick on a wheel coasts with momentum (Mick, Nov 24: "drag and flick to scroll the wheels quickly")
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(900);
+  { /* Safari applies touch-action from containers too: nothing around the wheels may say "none" (that smothered the flick) */
+    const blocked=await pg.evaluate(()=>{ const out=[]; for(let e=$('.whc'); e; e=e.parentElement){ const t=getComputedStyle(e).touchAction; if(t==='none'||t==='pinch-zoom'||t==='manipulation'&&false) out.push((e.id||e.className)+':'+t); } return out; });
+    ok('no "don\'t scroll" around the wheels (iPhone flick)', !blocked.length, blocked);
+    const cdp=await ctx.newCDPSession(pg);
+    const r=await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[0], b=c.getBoundingClientRect(); return {x:b.left+b.width/2, y:b.top+b.height/2+60, top:c.scrollTop}; });
+    const tp=(type,y)=>cdp.send('Input.dispatchTouchEvent',{type, touchPoints: type==='touchEnd'?[]:[{x:Math.round(r.x),y:Math.round(y)}]});
+    const dir= r.top>400? 1 : -1;
+    await tp('touchStart', r.y); for(let k=1;k<=8;k++){ await tp('touchMove', r.y+dir*k*18); await sleep(8); } await tp('touchEnd'); await sleep(1200);
+    const after=await pg.evaluate(()=>document.querySelectorAll('.whc')[0].scrollTop);
+    ok('a finger drag on the book wheel turns it', Math.abs(after-r.top)>=80, [r.top, after]);
+    ok('it settles on a book in the band', after%40===0, after); }
+  await pg.evaluate(()=>closeSheet()); await sleep(450);
+  // drag the thin line on the left to run through the books
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(900);
+  { const m=await pg.evaluate(()=>{ const b=$('.whmap').getBoundingClientRect(); return {x:b.left+20, top:b.top, h:b.height}; });
+    await pg.mouse.move(m.x, m.top+20); await pg.mouse.down(); await sleep(60);
+    const first=await pg.evaluate(()=>$('.whc .whi.on').textContent);
+    await pg.mouse.move(m.x, m.top+m.h*0.55, {steps:6}); await sleep(80);
+    const mid=await pg.evaluate(()=>$('.whc .whi.on').textContent);
+    await pg.mouse.move(m.x, m.top+m.h-16, {steps:6}); await sleep(80);
+    const last=await pg.evaluate(()=>$('.whc .whi.on').textContent);
+    await pg.mouse.up(); await sleep(500);
+    ok('dragging the left line runs the book wheel through the Bible', /Holy Bible|Genesis|Old Testament/.test(first) && mid!==first && last==='Revelation', [first, mid, last]);
+    ok('wheels fill in after letting go (at your place, which is in Revelation)', /^Go to Revelation \d+:\d+$/.test((await st())[1]) && (await st())[0]===3, (await st())[1]); }
+  await pg.evaluate(()=>closeSheet()); await sleep(450);
   // tapping a wheel item scrolls it to the band
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(900);
   await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[1]; c.querySelector('.whi[data-x="19"]').click(); }); await sleep(900);

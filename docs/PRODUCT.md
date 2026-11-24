@@ -86,7 +86,8 @@ and move items out of **Pending changes** once they're built.
   commits ("Go to Revelation 22:3", page/location under it). Levels follow the book: Bible Book | Chapter | Verse
   (verses = raised numbers in the text); a book with parts Part | Chapter | Page; plain novel Chapter | Page (Loc
   in Scroll mode). The thin spine on the left keeps the map: chapter ticks, highlight beads (tap for a card),
-  bookmark flags, the drop at your place and a ring at the pick. Search swaps to the result list; the filter limits
+  bookmark flags, the drop at your place and a ring at the pick. **Drag the thin line** (40px strip) to run the first wheel
+  through the book (proportional to position); the other wheels fill in once it rests (Nov 24, 2026.11.24.9). Search swaps to the result list; the filter limits
   the wheels to one section. **Typed references** in the Contents search of a Bible ("jn 3:16", "rev 22 3",
   "1 cor 13", "ps 23", "jude") put "Go to …" first. Earlier spine versions (drag, step-sideways, pointer-style
   speed) are in DECISIONS.md.

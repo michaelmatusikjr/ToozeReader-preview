@@ -372,7 +372,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 #sheet.toc .sheet-body{flex:1;min-height:0}
 #sheet.toc.spine .sheet-body{overflow:hidden}
 #sheet.toc.spine #tocOut{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
-.spnmap{position:relative;flex:1;min-height:240px;touch-action:none;-webkit-user-select:none;user-select:none;overflow:hidden;cursor:pointer}
+.spnmap{position:relative;flex:1;min-height:240px;-webkit-user-select:none;user-select:none;overflow:hidden}
 .spnmap>*{position:absolute}
 .spnmap>[hidden]{display:none}
 .sp-track{width:4px;border-radius:4px;background:var(--line)}
@@ -383,7 +383,8 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .sp-flag{width:26px;height:28px;margin-top:-14px;border:0;padding:0;background:none;color:var(--accent);cursor:pointer;display:grid;place-items:center;transition:opacity .2s}
 .sp-flag svg{width:15px;height:15px}
 .sp-drop{width:14px;height:32px;margin:-16px 0 0 -7px;border-radius:999px;background:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 45%,transparent)}
-.whmap{position:absolute;left:0;top:0;bottom:0;width:36px;pointer-events:none}
+.whmap{position:absolute;left:0;top:0;bottom:0;width:40px;touch-action:none;cursor:ns-resize}   /* drag it to run through the book */
+.whmap.drag .sp-track{background:var(--accent);opacity:.5}
 .whmap>*{position:absolute}
 .wh-tgt{width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--accent);background:var(--surface);transition:top .18s cubic-bezier(.2,.8,.2,1);pointer-events:none;z-index:1}
 .whs{position:absolute;left:40px;right:0;top:0;display:flex;gap:4px}
@@ -3018,6 +3019,15 @@ function drawSpine(el){
     cols.forEach((c,j)=>{ c.el.style.flex= j===0&&wide? '2.2' : '1'; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
   addCol(L1, atPos(L1)); setCols(0);
   go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
+  /* drag the thin line on the left to run through the book: the first wheel follows the thumb; the wheels to its
+     right fill in when you let go */
+  const map=el.querySelector('.whmap'); let md=null;
+  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)), c=cols[0];
+    let x=0; c.entries.forEach((e,j)=>{ if(e.i<=i) x=j; }); c.el.scrollTop=x*IH; };
+  map.addEventListener('pointerdown',e=>{ md=1; try{ map.setPointerCapture(e.pointerId); }catch(_){} map.classList.add('drag'); card.hidden=true; mapTo(e.clientY); e.preventDefault(); });
+  map.addEventListener('pointermove',e=>{ if(md) mapTo(e.clientY); });
+  const mapUp=()=>{ if(!md) return; md=null; map.classList.remove('drag'); };
+  map.addEventListener('pointerup',mapUp); map.addEventListener('pointercancel',mapUp);
   const showCard=(i,html)=>{ card.innerHTML=html; card.dataset.i=i; card.hidden=false; const ch2=card.offsetHeight; card.style.top=clamp(y(i)-ch2/2,4,H-ch2-4)+'px'; };
   el.onclick=e=>{ const bd=e.target.closest('.sp-bead'), fl=e.target.closest('.sp-flag'), cd=e.target.closest('.sp-card');
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
@@ -4113,11 +4123,11 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.8 preview';
+const APP_VERSION='2026.11.24.9 preview';
 const WHATSNEW=[
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
-  ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place.'],
+  ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place; drag along it to race through the book.'],
   ['Type a Bible reference','In a Bible, type a reference like “jn 3:16” or “rev 22 3” in the contents search and the first result takes you straight there.'],
   ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings and in Aa flow from the old choice to the new one; theme swatches and fonts get a ring that slides across.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],

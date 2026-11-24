@@ -1173,6 +1173,15 @@ function drawSpine(el){
     cols.forEach((c,j)=>{ c.el.style.flex= j===0&&wide? '2.2' : '1'; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
   addCol(L1, atPos(L1)); setCols(0);
   go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
+  /* drag the thin line on the left to run through the book: the first wheel follows the thumb; the wheels to its
+     right fill in when you let go */
+  const map=el.querySelector('.whmap'); let md=null;
+  const mapTo=cy=>{ const r=el.getBoundingClientRect(), i=Math.round(lo+(hi-lo)*clamp((cy-r.top-PAD)/U,0,1)), c=cols[0];
+    let x=0; c.entries.forEach((e,j)=>{ if(e.i<=i) x=j; }); c.el.scrollTop=x*IH; };
+  map.addEventListener('pointerdown',e=>{ md=1; try{ map.setPointerCapture(e.pointerId); }catch(_){} map.classList.add('drag'); card.hidden=true; mapTo(e.clientY); e.preventDefault(); });
+  map.addEventListener('pointermove',e=>{ if(md) mapTo(e.clientY); });
+  const mapUp=()=>{ if(!md) return; md=null; map.classList.remove('drag'); };
+  map.addEventListener('pointerup',mapUp); map.addEventListener('pointercancel',mapUp);
   const showCard=(i,html)=>{ card.innerHTML=html; card.dataset.i=i; card.hidden=false; const ch2=card.offsetHeight; card.style.top=clamp(y(i)-ch2/2,4,H-ch2-4)+'px'; };
   el.onclick=e=>{ const bd=e.target.closest('.sp-bead'), fl=e.target.closest('.sp-flag'), cd=e.target.closest('.sp-card');
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }

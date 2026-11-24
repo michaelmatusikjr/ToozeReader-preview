@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — wheels: "drag and flick to scroll the wheels quickly"; and drag the sidebar to move through books
+  faster.** Cause of the weak flick: `.spnmap` still had `touch-action:none` from the old drag spine; Safari applies
+  ancestors' touch-action, Chrome doesn't (so tests passed here). Removed; `spine.js` now fails if any ancestor of
+  a wheel says `none`. Momentum itself is native iOS scroll-snap and can't be checked headless (no WebKit here).
+  New: dragging the thin left line spins the first wheel to that point of the book; wheels fill in at rest.
+  (2026.11.24.9)
 - **Mick — toasts: move to the top, match the theme, swipe away.** Built 2026.11.24.8: `#toast` sits under the
   top safe area, uses `--surface`/`--ink`/`--line` (in a book: `--page-bg`/`--page-ink`/`--page-link`, via
   `body:has(#v-reader:not([hidden]))`), drops in from the top, flicks away up (26px) or sideways (64px); a short
