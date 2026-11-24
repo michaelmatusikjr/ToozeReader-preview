@@ -5,6 +5,14 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — "I can't even see all the books"; wants wheels.** His idea: a vertical wheel with momentum and an
+  indicator on the current book; when it lands, a chapter wheel, then a verse wheel; commit with Go, not on
+  release. Offered A (picker wheels, his idea + thin spine map kept), B (grids, Bible-app style), C (one zooming
+  wheel). **He chose A, plus typed references in search, and said build it (no mock-up).** Built 2026.11.24.7:
+  the spine's drag/step-sideways/pointer-speed code is gone; the setting reads List | Wheels (value still 'spine').
+  Calls: native scroll-snap for momentum (feels like iOS pickers); wheels refill after 160 ms of quiet; single-
+  chapter books (Jude) still get a chapter wheel ("Jude 1:3"); novels' third level is pages (Loc in Scroll mode).
+  Test: `spine.js` (rewritten for wheels).
 - **Mick — the drop didn't flow in the reading options (Aa) panel like in Settings.** Causes: switching mode
   rebuilds the panel (twice: before and after `switchMode`), so the mode control was new each time and the drop was
   placed, not slid; controls in folds only woke when ≥90% in view inside the scrolling sheet, so many never did.

@@ -373,33 +373,25 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .sp-track{width:4px;border-radius:4px;background:var(--line)}
 .sp-read{width:4px;border-radius:4px;background:var(--accent);opacity:.35}
 .sp-tick{height:2px;width:10px;background:var(--line);margin-top:-1px}
-.sp-tick.big{width:16px;background:var(--muted);opacity:.6}
-.sp-labs{inset:0;transition:opacity .2s}
-.sp-lab{position:absolute;transform:translateY(-50%);font-size:13px;color:var(--muted);white-space:nowrap;max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis}
 .sp-bead{width:28px;height:28px;margin:-14px 0 0 -14px;border:0;padding:0;background:none;cursor:pointer;transition:opacity .2s}
 .sp-bead::after{content:"";position:absolute;left:7px;top:7px;width:14px;height:14px;border-radius:50%;background:var(--hc);border:2px solid var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.3);box-sizing:border-box}
 .sp-flag{width:26px;height:28px;margin-top:-14px;border:0;padding:0;background:none;color:var(--accent);cursor:pointer;display:grid;place-items:center;transition:opacity .2s}
 .sp-flag svg{width:15px;height:15px}
 .sp-drop{width:14px;height:32px;margin:-16px 0 0 -7px;border-radius:999px;background:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 45%,transparent)}
-.sp-thumb{width:66px;height:66px;margin:-33px 0 0 -33px;left:58px;border-radius:50%;background:color-mix(in srgb,var(--accent) 12%,transparent);border:2px solid color-mix(in srgb,var(--accent) 40%,transparent);pointer-events:none}
-.sp-lens{inset:0;pointer-events:none}
-.sp-l{position:absolute;left:94px;right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);line-height:1.15}
-.sp-l.on{font-family:var(--f-display);font-weight:800;color:var(--accent)}
-.sp-l small{display:block;font-family:var(--f-ui);font-weight:400;font-size:13px;color:var(--muted)}
-.spnmap.dragging .sp-labs{opacity:.12}
-.sp-inner{inset:0;pointer-events:none}
-.sp-inner>*{position:absolute}
-.sp-itrack{width:4px;border-radius:4px;background:var(--accent);opacity:.35}
-.sp-itick{height:2px;width:10px;margin-top:-1px;background:var(--accent);opacity:.45}
-.sp-ilab{font-size:13px;color:var(--muted);transform:translateY(-50%);white-space:nowrap;transition:opacity .15s}
-.sp-bridge{height:2px;margin-top:-1px;background:var(--accent);opacity:.5}
-.sp-chip{background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12px;border-radius:999px;padding:3px 9px;transform:translateY(-50%);white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
-.sp-omark{width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--surface);display:none}
-.spnmap.dragging:not(.inner) .sp-omark{display:block}
-.sp-imark{width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--accent)}
-.spnmap.inner .sp-tick,.spnmap.inner .sp-read,.spnmap.inner .sp-drop{opacity:.3}
-.spnmap.inner .sp-bead,.spnmap.inner .sp-flag{opacity:.15}
-.spnmap.dragging .sp-bead,.spnmap.dragging .sp-flag{opacity:.4}
+.whmap{position:absolute;left:0;top:0;bottom:0;width:36px;pointer-events:none}
+.whmap>*{position:absolute}
+.wh-tgt{width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--accent);background:var(--surface);transition:top .18s cubic-bezier(.2,.8,.2,1);pointer-events:none;z-index:1}
+.whs{position:absolute;left:40px;right:0;top:0;display:flex;gap:4px}
+.wh-band{position:absolute;left:0;right:0;top:50%;height:40px;margin-top:-20px;border-radius:12px;background:var(--accent-soft);pointer-events:none}
+.whc{position:relative;flex:1;min-width:0;height:100%;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-y;-webkit-mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent)}
+.whc::-webkit-scrollbar{display:none}
+.whc.stale .whi{opacity:.15!important}
+.whi{height:40px;line-height:40px;scroll-snap-align:center;text-align:center;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;color:var(--ink);cursor:pointer;transition:color .15s}
+.whi.on{color:var(--accent);font-weight:700}
+.whgo{position:absolute;left:40px;right:0;bottom:6px;min-height:52px;flex-direction:column;gap:0;line-height:1.15}
+.whgo .wg-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whgo .wg-s{font-size:.75rem;font-weight:400;opacity:.85}
+.refgo{color:var(--accent);font-weight:700}
 .sp-card{left:96px;right:6px;z-index:2;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;font:inherit}
 .sp-card .t{font-family:var(--bfont);font-size:.92rem;line-height:1.4;background:linear-gradient(var(--hc),var(--hc));color:#1B1B1B;border-radius:3px;padding:0 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone;display:inline}
 .sp-card .nt{font-size:.85rem}
@@ -2868,7 +2860,7 @@ function tocList(){
   if(q){
     const chs=wantCh? ch.map((c,k)=>k).filter(k=>inScope(ch[k].i)&&norm(ch[k].t).includes(q)) : [];
     const bms=wantBm? bm.filter(b=>inScope(b.i)&&(norm(b.name).includes(q)||norm(textOf(b.i,Math.min(R.n-1,b.i+8))).includes(q))) : [];
-    let h=chs.map(k=>`<button class="li" type="button" data-act="go" data-i="${ch[k].i}"><span class="grow">${esc(ch[k].t)}</span><span class="small">${esc(placeLabel(ch[k].i))}</span></button>`).join('')+bms.map(bmRow).join('');
+    const ref=refTarget(R.tocQ||''); let h=(ref?`<button class="li refgo" type="button" data-act="go" data-i="${ref.i}"><span class="grow">Go to ${esc(ref.t)}</span><span class="small">${esc(placeLabel(ref.i))}</span></button>`:'')+chs.map(k=>`<button class="li" type="button" data-act="go" data-i="${ch[k].i}"><span class="grow">${esc(ch[k].t)}</span><span class="small">${esc(placeLabel(ch[k].i))}</span></button>`).join('')+bms.map(bmRow).join('');
     let txt='';
     if(q.length>=2){
       const {s,off}=buildSearchIndex(); const MAX=100; const hits=[]; let p=0, total=0;
@@ -2921,126 +2913,113 @@ function tocScopeOpts(){
   if(ch.length>150){ const maxD=Math.max(...ch.map(c=>c.d||0)); if(maxD>0) ks=ks.filter(k=>(ch[k].d||0)<maxD); }
   return `<option value="-1">Whole book</option>`+ks.map(k=>`<option value="${k}">${' '.repeat(ch[k].d||0)}${esc(ch[k].t)}</option>`).join('');
 }
-/* ---------- the spine (contents style "spine", Settings → Reading) ----------
-   The book as one line: chapters are marks, highlights coloured beads, bookmarks flags, your place the drop.
-   Drag along it and the chapter under your thumb grows, with its neighbours smaller; let go to go there (paused).
-   Let go off the spine to cancel. Tap a bead or flag to see it; tap the card to go there. The filter zooms in. */
+/* ---------- the wheels (contents style "spine"; Aa → More text options → Contents: List | Wheels) ----------
+   Picker wheels like the iPhone's date picker: Book | Chapter | Verse in a Bible, Part | Chapter | Page in a book
+   with parts, Chapter | Page in a plain novel. Flick with momentum; the band across the middle is the pick, and it
+   opens on where you are. When a wheel lands, the wheels to its right refill. Nothing moves until Go. A thin spine
+   down the left keeps the map: chapters, highlights, bookmarks, the drop where you are, and a ring at the pick. */
 function spineUse(){ return S.tocStyle==='spine' && (R.tocTab||'toc')==='toc' && !norm(R.tocQ); }
+function pageNo(i){ const m=/^Page ([\d,]+)/.exec(placeLabel(i)); return m? +m[1].replace(/,/g,'') : 0; }
+/* verse starts in [a,b): small raised numbers in the text */
+function versesIn(a,b){ const out=[]; if(!R.wf) return out; for(let k=a;k<b&&k<R.n;k++) if((R.wf[k]&F_P) && /^\d{1,3}$/.test(R.words[k])) out.push({t:R.words[k], i:k}); return out; }
+function hasVerses(){ if(R.vFor===R.meta.id) return R.vHas; const ch=R.meta.chapters||[]; let n=0;
+  for(const c of ch.slice(0,40)){ if(versesIn(c.i,Math.min(R.n,c.i+400)).length>=2) n++; } R.vFor=R.meta.id; return R.vHas= n>=3; }
+function kidsOf(k){ const ch=R.meta.chapters||[], [a,b]=tocSpan(k), d=ch[k].d||0; let kids=[], md=Infinity;
+  for(let j=k+1;j<ch.length&&ch[j].i<b;j++){ const dj=ch[j].d||0; if(dj>d){ if(dj<md){ md=dj; kids=[]; } if(dj===md) kids.push(j); } }
+  return kids; }
+function shortTitle(j,k){ const ch=R.meta.chapters, p=ch[k].t, t=ch[j].t; return t.startsWith(p+' ')? t.slice(p.length+1) : t; }
+function pageEntries(a,b){
+  b=Math.max(a+1,b); const out=[];
+  if(R.mode==='pages'){ const p0=pageNo(a), p1=Math.max(p0,pageNo(b-1));
+    if(p0) for(let p=p0;p<=p1;p++) out.push({t:'Page '+p.toLocaleString(), i: a+Math.round((p-p0)/(p1-p0+1)*(b-a))}); }
+  if(!out.length) for(let i=a;i<b;i+=250) out.push({t:'Loc '+(i+1).toLocaleString(), i});
+  return out;
+}
 function drawSpine(el){
   const ch=R.meta.chapters||[], sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
   const [lo,hi]= sc>=0&&ch[sc]? tocSpan(sc) : [0,R.n];
-  const H=el.clientHeight, PAD=18, U=Math.max(40,H-2*PAD), X=58;
+  const H=el.clientHeight, PAD=14, GOH=64, U=Math.max(40,H-2*PAD), X=16;
   const y=i=>PAD+U*(clamp(i,lo,hi)-lo)/Math.max(1,hi-lo);
-  const iAt=py=>Math.round(lo+(hi-lo)*clamp((py-PAD)/U,0,1));
   const ks=ch.map((c,k)=>k).filter(k=>ch[k].i>=lo&&ch[k].i<hi);
-  const chAt=i=>{ let r=-1; for(const k of ks){ if(ch[k].i<=i) r=k; else break; } return r<0? ks[0] : r; };
-  /* resting labels: the level whose size best fits the space (books in the Bible, chapters in a novel),
-     first of each in order, never closer than 24px */
+  /* the first wheel: the level whose size best fits a map (books in the Bible, chapters in a novel) */
   const cnt={}; for(const k of ks){ const d=ch[k].d||0; cnt[d]=(cnt[d]||0)+1; }
-  const ds=Object.keys(cnt).map(Number).sort((a,b)=>a-b), fit=Math.max(4,U/26), lv=ds.reduce((best,d)=>Math.abs(Math.log(cnt[d]/fit))<Math.abs(Math.log(cnt[best]/fit))? d : best, ds[0]);
-  const taken=[], lab=new Set();
-  for(const k of ks){ if((ch[k].d||0)!==lv) continue; const yy=y(ch[k].i); if(taken.every(t=>Math.abs(t-yy)>=24)){ taken.push(yy); lab.add(k); } }
-  let h=`<i class="sp-track" style="top:${PAD}px;height:${U}px;left:${X-2}px"></i>`;
+  const ds=Object.keys(cnt).map(Number).sort((a,b)=>a-b), fit=Math.max(4,U/26), lv=ds.length? ds.reduce((best,d)=>Math.abs(Math.log(cnt[d]/fit))<Math.abs(Math.log(cnt[best]/fit))? d : best, ds[0]) : 0;
+  const items=ks.filter(k=>(ch[k].d||0)<=lv);
+  const verses=hasVerses();
+  /* what's inside an entry: its chapters, else its verses (Bible chapter), else its pages */
+  const inside=e=>{ if(e.k!=null){ const kids=kidsOf(e.k); if(kids.length>=1) return kids.map(j=>({t:shortTitle(j,e.k), full:ch[j].t, i:ch[j].i, k:j}));
+      const [a,b]=tocSpan(e.k); if(verses){ const vs=versesIn(a,b); if(vs.length>=2) return vs.map(v=>({t:v.t, full:e.full+':'+v.t, i:v.i})); }
+      return pageEntries(a,b).map(p=>({t:p.t, full:e.full+' · '+p.t, i:p.i})); }
+    return null; };
+  const L1= items.length? items.map(k=>({t:ch[k].t, full:ch[k].t, i:ch[k].i, k})) : pageEntries(lo,hi).map(p=>({t:p.t, full:p.t, i:p.i}));
+  /* the map */
+  let h=`<div class="whmap"><i class="sp-track" style="top:${PAD}px;height:${U}px;left:${X-2}px"></i>`;
   if(R.pos>=lo) h+=`<i class="sp-read" style="top:${PAD}px;height:${y(R.pos)-PAD}px;left:${X-2}px"></i>`;
-  if(ks.length<400) for(const k of ks) h+=`<i class="sp-tick${lab.has(k)?' big':''}" style="top:${y(ch[k].i)}px;left:${X-(lab.has(k)?8:5)}px"></i>`;
-  h+=`<div class="sp-labs">${[...lab].map(k=>`<span class="sp-lab" style="top:${y(ch[k].i)}px;left:${X+16}px">${esc(ch[k].t)}</span>`).join('')}</div>`;
+  if(items.length<400) for(const k of items) h+=`<i class="sp-tick" style="top:${y(ch[k].i)}px;left:${X-5}px"></i>`;
+  h+=`</div>`;
   for(const x of (R.meta.highlights||[])) if(x.s>=lo&&x.s<hi) h+=`<button type="button" class="sp-bead" data-h="${x.id}" style="top:${y(x.s)}px;left:${X}px;--hc:var(--hl${x.c})" aria-label="Highlight"></button>`;
-  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X-28}px" aria-label="Bookmark">${ICON.mark}</button>`; });
+  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X+4}px" aria-label="Bookmark">${ICON.mark}</button>`; });
   if(R.pos>=lo&&R.pos<hi) h+=`<i class="sp-drop" style="top:${y(R.pos)}px;left:${X}px"></i>`;
-  h+=`<i class="sp-omark" style="left:${X}px"></i><div class="sp-lens" hidden></div><i class="sp-thumb" hidden></i><button type="button" class="sp-card" hidden></button>`;
+  h+=`<i class="wh-tgt" style="left:${X}px"></i><div class="whs" style="bottom:${GOH}px"><i class="wh-band"></i></div>
+    <button type="button" class="btn primary whgo"><span class="wg-t"></span><span class="wg-s"></span></button>
+    <button type="button" class="sp-card" hidden></button>`;
   el.innerHTML=h;
-  const lens=el.querySelector('.sp-lens'), thumb=el.querySelector('.sp-thumb'), card=el.querySelector('.sp-card'), omark=el.querySelector('.sp-omark');
+  const whs=el.querySelector('.whs'), go=el.querySelector('.whgo'), tgt=el.querySelector('.wh-tgt'), card=el.querySelector('.sp-card');
+  const cols=[];          /* {el, entries, x} */
+  const pickNow=()=>{ let e=null; for(const c of cols){ if(c.stale) break; e=c.entries[c.x]||e; } return e; };
+  const label=()=>{ const e=pickNow(); if(!e) return; go.querySelector('.wg-t').textContent='Go to '+e.full; const pl=placeLabel(e.i); go.querySelector('.wg-s').textContent= e.full.includes(pl)? ((currentChapter(e.i)||{}).t||'') : pl; go.dataset.i=e.i; tgt.style.top=y(e.i)+'px'; };
+  const atPos=list=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=R.pos) x=j; }); return x; };
+  function setCols(from){                /* (re)build the wheels right of column `from` from its pick */
+    for(const c of cols.splice(from+1)) c.el.remove();
+    let parent=cols[from].entries[cols[from].x];
+    while(cols.length<3 && parent){ const list=inside(parent); if(!list||!list.length) break;
+      const sel= R.pos>=parent.i && R.pos<(tocEnd(parent)) ? atPos(list) : 0;
+      addCol(list, sel); parent= list[0]&&list[0].k!=null? list[cols[cols.length-1].x] : null; }
+    layout(); label();
+  }
+  const tocEnd=e=> e.k!=null? tocSpan(e.k)[1] : e.i+1;
+  const IH=40;
+  function addCol(list, sel){
+    const c={el:document.createElement('div'), entries:list, x:sel, stale:false}; c.el.className='whc';
+    c.el.innerHTML=`<div class="whp"></div>${list.map((e,j)=>`<div class="whi" data-x="${j}">${esc(e.t)}</div>`).join('')}<div class="whp"></div>`;
+    whs.appendChild(c.el); cols.push(c); const me=cols.length-1;
+    let raf=0, tm=0;
+    c.el.addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; shade(c);
+      const x=clamp(Math.round(c.el.scrollTop/IH),0,list.length-1);
+      if(x!==c.x){ c.x=x; for(let j=me+1;j<cols.length;j++){ cols[j].stale=true; cols[j].el.classList.add('stale'); } label(); } });
+      clearTimeout(tm); tm=setTimeout(()=>{ if(cols[me]!==c) return; if(cols.slice(me+1).some(k=>k.stale)) setCols(me); }, 160); },{passive:true});
+    c.el.addEventListener('click',e=>{ const it=e.target.closest('.whi'); if(it) c.el.scrollTo({top:+it.dataset.x*IH, behavior:'smooth'}); });
+  }
+  function shade(c){ if(c.lastOn&&!c.lastOn.isConnected) c.lastOn=null; const mid=c.el.scrollTop/IH, a=Math.max(0,Math.floor(mid-6)), b=Math.min(c.entries.length-1,Math.ceil(mid+6)), its=c.el.children;
+    for(let j=a;j<=b;j++){ const d=Math.abs(j-mid), it=its[j+1]; it.style.opacity=Math.max(.18,1-d*.22); it.style.transform=`scale(${Math.max(.8,1-d*.05)})`; if(d<.5&&c.lastOn!==it){ if(c.lastOn) c.lastOn.classList.remove('on'); it.classList.add('on'); c.lastOn=it; } } }
+  function layout(){ const n=cols.length, wide=cols[0]&&cols[0].entries[0]&&cols[0].entries[0].k!=null&&n>1;
+    const ph=(whs.clientHeight-IH)/2;
+    cols.forEach((c,j)=>{ c.el.style.flex= j===0&&wide? '2.2' : '1'; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
+  addCol(L1, atPos(L1)); setCols(0);
+  go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
   const showCard=(i,html)=>{ card.innerHTML=html; card.dataset.i=i; card.hidden=false; const ch2=card.offsetHeight; card.style.top=clamp(y(i)-ch2/2,4,H-ch2-4)+'px'; };
   el.onclick=e=>{ const bd=e.target.closest('.sp-bead'), fl=e.target.closest('.sp-flag'), cd=e.target.closest('.sp-card');
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
+    if(!card.hidden && !e.target.closest('.sp-bead,.sp-flag')){ card.hidden=true; }
     if(bd){ const x=R.meta.highlights.find(z=>z.id===bd.dataset.h); if(x) showCard(x.s, `<span class="t" style="--hc:var(--hl${x.c})">${esc(textOf(x.s,Math.min(x.e,x.s+40)))}${x.e>x.s+40?'…':''}</span>${x.note?`<span class="nt">${esc(x.note)}</span>`:''}<span class="where">${esc(((currentChapter(x.s)||{}).t||''))} · ${esc(placeLabel(x.s))}</span>`); return; }
     if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${ICON.mark}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
   };
-  /* drag (or tap) along the spine. The main line picks an item at the label level (a Bible book, a novel's
-     chapter). Step right and a second, full-height line unrolls from it with what's inside: its chapters, evenly
-     spaced, or, with nothing nested, its pages. Further right, the inner line moves finer. Step back left to return.
-     Let go to jump there (paused); let go off the spine to cancel. */
-  const items=ks.filter(k=>(ch[k].d||0)<=lv);
-  const itemAt=i=>{ let r=-1; for(const k of items){ if(ch[k].i<=i) r=k; else break; } return r<0? items[0] : r; };
-  const X2=X+92;
-  const innerOf=k=>{ const [a,b]=tocSpan(k), d=ch[k].d||0; let kids=[], md=Infinity;
-    for(let j=k+1;j<ch.length&&ch[j].i<b;j++){ const dj=ch[j].d||0; if(dj>d){ if(dj<md){ md=dj; kids=[]; } if(dj===md) kids.push(j); } }
-    return kids.length>=2? {kind:'ch', list:kids, a, b, k} : {kind:'pg', a, b:Math.max(a+1,b), k}; };
-  const shortT=(j,k)=>{ const p=ch[k].t, t=ch[j].t; return t.startsWith(p+' ')? t.slice(p.length+1) : t; };
-  /* the lens: the pick big (sized to fit), two neighbours each side; kept on screen near the edges */
-  const W=el.clientWidth;
-  const lensHTML=(list,at,py,sub,lx,bigT)=>{ let s=''; py=clamp(py,46,H-58);
-    for(let d=-2;d<=2;d++){ const it=list[at+d]; if(it==null) continue; const big=d===0, t=big&&bigT? bigT : it;
-      const fs= big? Math.max(18,Math.min(28,(W-lx-10)/(Math.max(4,t.length)*.56))) : [13,17,0,17,13][d+2];
-      s+=`<div class="sp-l${big?' on':''}" style="left:${lx}px;top:${py+d*30+(d>0?14:0)-(big?18:9)}px;font-size:${fs}px;opacity:${[.45,.75,1,.75,.45][d+2]}">${esc(t)}${big&&sub?`<small>${esc(sub)}</small>`:''}</div>`; } return s; };
-  let drag=null;
-  /* pointer-style control: slow movement is precise (about a fingertip per item), a quick swipe covers ground;
-     touching starts where you touch, and the ends of the line always reach the first and last item */
-  const pitch=(n,v)=>{ const P=U/Math.max(1,n), slow=Math.max(P,14), fast=Math.min(slow,P), t=clamp((v-.05)/.45,0,1); return slow+(fast-slow)*t; };
-  /* how far one move goes, in items: the speed-based step; within the last stretch before an end, never less than
-     the room left needs, so the last item arrives exactly as the thumb reaches that end (no jump, never out of room) */
-  const ZONE=Math.min(80,U/4);
-  const advance=(pos,max,dy,py,per)=>{ if(!dy) return pos; const left= dy<0? pos : max-pos, room=Math.max(2, dy<0? py-PAD : PAD+U-py);
-    return clamp(pos+Math.sign(dy)*Math.abs(dy)*(room<ZONE? Math.max(per, left/room) : per),0,max); };
-  function outerAt(py, dy){
-    thumb.style.top=py+'px'; thumb.style.left=X+'px';
-    const i=iAt(py);
-    if(!items.length){ lens.innerHTML=lensHTML([placeLabel(i)],0,py,'',X+36); drag.k=-1; return i; }
-    if(drag.s==null) drag.s=items.indexOf(itemAt(i));
-    else if(drag.hold==null) drag.s=advance(drag.s, items.length-1, dy||0, py, 1/pitch(items.length,drag.v));
-    const k=drag.hold!=null? drag.hold : items[Math.round(drag.s)], inn=innerOf(k);
-    omark.style.top=y(ch[k].i)+'px';
-    lens.innerHTML=lensHTML(items.map(kk=>ch[kk].t), items.indexOf(k), py, inn.kind==='ch'? inn.list.length+' chapters' : placeLabel(ch[k].i), X+36);
-    drag.k=k; return ch[k].i;
-  }
-  function enter(k){
-    const inn=innerOf(k), yk=y(ch[k].i); drag.inner=inn; drag.frac=clamp((drag.py-PAD)/U,0,1); drag.fx=drag.px;
-    let s=`<i class="sp-bridge" style="left:${X}px;width:${X2-X}px;top:${yk}px"></i><span class="sp-chip" style="left:${X+8}px;top:${yk+(yk>H-40?-16:16)}px">${esc(ch[k].t)}</span><i class="sp-itrack" style="left:${X2-2}px;top:${PAD}px;height:${U}px"></i>`;
-    const yf=f=>PAD+U*f;
-    if(inn.kind==='ch'){ const n=inn.list.length, step=Math.max(1,Math.ceil(26/(U/Math.max(1,n-1))));
-      if(n<=200) inn.list.forEach((j,x)=>{ s+=`<i class="sp-itick" style="left:${X2-5}px;top:${yf(x/Math.max(1,n-1))}px"></i>`; });
-      inn.list.forEach((j,x)=>{ if(x%step===0||x===n-1&&(n-1)%step>=step/2) s+=`<span class="sp-ilab" style="left:${X2+16}px;top:${yf(x/Math.max(1,n-1))}px">${esc(shortT(j,k))}</span>`; }); }
-    else { for(let f=0;f<=1.0001;f+=1/Math.max(1,Math.round(U/24))) s+=`<i class="sp-itick" style="left:${X2-5}px;top:${yf(f)}px"></i>`;
-      let last=''; for(const f of [0,.25,.5,.75,1]){ const L=placeLabel(Math.round(inn.a+(inn.b-1-inn.a)*f)); if(L!==last) s+=`<span class="sp-ilab" style="left:${X2+16}px;top:${yf(f)}px">${esc(L)}</span>`; last=L; } }
-    s+=`<i class="sp-imark" style="left:${X2}px"></i>`;
-    const box=document.createElement('div'); box.className='sp-inner'; box.innerHTML=s; box.style.transformOrigin=`0 ${yk}px`; el.insertBefore(box,lens); drag.box=box;
-    el.classList.add('inner');
-    if(!RM.matches) box.animate([{transform:'scaleY(0)',opacity:0},{transform:'none',opacity:1}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
-  }
-  function leave(){ if(drag.box) drag.box.remove(); if(drag.hold!=null) drag.s=items.indexOf(drag.hold); drag.box=null; drag.inner=null; drag.hold=null; el.classList.remove('inner'); }
-  function innerAt(py){
-    const inn=drag.inner, f=drag.frac, yy=PAD+U*f; drag.box.querySelector('.sp-imark').style.top=yy+'px';
-    thumb.style.top=py+'px'; thumb.style.left=drag.px+'px';
-    if(inn.kind==='ch'){ const n=inn.list.length, at=Math.round(f*(n-1)), j=inn.list[at];
-      drag.box.querySelectorAll('.sp-ilab').forEach(l=>{ l.style.opacity= Math.abs(parseFloat(l.style.top)-clamp(py,46,H-58))<78? 0 : ''; });
-      lens.innerHTML=lensHTML(inn.list.map(x=>shortT(x,inn.k)), at, py, placeLabel(ch[j].i), X2+20, ch[j].t); return ch[j].i; }
-    drag.box.querySelectorAll('.sp-ilab').forEach(l=>{ l.style.opacity= Math.abs(parseFloat(l.style.top)-clamp(py,46,H-58))<40? 0 : ''; });
-    const i=Math.round(inn.a+(inn.b-1-inn.a)*f);
-    lens.innerHTML=lensHTML([placeLabel(i)],0,py,ch[inn.k].t,X2+20); return i;
-  }
-  const RM=matchMedia('(prefers-reduced-motion: reduce)');
-  el.onpointerdown=e=>{ if(e.target.closest('.sp-bead,.sp-flag,.sp-card')) return; if(!card.hidden){ card.hidden=true; return; }
-    const r=el.getBoundingClientRect(); drag={r, tgt:0, x0:e.clientX-r.left, px:e.clientX-r.left, py:e.clientY-r.top, hold:null, inner:null, box:null, s:null, v:0, t:e.timeStamp||performance.now()};
-    el.setPointerCapture&&el.setPointerCapture(e.pointerId);
-    el.classList.add('dragging'); lens.hidden=false; thumb.hidden=false; drag.tgt=outerAt(drag.py); };
-  el.onpointermove=e=>{ if(!drag) return; e.preventDefault();
-    const px=e.clientX-drag.r.left, py=e.clientY-drag.r.top, dy=py-drag.py, dx=px-drag.x0; drag.px=px; drag.py=py;
-    const now=e.timeStamp||performance.now(), dt=Math.max(1,now-(drag.t||now-16)); drag.t=now; drag.v=drag.v*.6+.4*Math.min(3,Math.abs(dy)/dt);
-    if(drag.inner){
-      if(px-drag.fx < -40){ leave(); }
-      else { const out=px-drag.fx, sp= out<70? 1 : out<140? .5 : .25, inn=drag.inner;   /* further right, finer */
-        const steps= inn.kind==='ch'? inn.list.length-1 : Math.max(1,Math.round(U/8));
-        drag.frac=advance(drag.frac*steps, steps, dy, py, sp/pitch(steps,drag.v))/steps;
-        drag.tgt=innerAt(py); return; }
-    }
-    if(items.length){
-      if(dx>16){ if(drag.hold==null) drag.hold=drag.k; } else drag.hold=null;   /* moving right holds the item, so a drift doesn't change it */
-      if(dx>56 && drag.hold!=null){ enter(drag.hold); drag.tgt=innerAt(py); return; }
-    }
-    drag.tgt=outerAt(py,dy); };
-  const end=(e,cancel)=>{ if(!drag) return; const r=drag.r, out=cancel|| e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-30||e.clientY>r.bottom+30, tgt=drag.tgt;
-    leave(); drag=null; el.classList.remove('dragging'); lens.hidden=true; thumb.hidden=true; if(!out){ closeSheet(); goTo(tgt,true); } };
-  el.onpointerup=e=>end(e,false); el.onpointercancel=e=>end(e,true);
+}
+/* a typed reference ("rev 22 3", "jn 3:16", "1 cor 13") in a book with verses */
+const REF_ABBR={jn:'john',jhn:'john',jon:'jonah',jnh:'jonah',jdg:'judges',judg:'judges',jud:'jude',jde:'jude',mk:'mark',mrk:'mark',mt:'matthew',mat:'matthew',lk:'luke',luk:'luke',php:'philippians',phil:'philippians',phm:'philemon',philem:'philemon',ps:'psalms',psa:'psalm',psalm:'psalm',ez:'ezekiel',ezk:'ezekiel',sos:'song',rv:'revelation',rm:'romans',ro:'romans',gn:'genesis',ex:'exodus',lv:'leviticus',nm:'numbers',nu:'numbers',dt:'deuteronomy',jas:'james',jm:'james',co:'corinthians',cor:'corinthians',th:'thessalonians',thes:'thessalonians',ti:'timothy',tim:'timothy',pe:'peter',pt:'peter',jo:'john',sa:'samuel',sam:'samuel',ki:'kings',kgs:'kings',ch:'chronicles',chr:'chronicles'};
+function refTarget(q){
+  if(!hasVerses()) return null;
+  const m=/^([1-3])?\s*([a-z]+)\.?\s*(?:(\d{1,3})(?:\s*[:. ]\s*(\d{1,3}))?)?$/.exec(q.toLowerCase().trim()); if(!m) return null;
+  const nm=(m[1]||'')+(REF_ABBR[m[2]]||m[2]), ch=R.meta.chapters||[];
+  const books=ch.map((c,k)=>k).filter(k=>kidsOf(k).length>=1 && kidsOf(k).every(j=>!kidsOf(j).length));
+  const key=k=>ch[k].t.toLowerCase().replace(/[^a-z0-9]/g,'');
+  let k=books.find(k=>key(k)===nm) ?? books.find(k=>key(k).startsWith(nm));
+  if(k==null && nm.replace(/^\d/,'').length>=2){ const re=new RegExp('^'+nm.split('').join('.*')); k=books.find(b=>re.test(key(b))); }
+  if(k==null) return null;
+  let t=ch[k].t, i=ch[k].i;
+  if(m[3]){ const kids=kidsOf(k), j=kids[+m[3]-1]; if(j==null) return null; t=ch[j].t; i=ch[j].i;
+    if(m[4]){ const [a,b]=tocSpan(j), v=versesIn(a,b).find(v=>v.t===m[4]); if(!v) return null; t+=':'+m[4]; i=v.i; } }
+  return {t, i};
 }
 function openToc(tab, inPlace){
   if(R.mode==='speed' && R.playing) pause();
@@ -3267,7 +3246,7 @@ function panelHTML(){
       ${pRange('lineH','Line spacing',1.2,2.2,0.05)}
       ${pSeg('margin',[['narrow','Narrow'],['normal','Normal'],['wide','Wide']],'Margins')}
       ${pSeg('para',[['indent','Indented'],['spaced','Spaced'],['both','Spaced and indented']],'Paragraphs')}
-      ${pSeg('tocStyle',[['list','List'],['spine','Spine']],'Contents')}
+      ${pSeg('tocStyle',[['list','List'],['spine','Wheels']],'Contents')}
       ${pToggle('justify','Justify text')}
       ${pToggle('hyphen','Hyphenation','Breaks long words at line ends for even spacing.')}
       ${pToggle('boldText','Bold text')}
@@ -3278,7 +3257,7 @@ function panelHTML(){
       <div class="set"><div class="hd"><label>Focus letter color</label></div><div class="chips" data-set="focusColor" data-type="seg" style="align-items:center">${COLORS.map(([n,c])=>`<button class="swatch" type="button" data-v="${c}" aria-label="${n}" aria-pressed="${S.focusColor.toLowerCase()===c.toLowerCase()}" style="background:${c}"></button>`).join('')}<label class="note" style="display:flex;align-items:center;gap:8px">Custom <input type="color" data-set="focusColor" data-type="text" value="${esc(S.focusColor)}"></label></div></div>
       ${pToggle('context','Show the sentence when paused')}
       ${pToggle('boldText','Bold text')}
-      ${pSeg('tocStyle',[['list','List'],['spine','Spine']],'Contents')}
+      ${pSeg('tocStyle',[['list','List'],['spine','Wheels']],'Contents')}
       </div>
       <p class="note" style="margin:6px 0 0">Speed, pauses and the speed ramp are under ${ICON.gear} on the Speed controls.</p>`);
   }
@@ -4113,10 +4092,11 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.6 preview';
+const APP_VERSION='2026.11.24.7 preview';
 const WHATSNEW=[
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
-  ['The spine','In a book, Aa → More text options → Contents → Spine shows the contents as the whole book on one line: chapters as marks, highlights as coloured dots, bookmarks as flags, and the drop where you are. Slide your thumb along it, the chapter under your thumb grows, and letting go takes you there. Slide off the line to change your mind. In big books, step right: a second line unrolls with that book’s chapters (or, in a plain novel, that chapter’s pages), and the further right you go, the finer it moves. Step back left to return. Slow, careful movements move one book or chapter at a time, so short ones like Jude are easy to land on; a quick swipe still crosses the whole book. Tap a dot or flag to see it; the filter zooms in on one part.'],
+  ['Contents wheels','In a book, Aa → More text options → Contents → Wheels turns the contents into picker wheels like the iPhone’s date picker: Book, Chapter and Verse in a Bible, or Chapter and Page in a novel. Flick to choose; it opens on where you are, and the Go button below says exactly where you’ll go. A thin line down the left still shows your highlights, bookmarks and place.'],
+  ['Type a Bible reference','In a Bible, type a reference like “jn 3:16” or “rev 22 3” in the contents search and the first result takes you straight there.'],
   ['The drop','The accent colour is now one living drop. It rests on the tab bar under your current tab and slides to the next tab when you switch. In Pages and Scroll it is your progress in a book: with the controls up it is the scrubber’s handle, and when they hide it drips down to ride along the bottom edge. Leaving the book, it travels on to the tab you go to. Selected options in settings flow from the old choice to the new one.'],
   ['Page info no longer covers text','With the controls hidden, the page number and time left at the bottom sit below the last line instead of on top of it.'],
   ['Where you left off, in Scroll','Whenever you leave a book in Scroll mode, even for a moment, the page shows a tear when you come back: what you’d read sits above it, marked Previously read, and the tear is in the middle of the screen so you can pick up right below it.'],
@@ -5441,7 +5421,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=21;
+const SAMPLE_V=22;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -5477,7 +5457,7 @@ const SAMPLE_HTML=`
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>
-<p>The list icon at the top opens the contents, with your bookmarks in their places between the chapters, and a Notes tab with this book’s highlights and notes. Each has its own search; the contents search looks through the whole book, and the filter icon narrows the contents to one part of it. In very long books, like the Bible, the contents show the books first; tap one to see its chapters. In Aa, under More text options, you can switch the contents to the Spine: the whole book as one line with your highlights and bookmarks on it. Slide your thumb along it and let go to jump; slide right to step into a part, like a book of the Bible, and choose its chapter (in a plain novel, a page). The bookmark at the bottom marks the page you are on, and the bar above it lets you drag to anywhere in the book.</p>
+<p>The list icon at the top opens the contents, with your bookmarks in their places between the chapters, and a Notes tab with this book’s highlights and notes. Each has its own search; the contents search looks through the whole book, and the filter icon narrows the contents to one part of it. In very long books, like the Bible, the contents show the books first; tap one to see its chapters. In Aa, under More text options, you can switch the contents to Wheels: flick to a book, chapter and verse (in a novel, a chapter and page), then tap Go. In a Bible you can also type a reference like “jn 3:16” in the contents search. The bookmark at the bottom marks the page you are on, and the bar above it lets you drag to anywhere in the book.</p>
 <p>After any jump, a <strong>Back to where you were</strong> button appears, so a quick look ahead never costs you your place. Wherever you land, nothing moves until you press play.</p>
 <h2>Read aloud</h2>
 <p>Tap the speaker at the bottom to open the audio controls. Nothing plays yet: tap a word to choose where to start, then press <strong>play</strong>. Each word is marked as it is spoken and the page turns by itself. Tap another word while it plays to jump there. The arrows go back or forward a sentence, and the slider sets the speed. The controls stay on screen until you tap the speaker again to close them.</p>

@@ -1063,7 +1063,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=21;
+const SAMPLE_V=22;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1099,7 +1099,7 @@ const SAMPLE_HTML=`
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>
-<p>The list icon at the top opens the contents, with your bookmarks in their places between the chapters, and a Notes tab with this book’s highlights and notes. Each has its own search; the contents search looks through the whole book, and the filter icon narrows the contents to one part of it. In very long books, like the Bible, the contents show the books first; tap one to see its chapters. In Aa, under More text options, you can switch the contents to the Spine: the whole book as one line with your highlights and bookmarks on it. Slide your thumb along it and let go to jump; slide right to step into a part, like a book of the Bible, and choose its chapter (in a plain novel, a page). The bookmark at the bottom marks the page you are on, and the bar above it lets you drag to anywhere in the book.</p>
+<p>The list icon at the top opens the contents, with your bookmarks in their places between the chapters, and a Notes tab with this book’s highlights and notes. Each has its own search; the contents search looks through the whole book, and the filter icon narrows the contents to one part of it. In very long books, like the Bible, the contents show the books first; tap one to see its chapters. In Aa, under More text options, you can switch the contents to Wheels: flick to a book, chapter and verse (in a novel, a chapter and page), then tap Go. In a Bible you can also type a reference like “jn 3:16” in the contents search. The bookmark at the bottom marks the page you are on, and the bar above it lets you drag to anywhere in the book.</p>
 <p>After any jump, a <strong>Back to where you were</strong> button appears, so a quick look ahead never costs you your place. Wherever you land, nothing moves until you press play.</p>
 <h2>Read aloud</h2>
 <p>Tap the speaker at the bottom to open the audio controls. Nothing plays yet: tap a word to choose where to start, then press <strong>play</strong>. Each word is marked as it is spoken and the page turns by itself. Tap another word while it plays to jump there. The arrows go back or forward a sentence, and the slider sets the speed. The controls stay on screen until you tap the speaker again to close them.</p>

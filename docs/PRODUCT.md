@@ -79,24 +79,17 @@ and move items out of **Pending changes** once they're built.
   Both / Contents / Bookmarks switch shows only once the book has a bookmark (remembered). **Notes** tab: highlights
   and notes grouped by chapter, with their own search. The current chapter carries the drop. Deleting a bookmark
   offers Undo. The reader's magnifying glass is gone (Nov 23): the Contents search does its job.
-- **The spine** (built 2026.11.23.7, option C; Aa → More text options → Contents: List | Spine, default List; Mick moved it out of app Settings Nov 24). The Contents
-  tab becomes the book as one line: chapter marks (labels thinned to never overlap, using the level that best fits:
-  books in the Bible, chapters in a novel), highlights as coloured beads, bookmarks as flags, read part tinted, the
-  drop at your place. Drag or tap along it: the chapter under the thumb shows big with two neighbours each side
-  and its page/location; release jumps to that chapter's start (paused); release off the spine cancels. Tap a bead
-  or flag for a card; tap the card to go there. Typing in search swaps to the result list; the filter zooms the
-  spine to one section. Notes tab is always the list.
-  **Step sideways** (Mick's idea, Nov 24, 2026.11.24.3): the main line picks items at the label level (Bible books,
-  a novel's chapters; dragging right past ~16px holds the item). Past ~56px right, a second full-height line
-  unrolls from it (scales out from the item, bridge + name chip): its chapters evenly spaced, or its pages if
-  nothing is nested. The thumb lands on the matching height (bottom of Revelation = Revelation 22). Further right is
-  finer (70px+: half speed, 140px+: quarter). 40px back left returns to the main line. Release goes there.
-  **Pointer-style selection** (Nov 24, 2026.11.24.4, after "too sensitive, hard to get to Jude"): touch-down picks
-  the item under the thumb; after that, movement is relative and speed-sensitive: slow (≤0.05 px/ms) ≈ 14px per
-  item (or the natural spacing if larger), normal speeds (≥0.5 px/ms) = the even spacing. In the last stretch before
-  an end (min(80px, ¼ line)) the step is at least what the room left needs, so the first/last item arrives exactly
-  at the end: no snap. A dot on the main line marks the pick. Same on the inner line (times the further-right
-  factor). Tuned 2026.11.24.5 after "very sluggish, and it jumps at the ends".
+- **Contents wheels** (2026.11.24.7; replaces the spine's drag; Aa → More text options → Contents: List | Wheels,
+  stored as `S.tocStyle='spine'`, default List). Mick's design (Nov 24, option A of three): picker wheels with
+  momentum (native scroll-snap), the band in the middle is the pick, wheels open on the current place; when a wheel
+  lands (160 ms quiet) the wheels to its right refill (at the current place if it's inside, else the first); **Go**
+  commits ("Go to Revelation 22:3", page/location under it). Levels follow the book: Bible Book | Chapter | Verse
+  (verses = raised numbers in the text); a book with parts Part | Chapter | Page; plain novel Chapter | Page (Loc
+  in Scroll mode). The thin spine on the left keeps the map: chapter ticks, highlight beads (tap for a card),
+  bookmark flags, the drop at your place and a ring at the pick. Search swaps to the result list; the filter limits
+  the wheels to one section. **Typed references** in the Contents search of a Bible ("jn 3:16", "rev 22 3",
+  "1 cor 13", "ps 23", "jude") put "Go to …" first. Earlier spine versions (drag, step-sideways, pointer-style
+  speed) are in DECISIONS.md.
 - Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, bookmark lines in the contents have an ×.
 - A highlight must be able to stop right before a dash (dash-joined words are separate words).
 
