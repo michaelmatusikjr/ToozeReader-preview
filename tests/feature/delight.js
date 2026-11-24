@@ -44,6 +44,16 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('hidden while the controls are up', await pg.evaluate(()=>getComputedStyle($('#goalRing')).opacity==='0'));
   await pg.evaluate(()=>{ recordStats(6*60000, 1200); }); await sleep(200);
   ok('meeting the goal fills it', await pg.evaluate(()=>$('#goalRing').style.getPropertyValue('--p')==='1.000'));
+  // reaching the goal: the drop comes alive as a little creature, and a 7-second message (Mick, Nov 25)
+  ok('a little creature appears where the drop was', await pg.evaluate(()=>!!document.querySelector('.drop-buddy svg .db-eyes')));
+  ok('message: "You’ve reached your reading goal of 10 minutes."', await pg.evaluate(()=>!$('#toast').hidden && $('#toastMsg').textContent==='You’ve reached your reading goal of 10 minutes.'), await pg.evaluate(()=>$('#toastMsg').textContent));
+  for(const [ms,name] of [[500,'buddy_rise'],[700,'buddy_hop']]){ await sleep(ms); await pg.screenshot({path:__E.SCRATCH+name+'.png'}); }
+  await sleep(2600);
+  ok('it melts back into the drop and is gone', await pg.evaluate(()=>!document.querySelector('.drop-buddy') && !document.querySelector('.db-spark')));
+  await sleep(1900);
+  ok('the message is still there at 6 seconds', await pg.evaluate(()=>!$('#toast').hidden));
+  await sleep(1400);
+  ok('…and gone after 7', await pg.evaluate(()=>$('#toast').hidden));
   await pg.evaluate(()=>closeReader()); await sleep(400);
 
   // ---- scripture peek ----

@@ -102,6 +102,48 @@ const Drop=(()=>{
     ghostPlace();
   }
 
+  /* ----- reaching the daily goal: the drop comes alive as a little creature, hops and cheers, then melts back ----- */
+  function celebrate(){
+    if(RM.matches || document.querySelector('.drop-buddy')) return;
+    /* where it starts: the drop itself if it's on screen, else the goal circle, else the bottom middle */
+    let r=null; const ring=document.getElementById('goalRing');
+    if(el && vis && cur) r={x:cur.l+cur.w/2, y:cur.t+cur.h/2};
+    else if(ring && !ring.hidden){ const b=ring.getBoundingClientRect(); if(b.width) r={x:b.left+b.width/2, y:b.top+b.height/2}; }
+    if(!r) r={x:innerWidth/2, y:innerHeight-40};
+    const SZ=56, x=Math.max(SZ/2+8, Math.min(innerWidth-SZ/2-8, r.x)), up=Math.min(110, r.y-SZ-20);
+    const w=document.createElement('div'); w.className='drop-buddy'; w.setAttribute('aria-hidden','true');
+    w.style.left=px(x-SZ/2); w.style.top=px(r.y-SZ);
+    w.innerHTML=`<svg viewBox="0 0 56 56" width="56" height="56">
+      <g class="db-arm l"><path d="M14 33 Q6 28 5 19" /></g><g class="db-arm r"><path d="M42 33 Q50 28 51 19" /></g>
+      <path class="db-body" d="M28 6 C33 14 44 22 44 34 C44 44 37 50 28 50 C19 50 12 44 12 34 C12 22 23 14 28 6 Z"/>
+      <g class="db-eyes"><ellipse cx="22.5" cy="32" rx="3.2" ry="3.8"/><ellipse cx="33.5" cy="32" rx="3.2" ry="3.8"/><circle class="db-pupil" cx="23.3" cy="32.8" r="1.6"/><circle class="db-pupil" cx="34.3" cy="32.8" r="1.6"/></g>
+      <path class="db-smile" d="M23 39.5 Q28 44 33 39.5"/></svg>`;
+    document.body.appendChild(w);
+    if(el) el.animate([{opacity:el.style.opacity||1},{opacity:0,offset:.06},{opacity:0,offset:.94},{opacity:el.style.opacity||1}],{duration:3300});   /* the drop "becomes" the creature */
+    const E='cubic-bezier(.3,1.35,.45,1)';
+    w.animate([
+      {transform:'translateY(0) scale(.15,.06)',opacity:0},
+      {transform:'translateY(0) scale(.5,.25)',opacity:1,offset:.06},
+      {transform:`translateY(${-up}px) scale(.9,1.15)`,offset:.2,easing:E},
+      {transform:`translateY(${-up+6}px) scale(1.12,.86)`,offset:.28},
+      {transform:`translateY(${-up-26}px) scale(.94,1.08)`,offset:.38},
+      {transform:`translateY(${-up+4}px) scale(1.1,.88)`,offset:.48},
+      {transform:`translateY(${-up-22}px) scale(.95,1.06)`,offset:.58},
+      {transform:`translateY(${-up}px) scale(1)`,offset:.7},
+      {transform:`translateY(${-up}px) scale(1)`,offset:.8},
+      {transform:'translateY(0) scale(.6,.4)',opacity:1,offset:.94,easing:'ease-in'},
+      {transform:'translateY(0) scale(.15,.06)',opacity:0}],{duration:3300,easing:'ease-out'}).onfinish=()=>w.remove();
+    for(const [sel,a] of [['.db-arm.l',-1],['.db-arm.r',1]]){ const g=w.querySelector(sel);
+      g.animate([{transform:'rotate(0)'},{transform:`rotate(${a*28}deg)`,offset:.33},{transform:`rotate(${a*-10}deg)`,offset:.43},{transform:`rotate(${a*28}deg)`,offset:.53},{transform:`rotate(${a*-10}deg)`,offset:.63},{transform:'rotate(0)',offset:.75},{transform:'rotate(0)'}],{duration:3300}); }
+    w.querySelector('.db-eyes').animate([{transform:'scaleY(1)'},{transform:'scaleY(1)',offset:.72},{transform:'scaleY(.1)',offset:.75},{transform:'scaleY(1)',offset:.78},{transform:'scaleY(1)'}],{duration:3300});
+    /* a little burst of sparkles at the top of the first hop */
+    setTimeout(()=>{ if(!w.isConnected) return; const b=w.getBoundingClientRect(), cx=b.left+b.width/2, cy=b.top+b.height/2;
+      for(let k=0;k<9;k++){ const sp=document.createElement('i'); sp.className='db-spark'+(k%3===0?' gold':''); sp.style.left=px(cx-3); sp.style.top=px(cy-3); document.body.appendChild(sp);
+        const a=(k/9)*Math.PI*2+.3, d=44+((k*37)%22);
+        sp.animate([{transform:'translate(0,0) scale(.4)',opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) scale(1)`,opacity:1,offset:.6},{transform:`translate(${Math.cos(a)*(d+10)}px,${Math.sin(a)*(d+10)+12}px) scale(.3)`,opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish=()=>sp.remove(); }
+    }, 3300*.36);
+  }
+
   /* ----- reading progress (0..1) ----- */
   function progress(f,live){
     frac=Math.max(0,Math.min(1,+f||0));
@@ -173,6 +215,6 @@ const Drop=(()=>{
   }
   function start(){ init(); watch(); }
   if(document.readyState==='loading') addEventListener('DOMContentLoaded',start); else start();
-  return {progress, sync:later, seg, ghost};
+  return {progress, sync:later, seg, ghost, celebrate};
 })();
 

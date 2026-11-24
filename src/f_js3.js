@@ -10,7 +10,7 @@ function recordStats(ms, words){
   if(words<1||ms<500) return; const st=LS.get('stats',{}); const k=dayKey(); const d=st[k]||{ms:0,words:0};
   const before=d.ms; d.ms+=ms; d.words+=words; st[k]=d; LS.set('stats',st);
   const goal=(S.goalMins||0)*60000;
-  if(goal && before<goal && d.ms>=goal) toast('You reached today’s reading goal of '+S.goalMins+' minutes.', null, 5000);
+  if(goal && before<goal && d.ms>=goal){ toast('You’ve reached your reading goal of '+S.goalMins+' minute'+(S.goalMins===1?'':'s')+'.', null, 7000); try{ Drop.celebrate(); }catch(e){} }
   updateToday();
 }
 function renderStats(){

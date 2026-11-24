@@ -29,7 +29,7 @@ whole.**
 | Where you were (ghost drop, same book); return toast (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnToast`, `endReturnToast` |
 | Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` |
 | Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
-| Daily goal circle in the reader | `e_reader.js`, `f_js3.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs` |
+| Daily goal circle in the reader; goal celebration | `e_reader.js`, `f_js3.js`, `k_blob.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs`, `Drop.celebrate`, `.drop-buddy` |
 | Reopen the book you were in | `e_reader.js`, `f_js3.js` | `LS 'resume'` (set in `openDoc`, cleared in `closeReader`, read in `boot`) |
 | Toasts (top, themed, flick away) | `f_js3.js`, `a_head.html` | `toast`, `#toast`, `toastT` |
 | Version, What's new, search, export, year stats | `g_extra.js` | `APP_VERSION`, `WHATSNEW`, `searchAllBooks`, `exportBook` |

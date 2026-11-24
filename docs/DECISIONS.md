@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — celebrate reaching the reading goal:** the drop comes alive as a little creature, plus a 7-second toast.
+  Built 2026.11.25.4 (`Drop.celebrate` in `k_blob.js`, called from `recordStats`). Claude's calls: a drop-shaped
+  body with eyes, smile and arms (the drop's own shape, so it reads as the drop waking up), two hops with waving
+  arms, a sparkle burst, ~3.3 s, then it melts back; starts from the drop, else the goal circle; skipped with
+  Reduce Motion. Test: `delight.js`.
 - **Mick — feedback on the Nov 25 batch (2026.11.25.3).** (2) A link into another book: no hollow drop; a toast
   "Return to <title>" that lasts until he leaves the Bible, flicks it away, or 10 minutes. (3) He doesn't like the
   tab-bar fill; instead a small progress circle in the reader, visible with the controls hidden, nothing else on it,
