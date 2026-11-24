@@ -104,13 +104,21 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.evaluate(()=>closeSheet()); await sleep(450); await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
   await pg.mouse.move(bb.x+58, bb.y+bb.h-12); await pg.mouse.down(); await sleep(40);
   ok('bottom touch starts on Revelation', (await lensTxt())==='Revelation', await lensTxt());
-  await slow(pg,bb.x+58,bb.y+bb.h-12,bb.y+bb.h-36);
-  const j1=await lensTxt(); await slow(pg,bb.x+58,bb.y+bb.h-36,bb.y+bb.h-42); const j2=await lensTxt();
+  await slow(pg,bb.x+58,bb.y+bb.h-12,bb.y+bb.h-28);
+  const j1=await lensTxt(); await slow(pg,bb.x+58,bb.y+bb.h-28,bb.y+bb.h-32); const j2=await lensTxt();
   ok('a slow fingertip up lands on Jude and holds it', j1==='Jude' && j2==='Jude', [j1,j2]);
   ok('a dot on the line marks the pick', await pg.evaluate(()=>getComputedStyle($('.sp-omark')).display==='block'));
   await pg.screenshot({path:__E.SCRATCH+'spine_jude.png'});
   await pg.mouse.up(); await sleep(800);
   ok('lands in Jude', await pg.evaluate(()=>/^Jude/.test(currentChapter(R.pos).t)), await pg.evaluate(()=>currentChapter(R.pos).t));
+  // no jump at the ends (Mick, Nov 24): sliding steadily to the bottom never skips more than a couple of books per move
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
+  { const names=await pg.evaluate(()=>R.meta.chapters.filter(c=>(c.d||0)<=1).map(c=>c.t));
+    await pg.mouse.move(bb.x+58, bb.y+bb.h*0.3); await pg.mouse.down(); await sleep(30);
+    let prev=names.indexOf(await lensTxt()), maxStep=0;
+    for(let yy=bb.y+bb.h*0.3; yy<=bb.y+bb.h-4; yy+=4){ await pg.mouse.move(bb.x+58, yy); await sleep(16); const k=names.indexOf(await lensTxt()); maxStep=Math.max(maxStep, Math.abs(k-prev)); prev=k; }
+    ok('steady slide reaches Revelation at the bottom without a jump', (await lensTxt())==='Revelation' && maxStep<=3, maxStep);
+    await pg.mouse.move(bb.x+58, bb.y-200); await pg.mouse.up(); await sleep(300); await pg.evaluate(()=>closeSheet()); await sleep(450); }
   // a quick swipe still crosses the whole book
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
   await pg.mouse.move(bb.x+58, bb.y+bb.h-60); await pg.mouse.down(); await pg.mouse.move(bb.x+58, bb.y+40,{steps:6}); await sleep(30);

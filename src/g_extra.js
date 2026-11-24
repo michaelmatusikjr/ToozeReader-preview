@@ -1,5 +1,5 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.4';
+const APP_VERSION='2026.11.24.5';
 const WHATSNEW=[
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
   ['The spine','In a book, Aa → More text options → Contents → Spine shows the contents as the whole book on one line: chapters as marks, highlights as coloured dots, bookmarks as flags, and the drop where you are. Slide your thumb along it, the chapter under your thumb grows, and letting go takes you there. Slide off the line to change your mind. In big books, step right: a second line unrolls with that book’s chapters (or, in a plain novel, that chapter’s pages), and the further right you go, the finer it moves. Step back left to return. Slow, careful movements move one book or chapter at a time, so short ones like Jude are easy to land on; a quick swipe still crosses the whole book. Tap a dot or flag to see it; the filter zooms in on one part.'],

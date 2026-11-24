@@ -2964,14 +2964,18 @@ function drawSpine(el){
   let drag=null;
   /* pointer-style control: slow movement is precise (about a fingertip per item), a quick swipe covers ground;
      touching starts where you touch, and the ends of the line always reach the first and last item */
-  const pitch=(n,v)=>{ const P=U/Math.max(1,n), slow=Math.max(P,22), fast=Math.min(slow,P*.7), t=clamp((v-.1)/.7,0,1); return slow+(fast-slow)*t; };
-  const nearEnd=(py,dy)=>py<PAD+10&&dy<0? -1 : py>PAD+U-10&&dy>0? 1 : 0;   /* only when heading for that end */
+  const pitch=(n,v)=>{ const P=U/Math.max(1,n), slow=Math.max(P,14), fast=Math.min(slow,P), t=clamp((v-.05)/.45,0,1); return slow+(fast-slow)*t; };
+  /* how far one move goes, in items: the speed-based step; within the last stretch before an end, never less than
+     the room left needs, so the last item arrives exactly as the thumb reaches that end (no jump, never out of room) */
+  const ZONE=Math.min(80,U/4);
+  const advance=(pos,max,dy,py,per)=>{ if(!dy) return pos; const left= dy<0? pos : max-pos, room=Math.max(2, dy<0? py-PAD : PAD+U-py);
+    return clamp(pos+Math.sign(dy)*Math.abs(dy)*(room<ZONE? Math.max(per, left/room) : per),0,max); };
   function outerAt(py, dy){
     thumb.style.top=py+'px'; thumb.style.left=X+'px';
     const i=iAt(py);
     if(!items.length){ lens.innerHTML=lensHTML([placeLabel(i)],0,py,'',X+36); drag.k=-1; return i; }
     if(drag.s==null) drag.s=items.indexOf(itemAt(i));
-    else if(drag.hold==null){ drag.s=clamp(drag.s+(dy||0)/pitch(items.length,drag.v),0,items.length-1); const e=nearEnd(py,dy||0); if(e) drag.s= e<0? 0 : items.length-1; }
+    else if(drag.hold==null) drag.s=advance(drag.s, items.length-1, dy||0, py, 1/pitch(items.length,drag.v));
     const k=drag.hold!=null? drag.hold : items[Math.round(drag.s)], inn=innerOf(k);
     omark.style.top=y(ch[k].i)+'px';
     lens.innerHTML=lensHTML(items.map(kk=>ch[kk].t), items.indexOf(k), py, inn.kind==='ch'? inn.list.length+' chapters' : placeLabel(ch[k].i), X+36);
@@ -3014,7 +3018,7 @@ function drawSpine(el){
       if(px-drag.fx < -40){ leave(); }
       else { const out=px-drag.fx, sp= out<70? 1 : out<140? .5 : .25, inn=drag.inner;   /* further right, finer */
         const steps= inn.kind==='ch'? inn.list.length-1 : Math.max(1,Math.round(U/8));
-        drag.frac=clamp(drag.frac+dy*sp/(pitch(steps,drag.v)*steps),0,1); const e=nearEnd(py,dy); if(e&&sp===1) drag.frac= e<0? 0 : 1;
+        drag.frac=advance(drag.frac*steps, steps, dy, py, sp/pitch(steps,drag.v))/steps;
         drag.tgt=innerAt(py); return; }
     }
     if(items.length){
@@ -4097,7 +4101,7 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.24.4 preview';
+const APP_VERSION='2026.11.24.5 preview';
 const WHATSNEW=[
   ['Contents and notes in one place','The list icon at the top of a book opens one sheet with two tabs. Contents shows your bookmarks right where they fall between the chapters (switch between both, contents only or bookmarks only), searches the whole book, and the filter icon narrows it to one part. Notes holds this book’s highlights and notes with their own search. The separate notes and search buttons are gone, and the drop marks the chapter you’re in.'],
   ['The spine','In a book, Aa → More text options → Contents → Spine shows the contents as the whole book on one line: chapters as marks, highlights as coloured dots, bookmarks as flags, and the drop where you are. Slide your thumb along it, the chapter under your thumb grows, and letting go takes you there. Slide off the line to change your mind. In big books, step right: a second line unrolls with that book’s chapters (or, in a plain novel, that chapter’s pages), and the further right you go, the finer it moves. Step back left to return. Slow, careful movements move one book or chapter at a time, so short ones like Jude are easy to land on; a quick swipe still crosses the whole book. Tap a dot or flag to see it; the filter zooms in on one part.'],

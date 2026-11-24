@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — feel check on 2026.11.24.4: very sluggish, and it jumps at the top/bottom.** Fix (2026.11.24.5): slow
+  step 22→14px per item and normal speeds count as fast (0.5 px/ms, was 0.8); the end-snap is replaced by a
+  room-aware catch-up in the last stretch of the line (the last item arrives exactly at the end). Tried making the
+  catch-up apply everywhere: that is just absolute tracking again and kills fine control, so it's only near the
+  ends. Test: steady slide to the bottom never moves more than 3 books per 4px (old version: 42-book jump).
 - **Mick — feel check: the spine is too sensitive; Jude is hard to get to.** Cause: the main line followed the
   thumb absolutely and is proportional to length, so Jude was ~1px and 66 books got ~6px each. Fix
   (2026.11.24.4): pointer-style selection — touch-down is absolute, then relative and speed-sensitive (slow ≈ a
