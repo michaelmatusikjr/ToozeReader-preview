@@ -1103,7 +1103,18 @@ function hasVerses(){ if(R.vFor===R.meta.id) return R.vHas; const ch=R.meta.chap
 function kidsOf(k){ const ch=R.meta.chapters||[], [a,b]=tocSpan(k), d=ch[k].d||0; let kids=[], md=Infinity;
   for(let j=k+1;j<ch.length&&ch[j].i<b;j++){ const dj=ch[j].d||0; if(dj>d){ if(dj<md){ md=dj; kids=[]; } if(dj===md) kids.push(j); } }
   return kids; }
-function shortTitle(j,k){ const ch=R.meta.chapters, p=ch[k].t, t=ch[j].t; return t.startsWith(p+' ')? t.slice(p.length+1) : t; }
+function shortTitle(j,k){ const ch=R.meta.chapters, p=k!=null? ch[k].t : null, t=ch[j].t; return p&&t.startsWith(p+' ')? t.slice(p.length+1) : t; }
+/* the name on a wheel: short ("Book I" from "Book I: Admonitions…", "XII" from "XII: The Bishop…") */
+function wheelLabel(j,k){ const t=shortTitle(j,k), m=/^([^:]{1,18}):\s+\S/.exec(t); return m? m[1] : t; }
+/* the name on Go: the full title; a chapter listed only as a number ("I") gets the subtitle printed under its heading */
+function fullTitle(j){ const ch=R.meta.chapters, t=ch[j].t;
+  if(!/^(?:chapter\s+)?(?:[ivxlcdm]+|\d+)\.?$/i.test(t.trim()) || !R.blocks) return t;
+  R.subT=R.subT&&R.subT.id===R.meta.id? R.subT : {id:R.meta.id};
+  if(R.subT[j]!==undefined) return R.subT[j]||t;
+  const bl=R.blocks; let lo=0, hi=bl.length-1; while(lo<hi){ const m=(lo+hi)>>1; if(bl[m].s<ch[j].i) lo=m+1; else hi=m; }
+  const hb=bl[lo], nb=bl[lo+1]; let sub='';
+  if(hb && hb.s===ch[j].i && /^h/.test(hb.t) && nb && nb.e-nb.s<=20 && (bl[lo+2]||{}).s===nb.e) sub=textOf(nb.s,nb.e-1).replace(/[.:;,]$/,'');
+  return (R.subT[j]= sub? t.replace(/\.$/,'')+'. '+sub : '')||t; }
 function pageEntries(a,b){
   b=Math.max(a+1,b); const out=[];
   if(R.mode==='pages'){ const p0=pageNo(a), p1=Math.max(p0,pageNo(b-1));
@@ -1114,20 +1125,27 @@ function pageEntries(a,b){
 function drawSpine(el){
   const ch=R.meta.chapters||[], sc=R.tocScope&&R.tocScope.id===R.meta.id? R.tocScope.k : -1;
   const [lo,hi]= sc>=0&&ch[sc]? tocSpan(sc) : [0,R.n];
-  const H=el.clientHeight, PAD=14, GOH=64, U=Math.max(40,H-2*PAD), X=16;
+  const H=el.clientHeight, PAD=14, GOH=86, U=Math.max(40,H-2*PAD), X=16;
   const y=i=>PAD+U*(clamp(i,lo,hi)-lo)/Math.max(1,hi-lo);
   const ks=ch.map((c,k)=>k).filter(k=>ch[k].i>=lo&&ch[k].i<hi);
-  /* the first wheel: the level whose size best fits a map (books in the Bible, chapters in a novel) */
-  const cnt={}; for(const k of ks){ const d=ch[k].d||0; cnt[d]=(cnt[d]||0)+1; }
-  const ds=Object.keys(cnt).map(Number).sort((a,b)=>a-b), fit=Math.max(4,U/26), lv=ds.length? ds.reduce((best,d)=>Math.abs(Math.log(cnt[d]/fit))<Math.abs(Math.log(cnt[best]/fit))? d : best, ds[0]) : 0;
-  const items=ks.filter(k=>(ch[k].d||0)<=lv);
+  /* the first wheel: a level of the book (with any front/back matter beside it) whose size best fits, skipping a
+     wrapper heading that holds most of the book (books in the Bible, Book I–IV in a treatise, chapters in a novel) */
+  const kidsIn=k=>ks.some(j=>j>k&&(ch[j].d||0)>(ch[k].d||0)&&ch[j].i<tocSpan(k)[1]);
+  const ds=[...new Set(ks.map(k=>ch[k].d||0))].sort((a,b)=>a-b), fit=Math.max(4,U/26);
+  const levelList=d=>ks.filter(k=>{ const dk=ch[k].d||0; return dk===d || dk<d && !kidsIn(k); });
+  const score=d=>{ const L=levelList(d); if(!L.length) return 99; const big=Math.max(...L.map(k=>{ const [a,b]=tocSpan(k); return (Math.min(b,hi)-a)/Math.max(1,hi-lo); }));
+    return Math.abs(Math.log(L.length/fit)) + (big>.5&&L.length>1? 2 : 0); };
+  const lv=ds.length? ds.reduce((best,d)=>score(d)<score(best)? d : best, ds[0]) : 0;
+  const items=levelList(lv);
   const verses=hasVerses();
   /* what's inside an entry: its chapters, else its verses (Bible chapter), else its pages */
-  const inside=e=>{ if(e.k!=null){ const kids=kidsOf(e.k); if(kids.length>=1) return kids.map(j=>({t:shortTitle(j,e.k), full:ch[j].t, i:ch[j].i, k:j}));
-      const [a,b]=tocSpan(e.k); if(verses){ const vs=versesIn(a,b); if(vs.length>=2) return vs.map(v=>({t:v.t, full:e.full+':'+v.t, i:v.i})); }
-      return pageEntries(a,b).map(p=>({t:p.t, full:e.full+' · '+p.t, i:p.i})); }
+  const inside=(e,col)=>{ if(e.k!=null){ const kids=kidsOf(e.k);
+      if(kids.length>=1){ const path=[e.path, e.t].filter(Boolean).join(' · ');
+        return kids.map(j=>{ const f=fullTitle(j); return {t:wheelLabel(j,e.k), full:f, path: f.startsWith(e.full)? e.path : path, i:ch[j].i, k:j}; }); }
+      const [a,b]=tocSpan(e.k); if(verses){ const vs=versesIn(a,b); if(vs.length>=2) return vs.map(v=>({t:v.t, full:e.full+':'+v.t, path:e.path, i:v.i})); }
+      if(col===0) return pageEntries(a,b).map(p=>({t:p.t, full:e.full, path:e.path, page:1, i:p.i})); }   /* pages only beside a single level */
     return null; };
-  const L1= items.length? items.map(k=>({t:ch[k].t, full:ch[k].t, i:ch[k].i, k})) : pageEntries(lo,hi).map(p=>({t:p.t, full:p.t, i:p.i}));
+  const L1= items.length? items.map(k=>({t:wheelLabel(k,null), full:fullTitle(k), path:'', i:ch[k].i, k})) : pageEntries(lo,hi).map(p=>({t:p.t, full:p.t, path:'', page:1, i:p.i}));
   /* the map */
   let h=`<div class="whmap"><i class="sp-track" style="top:${PAD}px;height:${U}px;left:${X-2}px"></i>`;
   if(R.pos>=lo) h+=`<i class="sp-read" style="top:${PAD}px;height:${y(R.pos)-PAD}px;left:${X-2}px"></i>`;
@@ -1143,12 +1161,14 @@ function drawSpine(el){
   const whs=el.querySelector('.whs'), go=el.querySelector('.whgo'), tgt=el.querySelector('.wh-tgt'), card=el.querySelector('.sp-card');
   const cols=[];          /* {el, entries, x} */
   const pickNow=()=>{ let e=null; for(const c of cols){ if(c.stale) break; e=c.entries[c.x]||e; } return e; };
-  const label=()=>{ const e=pickNow(); if(!e) return; go.querySelector('.wg-t').textContent='Go to '+e.full; const pl=placeLabel(e.i); go.querySelector('.wg-s').textContent= e.full.includes(pl)? ((currentChapter(e.i)||{}).t||'') : pl; go.dataset.i=e.i; tgt.style.top=y(e.i)+'px'; };
+  const label=()=>{ const e=pickNow(); if(!e) return; const pl=placeLabel(e.i);
+    go.querySelector('.wg-t').textContent='Go to '+e.full; go.querySelector('.wg-s').textContent=[e.path, e.full.includes(pl)? '' : pl].filter(Boolean).join(' · ');
+    go.dataset.i=e.i; tgt.style.top=y(e.i)+'px'; };
   const atPos=list=>{ let x=0; list.forEach((e,j)=>{ if(e.i<=R.pos) x=j; }); return x; };
   function setCols(from){                /* (re)build the wheels right of column `from` from its pick */
     for(const c of cols.splice(from+1)) c.el.remove();
     let parent=cols[from].entries[cols[from].x];
-    while(cols.length<3 && parent){ const list=inside(parent); if(!list||!list.length) break;
+    while(cols.length<3 && parent){ const list=inside(parent, cols.length-1); if(!list||!list.length) break;
       const sel= R.pos>=parent.i && R.pos<(tocEnd(parent)) ? atPos(list) : 0;
       addCol(list, sel); parent= list[0]&&list[0].k!=null? list[cols[cols.length-1].x] : null; }
     layout(); label();
@@ -1168,9 +1188,10 @@ function drawSpine(el){
   }
   function shade(c){ if(c.lastOn&&!c.lastOn.isConnected) c.lastOn=null; const mid=c.el.scrollTop/IH, a=Math.max(0,Math.floor(mid-6)), b=Math.min(c.entries.length-1,Math.ceil(mid+6)), its=c.el.children;
     for(let j=a;j<=b;j++){ const d=Math.abs(j-mid), it=its[j+1]; it.style.opacity=Math.max(.18,1-d*.22); it.style.transform=`scale(${Math.max(.8,1-d*.05)})`; if(d<.5&&c.lastOn!==it){ if(c.lastOn) c.lastOn.classList.remove('on'); it.classList.add('on'); c.lastOn=it; } } }
-  function layout(){ const n=cols.length, wide=cols[0]&&cols[0].entries[0]&&cols[0].entries[0].k!=null&&n>1;
-    const ph=(whs.clientHeight-IH)/2;
-    cols.forEach((c,j)=>{ c.el.style.flex= j===0&&wide? '2.2' : '1'; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
+  function layout(){ const ph=(whs.clientHeight-IH)/2;
+    /* each wheel as wide as its longest name needs (within reason) */
+    const need=cols.map(c=>Math.min(16,Math.max(3,...c.entries.map(e=>e.t.length))));
+    cols.forEach((c,j)=>{ c.el.style.flex=`${need[j]} 1 0`; c.el.querySelectorAll('.whp').forEach(p=>p.style.height=ph+'px'); c.el.scrollTop=c.x*IH; c.stale=false; c.el.classList.remove('stale'); shade(c); }); }
   addCol(L1, atPos(L1)); setCols(0);
   go.onclick=()=>{ closeSheet(); goTo(+go.dataset.i,true); };
   /* drag the thin line on the left to run through the book: the first wheel follows the thumb; the wheels to its

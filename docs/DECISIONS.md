@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick (screenshot, Imitation of Christ) — three wheels hard to read; Go doesn't include the chapter title.**
+  Causes: a wrapper heading ("The Imitation of Christ") took the first wheel, pushing Book I–IV to the second and
+  chapters to the third; long names truncated; contents list names chapters only "I". Fix (2026.11.24.10): skip
+  wrappers (level choice penalises a level where one entry holds >50% of the book; shallower leaves like Preface
+  stay beside it), short wheel names (text before ":"), wheels sized by their names, pages only as a second wheel,
+  and Go reads the subtitle under a numbered heading. Same fix tidies Les Misérables, Karamazov, Gatsby.
 - **Mick — wheels: "drag and flick to scroll the wheels quickly"; and drag the sidebar to move through books
   faster.** Cause of the weak flick: `.spnmap` still had `touch-action:none` from the old drag spine; Safari applies
   ancestors' touch-action, Chrome doesn't (so tests passed here). Removed; `spine.js` now fails if any ancestor of

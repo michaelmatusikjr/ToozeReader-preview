@@ -102,13 +102,28 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('novel: two wheels, chapter and page', await pg.evaluate(()=>document.querySelectorAll('.whc').length===2 && /^Page /.test($('.whc:nth-of-type(2) .whi.on, .whc + .whc .whi.on').textContent)));
   await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[0]; const x=[...c.querySelectorAll('.whi')].findIndex(e=>e.textContent==='VI'); c.scrollTop=x*40; }); await sleep(600);
   await pg.evaluate(()=>{ const c=document.querySelectorAll('.whc')[1]; c.scrollTop=5*40; }); await sleep(600);
-  const g=await st(); ok('Go names chapter and page', /^Go to VI · Page \d/.test(g[1]), g);
+  const g=await st(); ok('Go names the chapter, page underneath', g[1]==='Go to VI' && /^Page \d/.test(await pg.evaluate(()=>$('.whgo .wg-s').textContent)), g);
   await pg.click('.whgo'); await sleep(900);
   ok('lands inside VI', await pg.evaluate(()=>currentChapter(R.pos).t==='VI'));
   // filter zooms in
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
   await pg.selectOption('#tocScope','10'); await sleep(700);
   ok('filter limits the wheels to one chapter', await pg.evaluate(()=>{ const t=[...document.querySelectorAll('.whc')[0].querySelectorAll('.whi')].map(x=>x.textContent); return t.length>=1 && t[0]===R.meta.chapters[10].t || /^Page/.test(t[0]); }));
+  // a book under a wrapper heading with numbered chapters (Mick, Nov 24: Imitation of Christ hard to read)
+  const wst=()=>pg.evaluate(()=>[[...document.querySelectorAll('.whc')].map(c=>(c.querySelector('.whi.on')||{}).textContent), $('.whgo .wg-t').textContent, $('.whgo .wg-s').textContent]);
+  await pg.evaluate(()=>{ closeSheet(); closeReader(); }); await pg.evaluate(()=>openDoc('shelf-imitation')); await sleep(1500);
+  await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='I'); goTo(c.i+30,true); }); await sleep(500);
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(1000);
+  let w=await wst();
+  ok('Imitation: wrapper skipped, two short wheels Book I | I', w[0].join('|')==='Book I|I', w[0]);
+  ok('Imitation: Go gives the chapter’s real title', /^Go to I\. Of the imitation of Christ/.test(w[1]) && /^Book I · Page/.test(w[2]), w.slice(1));
+  ok('front matter sits on the first wheel', await pg.evaluate(()=>[...document.querySelectorAll('.whc')[0].querySelectorAll('.whi')].some(x=>x.textContent==='Preface') && ![...document.querySelectorAll('.whc')[0].querySelectorAll('.whi')].some(x=>x.textContent==='The Imitation of Christ')));
+  await pg.screenshot({path:__E.SCRATCH+'wheels_imitation.png'});
+  await pg.evaluate(()=>{ closeSheet(); closeReader(); }); await pg.evaluate(()=>openDoc('shelf-miserables')); await sleep(1800);
+  await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='I: M. Myriel'); goTo(c.i+30,true); }); await sleep(500);
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(1000);
+  w=await wst();
+  ok('Les Misérables: Volume | Book | Chapter with short names', w[0].join('|')==='Volume I|Book I|I' && w[1]==='Go to I: M. Myriel' && w[2].startsWith('Volume I · Book I'), w);
   ok('no page errors', !errs.length, errs);
   console.log(fails?'FAIL '+fails:'ALL PASS'); await b.close();
 })();

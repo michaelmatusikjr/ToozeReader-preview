@@ -19,7 +19,7 @@ whole.**
 | Pages mode | `e_reader.js` | `P`, `pgLoad`, `pgSet`, `pgTurn`, `pgCheckAnchor`, `holdPlace` |
 | Scroll mode, auto-scroll, tear | `e_reader.js` | `SC`, `scShow`, `asStart`, `asStop`, `tearMark`, `tearShowOnReturn` |
 | Speed mode | `e_reader.js` | `speedText`, `difficulty`, `hyphenSlow` |
-| Contents/Notes sheet in a book (bookmarks in place, search, section filter) | `e_reader.js` | `openToc`, `tocList`, `hlList`, `placeLabel`, `tocSpan`, `R.tocShowNow`; the wheels (style 'spine'): `drawSpine`, `spineUse`, `versesIn`, `kidsOf`, `pageEntries`, `refTarget`, `S.tocStyle` |
+| Contents/Notes sheet in a book (bookmarks in place, search, section filter) | `e_reader.js` | `openToc`, `tocList`, `hlList`, `placeLabel`, `tocSpan`, `R.tocShowNow`; the wheels (style 'spine'): `drawSpine`, `spineUse`, `versesIn`, `kidsOf`, `pageEntries`, `wheelLabel`, `fullTitle`, `refTarget`, `S.tocStyle` |
 | Selection, highlights | `e_reader.js` | `SEL`, `hasSelection`, `decorate` |
 | Reading clock / stats credit | `e_reader.js`, `f_js3.js` | `CLK`, `markActivity`, `creditFor`, `recordStats` |
 | Word splitting migrations | `e_reader.js` | `dashSplitText`, `rangeJoinText`, `remapWords` |
