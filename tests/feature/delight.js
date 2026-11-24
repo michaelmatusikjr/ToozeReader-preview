@@ -36,6 +36,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.evaluate(()=>{ S.goalMins=10; saveSettings(); updateToday(); }); await sleep(300);
   ok('with a goal: a circle half full, only with the controls hidden', await pg.evaluate(()=>{ const g=$('#goalRing'); return !g.hidden && getComputedStyle(g).opacity==='1' && g.style.getPropertyValue('--p')==='0.500'; }));
   await pg.click('#goalRing'); await sleep(300);
+  ok('goal not met yet: no celebration on tap', await pg.evaluate(()=>!document.querySelector('.drop-buddy')));
   const pop=await pg.evaluate(()=>{ const x=document.querySelector('.goalpop'); return x&&x.innerText; });
   ok('tapping it: "5 minutes read today" / "Goal 10 minutes"', pop==='5 minutes read today\nGoal 10 minutes', pop);
   ok('the popup stays on screen', await pg.evaluate(()=>{ const r=document.querySelector('.goalpop').getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth && r.top>=0; }));
@@ -59,6 +60,12 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('the message is still there at 6 seconds', await pg.evaluate(()=>!$('#toast').hidden));
   await sleep(1400);
   ok('…and gone after 7', await pg.evaluate(()=>$('#toast').hidden));
+  // tapping the circle once the goal is met plays the celebration again (Mick, Nov 25)
+  await pg.evaluate(()=>{ document.querySelectorAll('.goalpop').forEach(x=>x.remove()); setChrome(false); }); await sleep(400);
+  await pg.click('#goalRing'); await sleep(200);
+  ok('goal met: tapping the circle celebrates again, with the minutes', await pg.evaluate(()=>!!document.querySelector('.drop-buddy') && /read today/.test((document.querySelector('.goalpop')||{}).textContent||'')));
+  await sleep(3600);
+  ok('…and it settles back', await pg.evaluate(()=>!document.querySelector('.drop-buddy') && !document.body.classList.contains('db-on')));
   await pg.evaluate(()=>closeReader()); await sleep(400);
 
   // ---- scripture peek ----

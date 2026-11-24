@@ -5,6 +5,8 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — tapping the goal circle after the goal is met plays the celebration too** (2026.11.25.7; popup shows as
+  well). Test: `delight.js`.
 - **Mick — the "Return to …" toast didn't look tappable and covered the title; "move it or do it another way".**
   Claude's call (2026.11.25.6): the back arrow becomes "‹ <book>" in the link colour (iOS's "◀ Safari" pattern), plus
   a small "‹ <book>" at the top left of the page with the controls hidden. No toast, nothing to swipe. Same end

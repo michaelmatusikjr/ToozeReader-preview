@@ -93,6 +93,7 @@ and move items out of **Pending changes** once they're built.
   right, a small one on top) stretch out twice with a gentle wobble, then it flattens back into the drop (~3.2 s).
   It barely rises; the page line and goal circle fade out while it's there. Message: "You've reached your reading
   goal of x minutes." for 7 seconds. Reduce Motion: message only.
+  Tapping the goal circle once the goal is met plays the celebration again (with the minutes popup). (Nov 25.)
 - **Opens where you left off:** leaving Tooz from inside a book reopens that book next launch; leaving from the
   library opens the library (the back button clears it). Not for the tutorial.
 - **Rejected: haptic ticks** (borrowing iOS 18's switch tick) — didn't work on his iPhone; iOS only ticks for a real

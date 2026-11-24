@@ -2450,6 +2450,7 @@ $('#goalRing').addEventListener('click',e=>{
   b.style.left=(r.right+4)+'px'; b.style.top=(r.top-10)+'px'; document.body.appendChild(b);
   b.animate([{opacity:0,transform:'translate(-100%,-85%)'},{opacity:1,transform:'translate(-100%,-100%)'}],{duration:200,easing:'cubic-bezier(.2,.8,.2,1)'});
   setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 3000);
+  if(todayMs()>=goal*60000) Drop.celebrate();   /* goal already met: the drop celebrates again */
 });
 function toggleChrome(){ setChrome(!R.chrome); }
 function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS.on) ttsStop(); }
@@ -4383,11 +4384,11 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.6 preview';
+const APP_VERSION='2026.11.25.7 preview';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
   ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, the back arrow at the top left becomes “‹ <the book you came from>”; tap it to go back.'],
-  ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate.'],
+  ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate; tap the circle after that to see it again.'],
   ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],
   ['Exact quotes','Copied and shared quotes from the Bible now say “John 3:16–18 (KJV)”; from other books they name the part and chapter.'],
   ['Messages at the top','Little messages like “Bookmarked” now drop in at the top of the screen in your theme’s colours (in a book, the page’s colours), and you can flick them away up or to the side.'],

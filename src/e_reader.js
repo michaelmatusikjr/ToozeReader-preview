@@ -512,6 +512,7 @@ $('#goalRing').addEventListener('click',e=>{
   b.style.left=(r.right+4)+'px'; b.style.top=(r.top-10)+'px'; document.body.appendChild(b);
   b.animate([{opacity:0,transform:'translate(-100%,-85%)'},{opacity:1,transform:'translate(-100%,-100%)'}],{duration:200,easing:'cubic-bezier(.2,.8,.2,1)'});
   setTimeout(()=>{ const a=b.animate([{opacity:1},{opacity:0}],{duration:300}); a.onfinish=()=>b.remove(); }, 3000);
+  if(todayMs()>=goal*60000) Drop.celebrate();   /* goal already met: the drop celebrates again */
 });
 function toggleChrome(){ setChrome(!R.chrome); }
 function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS.on) ttsStop(); }
