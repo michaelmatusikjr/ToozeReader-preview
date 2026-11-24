@@ -72,6 +72,41 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   const bl=await pg.evaluate(()=>{ const ys=[...document.querySelectorAll('.sp-lab')].map(x=>parseFloat(x.style.top)).sort((a,b)=>a-b); let mind=1e9; for(let k=1;k<ys.length;k++) mind=Math.min(mind,ys[k]-ys[k-1]); return [ys.length, mind]; });
   ok('Bible labels thinned, never overlapping', bl[0]>8 && bl[1]>=24, bl);
   await pg.screenshot({path:__E.SCRATCH+'spine_bible.png'});
+  // step sideways (Mick, Nov 24): slide to Revelation at the bottom, step right -> Revelation 22, slide up -> ~12
+  const bb=await pg.evaluate(()=>{ const r=$('#spine').getBoundingClientRect(); return {x:r.left,y:r.top,w:r.width,h:r.height}; });
+  const lensTxt=()=>pg.evaluate(()=>{ const o=$('.sp-l.on'); return o? o.firstChild.textContent : null; });
+  await pg.mouse.move(bb.x+58, bb.y+bb.h/2); await pg.mouse.down(); await pg.mouse.move(bb.x+58, bb.y+bb.h-18, {steps:8}); await sleep(80);
+  ok('bottom of the line is Revelation', (await lensTxt())==='Revelation', await lensTxt());
+  ok('book shows its chapter count', await pg.evaluate(()=>$('.sp-l.on small').textContent==='22 chapters'));
+  await pg.mouse.move(bb.x+90, bb.y+bb.h-22, {steps:4}); await pg.mouse.move(bb.x+150, bb.y+bb.h-20, {steps:4}); await sleep(120);
+  ok('step right unrolls Revelation’s chapters', await pg.evaluate(()=>!!$('.sp-inner') && $('.sp-chip').textContent==='Revelation'));
+  ok('thumb is already on Revelation 22', (await lensTxt())==='Revelation 22', await lensTxt());
+  await pg.screenshot({path:__E.SCRATCH+'spine_step22.png'});
+  await pg.mouse.move(bb.x+150, bb.y+18+(bb.h-36)*11/21, {steps:10}); await sleep(80);
+  ok('slide up to Revelation 12', (await lensTxt())==='Revelation 12', await lensTxt());
+  await pg.screenshot({path:__E.SCRATCH+'spine_step12.png'});
+  await pg.mouse.up(); await sleep(800);
+  ok('release lands on Revelation 12', await pg.evaluate(()=>$('#sheet').hidden && currentChapter(R.pos).t==='Revelation 12'), await pg.evaluate(()=>currentChapter(R.pos).t));
+  // step back left returns to the books; further right is finer
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
+  await pg.mouse.move(bb.x+58, bb.y+bb.h/2); await pg.mouse.down(); await pg.mouse.move(bb.x+90, bb.y+bb.h/2,{steps:3}); await pg.mouse.move(bb.x+150, bb.y+bb.h/2,{steps:3}); await sleep(80);
+  const psIn=await pg.evaluate(()=>$('.sp-chip')&&$('.sp-chip').textContent);
+  await pg.mouse.move(bb.x+300, bb.y+bb.h/2,{steps:6}); const f0=await pg.evaluate(()=>parseFloat($('.sp-imark').style.top));
+  await pg.mouse.move(bb.x+300, bb.y+bb.h/2+80,{steps:8}); const f1=await pg.evaluate(()=>parseFloat($('.sp-imark').style.top));
+  ok('far right moves a quarter as fast', Math.abs((f1-f0)-20)<4, [psIn, f1-f0]);
+  await pg.mouse.move(bb.x+60, bb.y+bb.h/2,{steps:8}); await sleep(80);
+  ok('step back left returns to the books', await pg.evaluate(()=>!$('.sp-inner') && !$('#spine').classList.contains('inner')) && !/\d$/.test(await lensTxt()||'1'), await lensTxt());
+  await pg.mouse.move(bb.x+58, bb.y-200); await pg.mouse.up(); await sleep(300);
+  // a plain novel: step into a chapter -> its pages
+  await pg.evaluate(()=>{ closeSheet(); closeReader(); }); await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(900);
+  await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(700);
+  const gb=await pg.evaluate(()=>{ const r=$('#spine').getBoundingClientRect(); const c=R.meta.chapters.find(c=>c.t==='VI'); const [a,b]=[c.i,R.meta.chapters.find(c=>c.t==='VII').i]; return {x:r.left,y:r.top,h:r.height, yv:r.top+18+(r.height-36)*((a+b)/2)/R.n, a, b}; });
+  await pg.mouse.move(gb.x+58, gb.yv); await pg.mouse.down(); await pg.mouse.move(gb.x+90, gb.yv,{steps:3}); await pg.mouse.move(gb.x+150, gb.yv,{steps:3}); await sleep(100);
+  const pgl=await lensTxt();
+  ok('novel chapter steps into pages', /^Page \d/.test(pgl||'') && await pg.evaluate(()=>$('.sp-l.on small').textContent==='VI'), pgl);
+  await pg.screenshot({path:__E.SCRATCH+'spine_pages.png'});
+  await pg.mouse.up(); await sleep(800);
+  ok('lands inside that chapter', await pg.evaluate(g=>R.pos>=g.a-300 && R.pos<g.b, gb), await pg.evaluate(()=>R.pos));
   ok('no page errors', !errs.length, errs);
   console.log(fails?'FAIL '+fails:'ALL PASS'); await b.close();
 })();

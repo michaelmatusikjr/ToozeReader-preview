@@ -5,6 +5,13 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-24
 
+- **Mick — spine for big books: step sideways (option 1 + a bit of 2).** His idea: slide to the book, slide right
+  into its chapters, slide up/down to pick. He asked how Revelation 22 works at the bottom edge: the inner line is
+  always full height and starts at the matching spot, so the bottom of Revelation lands on 22 and there's room to
+  go up. Saw a mock-up first, then OK'd the build (2026.11.24.3). Claude's calls: inner chapters evenly spaced
+  (short psalms as easy as long ones); plain novels step into pages; moving right freezes the item so a drift
+  doesn't change it; further right is finer; the lens fits the big label to the width and hides the inner line's
+  own labels near the thumb. Rejected: fine-tune-only (runs out of room at edges) and the swell (slippery).
 - **Mick — the List | Spine switch belongs in the reader's Aa panel, not app Settings.** Moved (2026.11.24.2) to Aa →
   More text options → Contents (and Word display in Speed mode). Still one global setting.
 - **Mick — feel check: the drop between Contents and Notes didn't travel** (it shrank on one tab and grew on the

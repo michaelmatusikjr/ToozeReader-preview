@@ -1102,7 +1102,6 @@ function drawSpine(el){
   const iAt=py=>Math.round(lo+(hi-lo)*clamp((py-PAD)/U,0,1));
   const ks=ch.map((c,k)=>k).filter(k=>ch[k].i>=lo&&ch[k].i<hi);
   const chAt=i=>{ let r=-1; for(const k of ks){ if(ch[k].i<=i) r=k; else break; } return r<0? ks[0] : r; };
-  /* resting labels: shallow levels first, never closer than 24px */
   /* resting labels: the level whose size best fits the space (books in the Bible, chapters in a novel),
      first of each in order, never closer than 24px */
   const cnt={}; for(const k of ks){ const d=ch[k].d||0; cnt[d]=(cnt[d]||0)+1; }
@@ -1125,21 +1124,76 @@ function drawSpine(el){
     if(bd){ const x=R.meta.highlights.find(z=>z.id===bd.dataset.h); if(x) showCard(x.s, `<span class="t" style="--hc:var(--hl${x.c})">${esc(textOf(x.s,Math.min(x.e,x.s+40)))}${x.e>x.s+40?'…':''}</span>${x.note?`<span class="nt">${esc(x.note)}</span>`:''}<span class="where">${esc(((currentChapter(x.s)||{}).t||''))} · ${esc(placeLabel(x.s))}</span>`); return; }
     if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${ICON.mark}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
   };
-  /* drag (or tap) along the spine */
+  /* drag (or tap) along the spine. The main line picks an item at the label level (a Bible book, a novel's
+     chapter). Step right and a second, full-height line unrolls from it with what's inside: its chapters, evenly
+     spaced, or, with nothing nested, its pages. Further right, the inner line moves finer. Step back left to return.
+     Let go to jump there (paused); let go off the spine to cancel. */
+  const items=ks.filter(k=>(ch[k].d||0)<=lv);
+  const itemAt=i=>{ let r=-1; for(const k of items){ if(ch[k].i<=i) r=k; else break; } return r<0? items[0] : r; };
+  const X2=X+92;
+  const innerOf=k=>{ const [a,b]=tocSpan(k), d=ch[k].d||0; let kids=[], md=Infinity;
+    for(let j=k+1;j<ch.length&&ch[j].i<b;j++){ const dj=ch[j].d||0; if(dj>d){ if(dj<md){ md=dj; kids=[]; } if(dj===md) kids.push(j); } }
+    return kids.length>=2? {kind:'ch', list:kids, a, b, k} : {kind:'pg', a, b:Math.max(a+1,b), k}; };
+  const shortT=(j,k)=>{ const p=ch[k].t, t=ch[j].t; return t.startsWith(p+' ')? t.slice(p.length+1) : t; };
+  /* the lens: the pick big (sized to fit), two neighbours each side; kept on screen near the edges */
+  const W=el.clientWidth;
+  const lensHTML=(list,at,py,sub,lx,bigT)=>{ let s=''; py=clamp(py,46,H-58);
+    for(let d=-2;d<=2;d++){ const it=list[at+d]; if(it==null) continue; const big=d===0, t=big&&bigT? bigT : it;
+      const fs= big? Math.max(18,Math.min(28,(W-lx-10)/(Math.max(4,t.length)*.56))) : [13,17,0,17,13][d+2];
+      s+=`<div class="sp-l${big?' on':''}" style="left:${lx}px;top:${py+d*30+(d>0?14:0)-(big?18:9)}px;font-size:${fs}px;opacity:${[.45,.75,1,.75,.45][d+2]}">${esc(t)}${big&&sub?`<small>${esc(sub)}</small>`:''}</div>`; } return s; };
   let drag=null;
-  const lensAt=py=>{ const i=iAt(py), k=ch.length? chAt(i) : -1, tgt= k>=0? ch[k].i : i;
-    if(k>=0){ const at=ks.indexOf(k); let s='';
-      for(let d=-2;d<=2;d++){ const kk=ks[at+d]; if(kk==null) continue; const big=d===0;
-        s+=`<div class="sp-l${big?' on':''}" style="top:${py+d*30+(d>0?14:0)-(big?18:9)}px;font-size:${[13,17,28,17,13][d+2]}px;opacity:${[.45,.75,1,.75,.45][d+2]}">${esc(ch[kk].t)}${big?`<small>${esc(placeLabel(tgt))}</small>`:''}</div>`; }
-      lens.innerHTML=s; }
-    else lens.innerHTML=`<div class="sp-l on" style="top:${py-18}px;font-size:28px">${esc(placeLabel(i))}</div>`;
-    thumb.style.top=py+'px'; return tgt; };
+  function outerAt(py){
+    thumb.style.top=py+'px'; thumb.style.left=X+'px';
+    const i=iAt(py);
+    if(!items.length){ lens.innerHTML=lensHTML([placeLabel(i)],0,py,'',X+36); drag.k=-1; return i; }
+    const k=drag.hold!=null? drag.hold : itemAt(i), inn=innerOf(k);
+    lens.innerHTML=lensHTML(items.map(kk=>ch[kk].t), items.indexOf(k), py, inn.kind==='ch'? inn.list.length+' chapters' : placeLabel(ch[k].i), X+36);
+    drag.k=k; return ch[k].i;
+  }
+  function enter(k){
+    const inn=innerOf(k), yk=y(ch[k].i); drag.inner=inn; drag.frac=clamp((drag.py-PAD)/U,0,1); drag.fx=drag.px;
+    let s=`<i class="sp-bridge" style="left:${X}px;width:${X2-X}px;top:${yk}px"></i><span class="sp-chip" style="left:${X+8}px;top:${yk+(yk>H-40?-16:16)}px">${esc(ch[k].t)}</span><i class="sp-itrack" style="left:${X2-2}px;top:${PAD}px;height:${U}px"></i>`;
+    const yf=f=>PAD+U*f;
+    if(inn.kind==='ch'){ const n=inn.list.length, step=Math.max(1,Math.ceil(26/(U/Math.max(1,n-1))));
+      if(n<=200) inn.list.forEach((j,x)=>{ s+=`<i class="sp-itick" style="left:${X2-5}px;top:${yf(x/Math.max(1,n-1))}px"></i>`; });
+      inn.list.forEach((j,x)=>{ if(x%step===0||x===n-1&&(n-1)%step>=step/2) s+=`<span class="sp-ilab" style="left:${X2+16}px;top:${yf(x/Math.max(1,n-1))}px">${esc(shortT(j,k))}</span>`; }); }
+    else { for(let f=0;f<=1.0001;f+=1/Math.max(1,Math.round(U/24))) s+=`<i class="sp-itick" style="left:${X2-5}px;top:${yf(f)}px"></i>`;
+      let last=''; for(const f of [0,.25,.5,.75,1]){ const L=placeLabel(Math.round(inn.a+(inn.b-1-inn.a)*f)); if(L!==last) s+=`<span class="sp-ilab" style="left:${X2+16}px;top:${yf(f)}px">${esc(L)}</span>`; last=L; } }
+    s+=`<i class="sp-imark" style="left:${X2}px"></i>`;
+    const box=document.createElement('div'); box.className='sp-inner'; box.innerHTML=s; box.style.transformOrigin=`0 ${yk}px`; el.insertBefore(box,lens); drag.box=box;
+    el.classList.add('inner');
+    if(!RM.matches) box.animate([{transform:'scaleY(0)',opacity:0},{transform:'none',opacity:1}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+  }
+  function leave(){ if(drag.box) drag.box.remove(); drag.box=null; drag.inner=null; drag.hold=null; el.classList.remove('inner'); }
+  function innerAt(py){
+    const inn=drag.inner, f=drag.frac, yy=PAD+U*f; drag.box.querySelector('.sp-imark').style.top=yy+'px';
+    thumb.style.top=py+'px'; thumb.style.left=drag.px+'px';
+    if(inn.kind==='ch'){ const n=inn.list.length, at=Math.round(f*(n-1)), j=inn.list[at];
+      drag.box.querySelectorAll('.sp-ilab').forEach(l=>{ l.style.opacity= Math.abs(parseFloat(l.style.top)-clamp(py,46,H-58))<78? 0 : ''; });
+      lens.innerHTML=lensHTML(inn.list.map(x=>shortT(x,inn.k)), at, py, placeLabel(ch[j].i), X2+20, ch[j].t); return ch[j].i; }
+    drag.box.querySelectorAll('.sp-ilab').forEach(l=>{ l.style.opacity= Math.abs(parseFloat(l.style.top)-clamp(py,46,H-58))<40? 0 : ''; });
+    const i=Math.round(inn.a+(inn.b-1-inn.a)*f);
+    lens.innerHTML=lensHTML([placeLabel(i)],0,py,ch[inn.k].t,X2+20); return i;
+  }
+  const RM=matchMedia('(prefers-reduced-motion: reduce)');
   el.onpointerdown=e=>{ if(e.target.closest('.sp-bead,.sp-flag,.sp-card')) return; if(!card.hidden){ card.hidden=true; return; }
-    const r=el.getBoundingClientRect(); drag={r, tgt:0}; el.setPointerCapture&&el.setPointerCapture(e.pointerId);
-    el.classList.add('dragging'); lens.hidden=false; thumb.hidden=false; drag.tgt=lensAt(e.clientY-r.top); };
-  el.onpointermove=e=>{ if(!drag) return; e.preventDefault(); drag.tgt=lensAt(e.clientY-drag.r.top); };
-  const end=(e,cancel)=>{ if(!drag) return; const r=drag.r, out=cancel|| e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-30||e.clientY>r.bottom+30, tgt=drag.tgt; drag=null;
-    el.classList.remove('dragging'); lens.hidden=true; thumb.hidden=true; if(!out){ closeSheet(); goTo(tgt,true); } };
+    const r=el.getBoundingClientRect(); drag={r, tgt:0, x0:e.clientX-r.left, px:e.clientX-r.left, py:e.clientY-r.top, hold:null, inner:null, box:null};
+    el.setPointerCapture&&el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging'); lens.hidden=false; thumb.hidden=false; drag.tgt=outerAt(drag.py); };
+  el.onpointermove=e=>{ if(!drag) return; e.preventDefault();
+    const px=e.clientX-drag.r.left, py=e.clientY-drag.r.top, dy=py-drag.py, dx=px-drag.x0; drag.px=px; drag.py=py;
+    if(drag.inner){
+      if(px-drag.fx < -40){ leave(); }
+      else { const out=px-drag.fx, sp= out<70? 1 : out<140? .5 : .25;   /* further right, finer */
+        drag.frac=clamp(drag.frac+dy*sp/U,0,1); drag.tgt=innerAt(py); return; }
+    }
+    if(items.length){
+      if(dx>16){ if(drag.hold==null) drag.hold=drag.k; } else drag.hold=null;   /* moving right holds the item, so a drift doesn't change it */
+      if(dx>56 && drag.hold!=null){ enter(drag.hold); drag.tgt=innerAt(py); return; }
+    }
+    drag.tgt=outerAt(py); };
+  const end=(e,cancel)=>{ if(!drag) return; const r=drag.r, out=cancel|| e.clientX<r.left-10||e.clientX>r.right+10||e.clientY<r.top-30||e.clientY>r.bottom+30, tgt=drag.tgt;
+    leave(); drag=null; el.classList.remove('dragging'); lens.hidden=true; thumb.hidden=true; if(!out){ closeSheet(); goTo(tgt,true); } };
   el.onpointerup=e=>end(e,false); el.onpointercancel=e=>end(e,true);
 }
 function openToc(tab, inPlace){

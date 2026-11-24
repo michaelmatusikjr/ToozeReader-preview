@@ -86,6 +86,11 @@ and move items out of **Pending changes** once they're built.
   and its page/location; release jumps to that chapter's start (paused); release off the spine cancels. Tap a bead
   or flag for a card; tap the card to go there. Typing in search swaps to the result list; the filter zooms the
   spine to one section. Notes tab is always the list.
+  **Step sideways** (Mick's idea, Nov 24, 2026.11.24.3): the main line picks items at the label level (Bible books,
+  a novel's chapters; dragging right past ~16px holds the item). Past ~56px right, a second full-height line
+  unrolls from it (scales out from the item, bridge + name chip): its chapters evenly spaced, or its pages if
+  nothing is nested. The thumb lands on the matching height (bottom of Revelation = Revelation 22). Further right is
+  finer (70px+: half speed, 140px+: quarter). 40px back left returns to the main line. Release goes there.
 - Notes tab → Bookmarks: **swipe left to delete**, with Undo (built Nov 16). In a book, bookmark lines in the contents have an ×.
 - A highlight must be able to stop right before a dash (dash-joined words are separate words).
 
