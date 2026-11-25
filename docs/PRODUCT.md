@@ -8,6 +8,25 @@ and move items out of **Pending changes** once they're built.
 - **The drop, stage 2 — the pull-up pool: on hold.** Mock-ups of four takes (Nov 24: quick actions, + speed dial, quick
   dials, fits-the-moment) left him unsure he likes the pool idea at all; he asked for other ideas instead and chose
   the Nov 25 batch below. Don't rebuild the pool unless he brings it back.
+- **Backlog from Mick (Nov 25, 2026; notes only, not started).** His words, lightly tidied; checked against 2026.11.25.18.
+  1. **Phone light/dark → his choice of theme.** "Match phone" should let him pick in Settings which theme is used
+     when the phone is in light mode and which in dark mode (today it takes the first light / first dark theme in his
+     list). "Switch theme at night" should override the phone's setting — *it already does* (`effectiveTheme` checks
+     the night switch first); keep it that way.
+  2. **Six themes.** Raise the limit from 5 to 6 (`MAX_THEMES`). The default sixth theme is labelled "Wild and crazy"
+     and has wild and crazy colours.
+  3. **Keyboard never covers the field.** Anywhere in the app, when the on-screen keyboard appears, the field being
+     typed into moves above it.
+  4. **Contents sheet, list mode: three pills instead of tabs.** Remove the Contents / Notes tabs and the Both /
+     Contents / Bookmarks switch. At the top: three pills — **Contents**, **Bookmarks**, **Notes** — each tap on / tap
+     off; any one, two or all three can be on. All off → a message: "Select one of the options above." The search
+     bar sits under the pills. The filter button appears only once a search is entered, and the filter lists only
+     the chapters that contain the search. The pills and search bar stay fixed; everything below the search bar
+     scrolls. (`openToc`, `tocList`, `hlList`, `R.tocShowNow`, `R.tocScope` in `e_reader.js`.)
+  5. **Remove the contents wheels.** Drop the "Contents → Wheels" option from reading settings and remove all its
+     code (`S.tocStyle` 'spine', `drawSpine`, `spineUse`, `versesIn`, `kidsOf`, `pageEntries`, `wheelLabel`, the
+     `.sp-*` CSS, `tests/feature/spine.js`, the tutorial/What's new lines). Check what else uses `fullTitle` /
+     `refTarget` before deleting them. "I don't want it anymore."
 - **ePub gaps found by the Nov 25 check (need a decision; details in `docs/briefs/epub-check-findings.md`).** Tables
   (each cell becomes its own line; real layout medium–large, " | " joined rows small), right-to-left languages
   (medium–large), small pictures inside a sentence (medium), non-linear spine items shown inline (small; hide unless

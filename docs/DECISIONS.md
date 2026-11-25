@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — new backlog (notes only).** Five items added to Pending changes in `PRODUCT.md`: light/dark theme choice
+  for "Match phone", six themes with a "Wild and crazy" default, keyboard never covers a field, Contents sheet as
+  three on/off pills (Contents, Bookmarks, Notes) with fixed search and a search-only filter, and remove the contents
+  wheels entirely.
 - **Claude — preview 2026.11.25.18: the whole Nov 24 backlog.** Themes, Storage, Notes tab, bookmark marks, motion,
   ePub import fixes and the goal ring, built by five parallel builders in worktrees, merged and reviewed. Reviewer
   findings fixed: contents-page lists (in `<nav>` / list-style none) get no numbers; a list number can't leak; a
