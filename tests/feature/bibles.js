@@ -23,6 +23,8 @@ function styleA(book){ let h=`<h1>${book}</h1><h2>A Section Heading</h2>`;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<p><b class="chapter-num" id="c${c}">${c}:1&#160;</b>${vs[0]}<sup class="crossref"><a href="#cr-${fid(book)}-${c}">a</a></sup>`;
     vs.slice(1).forEach((v,k)=>{ h+=` <b class="verse-num">${k+2}&#160;</b>${v}`; if(k===1) h+='</p><p>'; }); h+='</p>'; }
   return h+`<div class="crossrefs">${CHS[book].map(c=>`<p id="cr-${fid(book)}-${c}"><a href="#c${c}">a</a> ${c}:1 Job 38:4–7; Gen. 2:2; John 1:1–3; 3:16; 1 Cor. 13:4 b ${c}:2 Ps. 33:6</p>`).join('')}</div>`; }
+// style S: like A but with real superscript verse numbers (the app then treats it as a Bible proper)
+function styleS(book){ return styleA(book).replace(/<b class="verse-num">(\d+)&#160;<\/b>/g,'<sup class="v">$1</sup>&#160;'); }
 // style B: big drop-cap chapter number, no verse 1, verse numbers in plain spans stuck to the next word
 function styleB(book){ let h=`<h1>${book}</h1>`;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<h3>Heading ${c}</h3><p><span class="chapter-num">${c}</span> ${vs[0]}`;
@@ -53,7 +55,7 @@ async function epub(title, style, chapterNav){
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto('http://localhost:8750/'); await sleep(1200);
-  const cases=[['ESV Reference Bible', styleA, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
+  const cases=[['ESV Reference Bible', styleA, false], ['ESV Sup Bible', styleS, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
   for(const [title, style, nav] of cases){
     const bytes=await epub(title, style, nav);
     const res=await pg.evaluate(async({bytes,title})=>{
@@ -88,6 +90,11 @@ async function epub(title, style, chapterNav){
   ok('tapping one shows the verses ("3:16" after John means John 3:16)', pk.p && /For God so loved/.test(pk.p), pk);
   await pg.click('#sheet [data-act=ctx]'); await sleep(1200);
   ok('Read it in context goes there in the same Bible', await pg.evaluate(()=>{ const v=findVerses(R.meta,R.text,{book:'John',ord:'',c:3,v:16,x:0,y:0}); return v && Math.abs(R.pos-v.i)<3; }), await pg.evaluate(()=>[R.pos, R.words[R.pos]]));
+  // with real superscript verses the cross-reference section is still marked, the verse text is not
+  const sup=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Sup Bible'); await openDoc(m.id); await new Promise(r=>setTimeout(r,600)); R.refFor=null;
+    const ix=scanRefs(); return {bible:hasVerses(), words:ix.map(i=>R.words[i]).slice(0,6), inVerse:ix.some(i=>versesIn(blockOf(i).s,blockOf(i).e).length)};
+    function blockOf(i){ return R.blocks.find(b=>i>=b.s&&i<b.e); } });
+  ok('superscript Bible: treated as a Bible, cross-reference section still tappable', sup.bible && sup.words.includes('Job') && !sup.inVerse, sup);
   ok('ESV is shown as "ESV"', await pg.evaluate(()=>bibleAbbr({title:'ESV Reference Bible'})==='ESV'));
   // the shelf KJV keeps working the old way
   const kjv=await pg.evaluate(async()=>{ for(const m of LIB) if(!/^shelf-/.test(m.id)) m.lastRead=0; const m=LIB.find(m=>m.id==='shelf-kjv'); if(m.pending){ const ok=await fetchShelfBook(m); if(!ok) return 'no-net'; }

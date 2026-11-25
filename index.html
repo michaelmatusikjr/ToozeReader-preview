@@ -3042,8 +3042,9 @@ function refsIn(W, a, b, out){
 function scanRefs(){
   if(R.refFor===R.meta.id) return R.refIdx;
   R.refFor=R.meta.id; R.refMap=new Map(); R.refIdx=[];
-  if(hasVerses()) return R.refIdx;
-  refsIn(R.words, 0, R.n, R.refMap);
+  /* in a Bible, only its notes and cross references (paragraphs without verse numbers), never the verse text */
+  if(hasVerses()){ for(const bl of R.blocks||[]) if(!/^h/.test(bl.t) && !versesIn(bl.s,bl.e).length) refsIn(R.words, bl.s, bl.e, R.refMap); }
+  else refsIn(R.words, 0, R.n, R.refMap);
   R.refIdx=[...R.refMap.keys()].sort((a,b)=>a-b);
   return R.refIdx;
 }
@@ -3100,7 +3101,8 @@ function textChapters(t, a, b){
 /* verse starts inside a chapter: superscripts if the Bible has them, else numbers counting up */
 function textVerses(t, a, b, c){
   const vs=[]; for(let k=a;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
-  if(vs.length>=2) return vs;
+  if(vs.length>=2){ if(vs[0].n===2){ let i=a; for(let k=a;k<vs[0].i;k++){ const v=vNum(t.words[k]); if(v && v.a===c && (v.b===1||!v.b)){ i=k; break; } } vs.unshift({n:1,i}); }   /* verse 1 unnumbered */
+    return vs; }
   const out=[]; let exp=1;
   for(let k=a;k<b;k++){
     if(t.wf && (t.wf[k]&F_N)) continue; const v=vNum(t.words[k]); if(!v) continue;
@@ -4474,7 +4476,7 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.10 preview';
+const APP_VERSION='2026.11.25.11 preview';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
   ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],

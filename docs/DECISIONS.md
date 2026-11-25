@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — ESV cross references "still not working" after .10.** Likely cause: a Bible with real superscript verse
+  numbers was treated as a Bible proper, and no references were marked anywhere in it (the rule meant to keep its
+  verse text clean also hid its cross-reference section). Now (2026.11.25.11) references are marked in a Bible's
+  paragraphs that have no verse numbers. Also: verse 1 found when superscript verses start at 2. Still untested on
+  his real file; asked for a screenshot if it still fails. Test: `bibles.js` (new superscript variant).
 - **Mick — ESV cross references "can't tap the references".** Tapping a cross-reference letter showed the note as
   plain text. Now (2026.11.25.10) every reference in a note card is tappable and opens the verse card (Read it in
   context works within the same Bible). Also: a bare "1:2" only continues the previous book after ";", ",", "and",

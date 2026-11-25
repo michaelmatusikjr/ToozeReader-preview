@@ -1100,8 +1100,9 @@ function refsIn(W, a, b, out){
 function scanRefs(){
   if(R.refFor===R.meta.id) return R.refIdx;
   R.refFor=R.meta.id; R.refMap=new Map(); R.refIdx=[];
-  if(hasVerses()) return R.refIdx;
-  refsIn(R.words, 0, R.n, R.refMap);
+  /* in a Bible, only its notes and cross references (paragraphs without verse numbers), never the verse text */
+  if(hasVerses()){ for(const bl of R.blocks||[]) if(!/^h/.test(bl.t) && !versesIn(bl.s,bl.e).length) refsIn(R.words, bl.s, bl.e, R.refMap); }
+  else refsIn(R.words, 0, R.n, R.refMap);
   R.refIdx=[...R.refMap.keys()].sort((a,b)=>a-b);
   return R.refIdx;
 }
@@ -1158,7 +1159,8 @@ function textChapters(t, a, b){
 /* verse starts inside a chapter: superscripts if the Bible has them, else numbers counting up */
 function textVerses(t, a, b, c){
   const vs=[]; for(let k=a;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
-  if(vs.length>=2) return vs;
+  if(vs.length>=2){ if(vs[0].n===2){ let i=a; for(let k=a;k<vs[0].i;k++){ const v=vNum(t.words[k]); if(v && v.a===c && (v.b===1||!v.b)){ i=k; break; } } vs.unshift({n:1,i}); }   /* verse 1 unnumbered */
+    return vs; }
   const out=[]; let exp=1;
   for(let k=a;k<b;k++){
     if(t.wf && (t.wf[k]&F_N)) continue; const v=vNum(t.words[k]); if(!v) continue;
