@@ -1615,7 +1615,7 @@ function openToc(tab, inPlace){
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
     res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
-    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x,()=>openToc()); },
+    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x,()=>openToc('marks')); },
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },

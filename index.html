@@ -513,7 +513,8 @@ code{font-family:var(--f-mono);font-size:.85em;background:var(--raise);padding:1
 .swrow{position:relative;overflow:hidden}
 .swrow .swdel{position:absolute;top:0;right:0;bottom:1px;width:92px;border:0;background:var(--danger);color:#fff;font:inherit;font-weight:600}
 .swrow .swfront{position:relative;background:var(--paper);transition:transform .2s ease;touch-action:pan-y}
-#sheet .swrow .swfront{background:var(--surface)}   /* Storage list rows sit on the sheet, not the page */
+#sheet .swrow .swfront{background:var(--surface)}
+.nbook .swrow .swfront{background:var(--surface)}   /* Storage list rows sit on the sheet, not the page */
 .swrow.dragging .swfront{transition:none}
 .hlrow .bar{width:5px;align-self:stretch;border-radius:3px;flex:none}
 .hlrow .grow{flex:1;min-width:0;cursor:pointer}
@@ -929,7 +930,7 @@ const S = (()=>{
     saved.v=2;
   }
   /* the user's theme list (first run: the five shipped ones; a saved Gray or night-Gray keeps Gray in Paper's place) */
-  if(!Array.isArray(saved.themes)){ const g=saved.theme==='gray'||saved.nightTheme==='gray'; saved.themes=defaultThemes(g); }
+  if(!Array.isArray(saved.themes)){ const g=(saved.theme==='gray'||saved.nightTheme==='gray') && saved.theme!=='paper' && saved.nightTheme!=='paper'; saved.themes=defaultThemes(g); if(!g && (saved.theme==='gray'||saved.nightTheme==='gray')) saved.themes[4]=defaultThemes(true)[1];   /* Paper in use too: Gray takes Black's place */ }
   return Object.assign({}, DEFAULTS, saved);
 })();
 normThemes();
@@ -1084,6 +1085,10 @@ function headingOf(n, ctx){
   return null;
 }
 /* walks an HTML tree into words, keeping paragraph types and inline styles */
+/* a list the book shows without numbers: its own contents page (inside <nav>), or list-style none */
+function listNoNum(el){ const none=e=>!!e&&e.nodeType===1&&/list-style(-type)?\s*:\s*none/i.test(e.getAttribute('style')||'');
+  if(none(el) || (el.localName==='li' && none(el.parentNode))) return true;
+  for(let e=el;e&&e.nodeType===1;e=e.parentNode) if(e.localName==='nav') return true; return false; }
 function walkHTML(root, ctx, path){
   const rich=!!ctx.blocks;
   let buf='', segs=[], flags=0, quote=0, hLeft=0, pend=[];
@@ -1159,8 +1164,8 @@ function walkHTML(root, ctx, path){
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
     let myList=false, myInd=0, myMath=false;
     if(rich){
-      if(tag==='ol'||tag==='ul'){ const L={ol:tag==='ol', n:0, type:'1'}; if(L.ol){ const st=parseInt(n.getAttribute('start'),10); L.n=(isNaN(st)?1:st)-1; if(n.getAttribute('reversed')!=null) L.rev=1; L.type=n.getAttribute('type')||'1'; } lists.push(L); myList=true; }
-      else if(tag==='li' && lists.length){ const L=lists[lists.length-1]; if(L.ol){ const v=parseInt(n.getAttribute('value'),10); if(!isNaN(v)) L.n=v-1; L.n++; const k=L.n, ty=L.type; pendLabel=(ty==='a'?toAlpha(k):ty==='A'?toAlpha(k).toUpperCase():ty==='i'?toRoman(k):ty==='I'?toRoman(k).toUpperCase():String(k))+'.'; } }
+      if(tag==='ol'||tag==='ul'){ const L={ol:tag==='ol'&&!listNoNum(n), n:0, type:'1'}; if(L.ol){ const st=parseInt(n.getAttribute('start'),10); L.n=(isNaN(st)?1:st)-1; if(n.getAttribute('reversed')!=null) L.rev=1; L.type=n.getAttribute('type')||'1'; } lists.push(L); myList=true; }
+      else if(tag==='li' && lists.length){ const L=lists[lists.length-1]; if(L.ol && !listNoNum(n)){ const v=parseInt(n.getAttribute('value'),10); if(!isNaN(v)) L.n=v-1; L.n++; const k=L.n, ty=L.type; pendLabel=(ty==='a'?toAlpha(k):ty==='A'?toAlpha(k).toUpperCase():ty==='i'?toRoman(k):ty==='I'?toRoman(k).toUpperCase():String(k))+'.'; } }
       const il=indentLevel(n, tag); if(il){ myInd=il; ind=Math.min(3,ind+il); }
       if(MATH_TOK.has(tag)){ myMath=true; addText(' '); }
     }
@@ -1192,7 +1197,7 @@ function walkHTML(root, ctx, path){
       stack.push(ptag); if(left) hLeft++;
     }
     for(let c=n.firstChild;c;c=c.nextSibling) visit(c);
-    if(rich){ if(myList) lists.pop(); if(myInd) ind=Math.max(0,ind-myInd); if(myMath) addText(' '); }
+    if(rich){ if(myList){ lists.pop(); pendLabel=null; } if(myInd) ind=Math.max(0,ind-myInd); if(myMath) addText(' '); }
     if(isB) flush(); /* before leaving the element, so the paragraph keeps its type */
     if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; if(myMark) myMark.b=buf.length; }
   };
@@ -3721,7 +3726,7 @@ function openToc(tab, inPlace){
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
     res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
-    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x,()=>openToc()); },
+    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x,()=>openToc('marks')); },
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
@@ -4824,8 +4829,15 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.17 preview';
+const APP_VERSION='2026.11.25.18 preview';
 const WHATSNEW=[
+  ['Your own themes','Settings → Themes holds up to five themes. Tap one to use it, tap its pencil to change its page, text and accent colours (you see it change as you pick), or tap + to make a new one. Any theme can be changed or deleted. The whole app, not just the page, now takes on your theme. “Switch theme at night” is here too and picks from your themes.'],
+  ['See and clear what’s stored','Settings → Storage lists everything Tooz keeps on your phone, biggest first: each book, each book’s saved audio and each voice. Swipe one to the left to delete it; Undo brings it back. A starter-shelf book keeps your notes and place and simply downloads again when you open it.'],
+  ['A tidier Notes tab','Each book is now one row showing how many highlights and notes it has and the latest one. Tap a book to open it up. Once you have a few, a search at the top finds any highlight, note or bookmark across all your books.'],
+  ['Mark your bookmarks','Tap a bookmark’s icon (in a book’s contents or in Notes) to put one letter, number or emoji inside it and give it a colour. “Bookmarked” now offers Mark to do it straight away.'],
+  ['A goal circle you can trust','The small goal circle in a book only closes when you’ve actually reached your goal; before that a gap always shows.'],
+  ['Small touches','Stats bars grow in when you see them, a book you delete or archive shrinks away from the library, and the bookmark button drops in when you tap it.'],
+  ['Better EPUB import','Numbered lists keep their numbers, nested lists and indented poetry lines are indented, maths keeps its text, and printed page numbers, “↩” links and hidden hyphens no longer end up in the text. (For books you add from now on.)'],
   ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (For red letters in a Bible you added before, add it again.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
   ['Back to where you were','After any jump within a book, “‹ Back to …” appears at the top (below the controls when they’re showing). Tap it to go back, or swipe it away; if it tucks itself away after a few minutes, showing the controls brings it back. The verses a reference took you to stay tinted until you go back. When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
@@ -4915,6 +4927,30 @@ async function storageSheet(again){
   storageSummary($('#stgUse'), true);
   swipeRows($('#stgList'), stgDelete);
 }
+/* Before a starter-shelf book's download is deleted, remember a few words at each saved place (reading position,
+   highlights, bookmarks). If the book later downloads with a different word count (import rules changed since), the
+   places are found again by those words (moveToAnchors in fetchShelfBook), so notes don't drift. */
+async function keepAnchors(d){
+  try{ const t=await Store.get('texts',d.id); if(!t||!t.words) return;
+    const idx=new Set(); if(typeof d.pos==='number') idx.add(d.pos); const lp=LS.get('pos.'+d.id,null); if(lp&&typeof lp.pos==='number') idx.add(lp.pos);
+    (d.highlights||[]).forEach(h=>{ idx.add(h.s); idx.add(h.e); }); (d.bookmarks||[]).forEach(b=>idx.add(b.i));
+    const a={}; for(const i of idx) if(i>=0&&i<t.words.length) a[i]=t.words.slice(i,i+6).join(' ');
+    d.reAnc={n:t.words.length, a}; }catch(e){}
+}
+function moveToAnchors(meta, words){
+  const R0=meta.reAnc; delete meta.reAnc; if(!R0 || R0.n===words.length) return;
+  const nz=w=>String(w||'').toLowerCase().replace(/[\u00ad]/g,'').replace(/[^\p{L}\p{N}]+/gu,'');
+  const key=s=>String(s).split(' ').map(nz).filter(Boolean).slice(0,4).join(' ');
+  const memo={};
+  const M=i=>{ if(i in memo) return memo[i]; const s=R0.a[i]; const guess=Math.min(words.length-1, Math.round(i*words.length/R0.n)); if(!s) return memo[i]=guess;
+    const k=key(s); const W=Math.max(300, Math.round(words.length*0.02)); let best=-1;
+    for(let d=0; d<=W && best<0; d++) for(const j of d?[guess-d,guess+d]:[guess]){ if(j<0||j>=words.length) continue; const parts=[]; for(let q=j;q<words.length&&parts.length<4;q++){ const x=nz(words[q]); if(x) parts.push(x); if(q-j>8) break; } if(parts.join(' ')===k){ best=j; break; } }
+    return memo[i]= best>=0?best:guess; };
+  if(typeof meta.pos==='number') meta.pos=M(meta.pos);
+  const lp=LS.get('pos.'+meta.id,null); if(lp && typeof lp.pos==='number'){ lp.pos=M(lp.pos); LS.set('pos.'+meta.id,lp); }
+  if(Array.isArray(meta.highlights)) meta.highlights=meta.highlights.map(h=>Object.assign({},h,{s:M(h.s), e:Math.max(M(h.s),M(h.e))}));
+  if(Array.isArray(meta.bookmarks)) meta.bookmarks=meta.bookmarks.map(b=>Object.assign({},b,{i:M(b.i)}));
+}
 function stgCollapse(row){
   if(!row) return; row.style.height=row.offsetHeight+'px'; row.style.transition='height .22s ease'; void row.offsetHeight; row.style.height='0';
   setTimeout(()=>row.remove(), 240);
@@ -4928,7 +4964,7 @@ function stgDelete(row){
     if(d.source && SHELF.some(s=>s.id===id)){   /* starter-shelf book: only the download goes; places and notes stay */
       d.pending={src:d.source}; renderLibrary(); msg='Deleted download of '+d.title;
       undo=()=>{ d.pending=null; renderLibrary(); };
-      commit=async()=>{ if(!d.pending) return; await Store.del('texts',id).catch(()=>{}); BK.cache.delete(id); FTX.delete(id); touch(d); };
+      commit=async()=>{ if(!d.pending) return; await keepAnchors(d); await Store.del('texts',id).catch(()=>{}); BK.cache.delete(id); FTX.delete(id); touch(d); };
     } else {                                    /* a book he added: gone from the library, with its saved audio */
       const at=LIB.indexOf(d); LIB.splice(at,1); renderLibrary(); hide.push('audio:'+id); msg='Deleted '+d.title;
       undo=()=>{ LIB.splice(Math.min(at,LIB.length),0,d); renderLibrary(); };
@@ -6086,6 +6122,7 @@ async function fetchShelfBook(meta){
   P('Saving to your library…', 97);
   const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};
   try{ await Store.put('texts',text); }catch(e){ toast('There isn’t enough storage on this device to save “'+meta.title+'”.', null, 7000); return false; }
+  moveToAnchors(meta, d.words);
   Object.assign(meta,{count:d.words.length, chapters:d.chapters||[], imageCount:d.images?d.images.at.length:0, pending:null, subjects:(d.subjects||[]).slice(0,20)}); SUGG.delete(meta.id);
   if(!meta.author && d.author) meta.author=d.author;
   touch(meta); BK.cache.delete(meta.id); renderLibrary(); $('#toast').hidden=true;
@@ -6303,7 +6340,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=27;
+const SAMPLE_V=28;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -6324,7 +6361,7 @@ const SAMPLE_HTML=`
 <p>Tap <strong>Aa</strong> to change how the page looks. At the top are the things you change most: the mode (Pages, Scroll or Speed), text size, theme and a few fonts.</p>
 <p>Underneath, tap a heading to open more:</p>
 <ul><li><strong>More text options</strong>: every font (including the dyslexia-friendly Lexend and OpenDyslexic), line spacing, margins, paragraphs, justified text and more. If a book comes with its own font, a <strong>Book’s font</strong> choice appears too.</li><li><strong>Pages</strong> or <strong>Scrolling</strong>: how pages turn, where you tap, and whether the controls hide while you read.</li></ul>
-<p>Options for read aloud, auto-scroll and speed reading are on their own controls, right where you use them. <strong>Settings</strong> holds the things for the whole app: <strong>Light</strong> (dim and warmth for reading in the dark, and a night theme that can switch on by itself), reading stats, backups, storage, tags and help.</p>
+<p>Options for read aloud, auto-scroll and speed reading are on their own controls, right where you use them. <strong>Settings</strong> holds the things for the whole app: <strong>Themes</strong> (up to five, each with its own page, text and accent colours; tap the pencil on one to change it, or <strong>+</strong> to make your own; the whole app takes on your theme, and a night theme can switch on by itself), <strong>Light</strong> (dim and warmth for reading in the dark), reading stats, backups, storage, tags and help.</p>
 <p>Change any of these, or turn your phone sideways, and the page keeps the word you were reading in view.</p>
 <p>Change the text size now and watch the page count at the bottom update to match.</p>
 <h2>Highlights, notes and words</h2>
@@ -6332,7 +6369,7 @@ const SAMPLE_HTML=`
 <p><strong>Copy</strong> adds where the words came from: the author, the book and the chapter. <strong>Share</strong> turns the words into a picture, in light, sepia or dark, ready to send or save to Photos.</p>
 <p>The phone’s own menu stays hidden while you select. <strong>Define</strong> looks up the word you selected, and from there you can still reach the phone’s dictionary.</p>
 <blockquote><p>Try it on this sentence: highlight it, then add a note saying what you think of it.</p></blockquote>
-<p>Every word you define is saved in the <strong>Notes</strong> tab under Words, along with the sentence you found it in. The Notes tab also gathers the highlights, notes and bookmarks from every book, so you can find them without opening each one. To delete a bookmark there, swipe it to the left and tap <strong>Delete</strong>.</p>
+<p>Every word you define is saved in the <strong>Notes</strong> tab under Words, along with the sentence you found it in. The Notes tab also gathers the highlights, notes and bookmarks from every book, folded into one row per book; tap a book to open it up, or search them all at once. Tap a bookmark’s icon (there or in the contents) to put a letter, number or emoji inside it and give it a colour. To delete a bookmark there, swipe it to the left and tap <strong>Delete</strong>.</p>
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
@@ -6348,7 +6385,7 @@ const SAMPLE_HTML=`
 <p>Tap the <strong>voice</strong> button on the audio controls to choose a voice. There are two kinds. <strong>Natural</strong> voices sound like a person reading and run on your phone; each one downloads once (about 60 MB) and then works offline. <strong>Lessac</strong> is a good place to start; tap <strong>Hear this voice</strong> to try others. <strong>iPhone</strong> voices start instantly but sound more robotic. To free up space, Settings → Storage has <strong>Remove all downloaded voices</strong>.</p>
 <p>To listen with the screen locked, open the voice settings and tap <strong>Download this book’s audio</strong> under <strong>Listen offline</strong>. Tooz makes the audio while the app is open and saves it on your phone, then plays it from the saved copy with the screen locked, with play, pause and skip on the lock screen. <strong>Save as audio files</strong> exports one MP3 per chapter, so you can play the book in the Files app or another audio app even with Tooz closed.</p>
 <h2>Helpful extras</h2>
-<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. Once you’ve set one, a small circle at the bottom right of the page fills as you read; tap it for your minutes today.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
+<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. Once you’ve set one, a small circle at the bottom right of the page fills as you read, and only closes when you reach your goal; tap it for your minutes today.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
 <h2>How reading time is counted</h2>
 <p>Tooz counts time while you turn pages, scroll, speed read or listen. Touching the page, highlighting, defining a word and writing a note all count as reading too.</p>
 <ul><li>The clock stops when you switch to another app, lock the phone or close the book, and the page you were on when you closed it still counts.</li><li>If you don’t touch the screen for 5 minutes, Tooz assumes you may have stepped away and counts only as long as that stretch usually takes you. Change the limit to 3 or 10 minutes in Settings.</li><li>Auto-scroll and Speed pause after 10 minutes without a touch and ask <em>Still reading?</em></li></ul>
@@ -6367,7 +6404,7 @@ const SAMPLE_HTML=`
 <p>You can also archive a book from its three dots at any time. Unless you have reached the very end, Tooz asks whether you finished it; if not, it is kept as <em>Did not finish</em>. Archived books live in <strong>Settings → Archived books</strong>, where you can read your notes, add a book back to your library with everything you kept, or delete it for good.</p>
 <p><strong>Start over from the beginning</strong>, also in the three dots, puts a book back to <em>Not started</em>.</p>
 <h2>Keeping your library safe</h2>
-<p>In Settings, <strong>Save backup</strong> keeps everything in one file, including your archive and your settings. <strong>Storage</strong> shows how much space Tooz uses and which books take the most. If you ever want a clean slate, <strong>Erase all data</strong> removes every book, note and setting from this device.</p>
+<p>In Settings, <strong>Save backup</strong> keeps everything in one file, including your archive and your settings. <strong>Storage</strong> lists everything Tooz keeps on your phone, biggest first: books, saved audio and voices. Swipe one to the left to delete it (Undo brings it back). If you ever want a clean slate, <strong>Erase all data</strong> removes every book, note and setting from this device.</p>
 <p>When Tooz is updated, a short <em>What’s new</em> note appears the next time you open it. You can read it again, and see the version number, in <strong>Settings → About</strong>.</p>
 <p>That’s the tour. Close this book with the back arrow whenever you’re ready.</p>
 <h2>Notes</h2>

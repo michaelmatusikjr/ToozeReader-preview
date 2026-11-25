@@ -941,6 +941,7 @@ async function fetchShelfBook(meta){
   P('Saving to your library…', 97);
   const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};
   try{ await Store.put('texts',text); }catch(e){ toast('There isn’t enough storage on this device to save “'+meta.title+'”.', null, 7000); return false; }
+  moveToAnchors(meta, d.words);
   Object.assign(meta,{count:d.words.length, chapters:d.chapters||[], imageCount:d.images?d.images.at.length:0, pending:null, subjects:(d.subjects||[]).slice(0,20)}); SUGG.delete(meta.id);
   if(!meta.author && d.author) meta.author=d.author;
   touch(meta); BK.cache.delete(meta.id); renderLibrary(); $('#toast').hidden=true;

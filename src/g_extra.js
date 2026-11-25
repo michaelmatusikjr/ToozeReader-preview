@@ -97,6 +97,30 @@ async function storageSheet(again){
   storageSummary($('#stgUse'), true);
   swipeRows($('#stgList'), stgDelete);
 }
+/* Before a starter-shelf book's download is deleted, remember a few words at each saved place (reading position,
+   highlights, bookmarks). If the book later downloads with a different word count (import rules changed since), the
+   places are found again by those words (moveToAnchors in fetchShelfBook), so notes don't drift. */
+async function keepAnchors(d){
+  try{ const t=await Store.get('texts',d.id); if(!t||!t.words) return;
+    const idx=new Set(); if(typeof d.pos==='number') idx.add(d.pos); const lp=LS.get('pos.'+d.id,null); if(lp&&typeof lp.pos==='number') idx.add(lp.pos);
+    (d.highlights||[]).forEach(h=>{ idx.add(h.s); idx.add(h.e); }); (d.bookmarks||[]).forEach(b=>idx.add(b.i));
+    const a={}; for(const i of idx) if(i>=0&&i<t.words.length) a[i]=t.words.slice(i,i+6).join(' ');
+    d.reAnc={n:t.words.length, a}; }catch(e){}
+}
+function moveToAnchors(meta, words){
+  const R0=meta.reAnc; delete meta.reAnc; if(!R0 || R0.n===words.length) return;
+  const nz=w=>String(w||'').toLowerCase().replace(/[\u00ad]/g,'').replace(/[^\p{L}\p{N}]+/gu,'');
+  const key=s=>String(s).split(' ').map(nz).filter(Boolean).slice(0,4).join(' ');
+  const memo={};
+  const M=i=>{ if(i in memo) return memo[i]; const s=R0.a[i]; const guess=Math.min(words.length-1, Math.round(i*words.length/R0.n)); if(!s) return memo[i]=guess;
+    const k=key(s); const W=Math.max(300, Math.round(words.length*0.02)); let best=-1;
+    for(let d=0; d<=W && best<0; d++) for(const j of d?[guess-d,guess+d]:[guess]){ if(j<0||j>=words.length) continue; const parts=[]; for(let q=j;q<words.length&&parts.length<4;q++){ const x=nz(words[q]); if(x) parts.push(x); if(q-j>8) break; } if(parts.join(' ')===k){ best=j; break; } }
+    return memo[i]= best>=0?best:guess; };
+  if(typeof meta.pos==='number') meta.pos=M(meta.pos);
+  const lp=LS.get('pos.'+meta.id,null); if(lp && typeof lp.pos==='number'){ lp.pos=M(lp.pos); LS.set('pos.'+meta.id,lp); }
+  if(Array.isArray(meta.highlights)) meta.highlights=meta.highlights.map(h=>Object.assign({},h,{s:M(h.s), e:Math.max(M(h.s),M(h.e))}));
+  if(Array.isArray(meta.bookmarks)) meta.bookmarks=meta.bookmarks.map(b=>Object.assign({},b,{i:M(b.i)}));
+}
 function stgCollapse(row){
   if(!row) return; row.style.height=row.offsetHeight+'px'; row.style.transition='height .22s ease'; void row.offsetHeight; row.style.height='0';
   setTimeout(()=>row.remove(), 240);
@@ -110,7 +134,7 @@ function stgDelete(row){
     if(d.source && SHELF.some(s=>s.id===id)){   /* starter-shelf book: only the download goes; places and notes stay */
       d.pending={src:d.source}; renderLibrary(); msg='Deleted download of '+d.title;
       undo=()=>{ d.pending=null; renderLibrary(); };
-      commit=async()=>{ if(!d.pending) return; await Store.del('texts',id).catch(()=>{}); BK.cache.delete(id); FTX.delete(id); touch(d); };
+      commit=async()=>{ if(!d.pending) return; await keepAnchors(d); await Store.del('texts',id).catch(()=>{}); BK.cache.delete(id); FTX.delete(id); touch(d); };
     } else {                                    /* a book he added: gone from the library, with its saved audio */
       const at=LIB.indexOf(d); LIB.splice(at,1); renderLibrary(); hide.push('audio:'+id); msg='Deleted '+d.title;
       undo=()=>{ LIB.splice(Math.min(at,LIB.length),0,d); renderLibrary(); };

@@ -84,7 +84,7 @@ const S = (()=>{
     saved.v=2;
   }
   /* the user's theme list (first run: the five shipped ones; a saved Gray or night-Gray keeps Gray in Paper's place) */
-  if(!Array.isArray(saved.themes)){ const g=saved.theme==='gray'||saved.nightTheme==='gray'; saved.themes=defaultThemes(g); }
+  if(!Array.isArray(saved.themes)){ const g=(saved.theme==='gray'||saved.nightTheme==='gray') && saved.theme!=='paper' && saved.nightTheme!=='paper'; saved.themes=defaultThemes(g); if(!g && (saved.theme==='gray'||saved.nightTheme==='gray')) saved.themes[4]=defaultThemes(true)[1];   /* Paper in use too: Gray takes Black's place */ }
   return Object.assign({}, DEFAULTS, saved);
 })();
 normThemes();
@@ -222,6 +222,10 @@ function headingOf(n, ctx){
   return null;
 }
 /* walks an HTML tree into words, keeping paragraph types and inline styles */
+/* a list the book shows without numbers: its own contents page (inside <nav>), or list-style none */
+function listNoNum(el){ const none=e=>!!e&&e.nodeType===1&&/list-style(-type)?\s*:\s*none/i.test(e.getAttribute('style')||'');
+  if(none(el) || (el.localName==='li' && none(el.parentNode))) return true;
+  for(let e=el;e&&e.nodeType===1;e=e.parentNode) if(e.localName==='nav') return true; return false; }
 function walkHTML(root, ctx, path){
   const rich=!!ctx.blocks;
   let buf='', segs=[], flags=0, quote=0, hLeft=0, pend=[];
@@ -297,8 +301,8 @@ function walkHTML(root, ctx, path){
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
     let myList=false, myInd=0, myMath=false;
     if(rich){
-      if(tag==='ol'||tag==='ul'){ const L={ol:tag==='ol', n:0, type:'1'}; if(L.ol){ const st=parseInt(n.getAttribute('start'),10); L.n=(isNaN(st)?1:st)-1; if(n.getAttribute('reversed')!=null) L.rev=1; L.type=n.getAttribute('type')||'1'; } lists.push(L); myList=true; }
-      else if(tag==='li' && lists.length){ const L=lists[lists.length-1]; if(L.ol){ const v=parseInt(n.getAttribute('value'),10); if(!isNaN(v)) L.n=v-1; L.n++; const k=L.n, ty=L.type; pendLabel=(ty==='a'?toAlpha(k):ty==='A'?toAlpha(k).toUpperCase():ty==='i'?toRoman(k):ty==='I'?toRoman(k).toUpperCase():String(k))+'.'; } }
+      if(tag==='ol'||tag==='ul'){ const L={ol:tag==='ol'&&!listNoNum(n), n:0, type:'1'}; if(L.ol){ const st=parseInt(n.getAttribute('start'),10); L.n=(isNaN(st)?1:st)-1; if(n.getAttribute('reversed')!=null) L.rev=1; L.type=n.getAttribute('type')||'1'; } lists.push(L); myList=true; }
+      else if(tag==='li' && lists.length){ const L=lists[lists.length-1]; if(L.ol && !listNoNum(n)){ const v=parseInt(n.getAttribute('value'),10); if(!isNaN(v)) L.n=v-1; L.n++; const k=L.n, ty=L.type; pendLabel=(ty==='a'?toAlpha(k):ty==='A'?toAlpha(k).toUpperCase():ty==='i'?toRoman(k):ty==='I'?toRoman(k).toUpperCase():String(k))+'.'; } }
       const il=indentLevel(n, tag); if(il){ myInd=il; ind=Math.min(3,ind+il); }
       if(MATH_TOK.has(tag)){ myMath=true; addText(' '); }
     }
@@ -330,7 +334,7 @@ function walkHTML(root, ctx, path){
       stack.push(ptag); if(left) hLeft++;
     }
     for(let c=n.firstChild;c;c=c.nextSibling) visit(c);
-    if(rich){ if(myList) lists.pop(); if(myInd) ind=Math.max(0,ind-myInd); if(myMath) addText(' '); }
+    if(rich){ if(myList){ lists.pop(); pendLabel=null; } if(myInd) ind=Math.max(0,ind-myInd); if(myMath) addText(' '); }
     if(isB) flush(); /* before leaving the element, so the paragraph keeps its type */
     if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; if(myMark) myMark.b=buf.length; }
   };
