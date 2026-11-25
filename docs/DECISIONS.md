@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — "the preferences don't work" (ESV's Preferences page).** They're worked by the book's own scripts, which
+  Tooz never runs. Offered 3 options; **Mick chose: make the book's own page work** (over Bible switches in Aa, or
+  marks that fade by themselves). Built (2026.11.25.14): import records words of Christ, cross-reference letters,
+  footnote markers, verse numbers and the preference links; tapping applies per book (`meta.bp`); chosen option bold.
+  "Use pop-up navigation" stays Yes. The preference "No" links had been mistaken for footnote links; fixed. Verified
+  on his file; test `bibles.js`. He must re-add the ESV.
 - **Mick sent his ESV EPUB (Crossway "ESV Classic Reference Bible").** Checked against the real file (not committed):
   chapter starts are mid-paragraph bold "Section Title JOHN 3", books open with chapter-number grids, cross-reference
   entries are spans several to a paragraph, stored after all books, using "ch." and "ver." for the same book/chapter.

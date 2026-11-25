@@ -126,7 +126,7 @@ function fromParagraphs(paras){
 const BLOCK=new Set(['p','div','h1','h2','h3','h4','h5','h6','li','blockquote','section','article','tr','dd','dt','figcaption','pre','header','footer','aside','table','ul','ol','hr','br','td','th','caption','nav','figure','main','body']);
 const SKIP=new Set(['script','style','head','title','svg','math','noscript','rt','rp','template']);
 const INLINE_FLAG={em:F_I,i:F_I,cite:F_I,dfn:F_I,var:F_I,strong:F_B,b:F_B,code:F_C,kbd:F_C,samp:F_C,tt:F_C,sup:F_P,sub:F_S,u:F_U,ins:F_U};
-function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes:[], breaks:[], anchors:withAnchors?{}:null, firstHeading:withAnchors?{}:null, images:withAnchors?[]:null}; }
+function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes:[], breaks:[], marks:{}, acts:[], anchors:withAnchors?{}:null, firstHeading:withAnchors?{}:null, images:withAnchors?[]:null}; }
 /* Some books mark section titles as ordinary paragraphs and make them look like headings with their stylesheet.
    Read the stylesheet for classes that look like headings (bold, larger, centred, or named head/title), and classes that are bold. */
 function cssClasses(css){
@@ -171,12 +171,13 @@ function headingOf(n, ctx){
 /* walks an HTML tree into words, keeping paragraph types and inline styles */
 function walkHTML(root, ctx, path){
   const rich=!!ctx.blocks;
-  let buf='', segs=[], flags=0, quote=0, hLeft=0;
+  let buf='', segs=[], flags=0, quote=0, hLeft=0, pend=[];
+  const closeMarks=()=>{ pend=pend.filter(pm=>pm.b==null).map(pm=>Object.assign(pm,{a:0})); };   /* an open run carries on into the next paragraph */
   const stack=[];
   const curType=()=>{ for(let k=stack.length-1;k>=0;k--){ const t=stack[k]; if(/^h[1-6]$/.test(t)) return t; if(t==='li'||t==='dt') return 'li'; if(t==='pre') return 'pre'; if(t==='figcaption'||t==='caption') return 'cap'; } return 'p'; };
   const flush=()=>{
-    if(!/\S/.test(buf)){ buf=''; segs=[]; return; }
-    const s=ctx.words.length;
+    if(!/\S/.test(buf)){ buf=''; segs=[]; closeMarks(); return; }
+    const s=ctx.words.length; const pieces=[];
     if(!rich){ pushAll(ctx.words, splitWords(buf)); }
     else{
       const re=/\S+/g; let m;
@@ -187,7 +188,7 @@ function walkHTML(root, ctx, path){
         if(!runs.length) runs.push([tokS,tokE,0]);
         /* split a token where superscripts, subscripts or note links begin or end, so they render properly */
         let pieceS=tokS, pieceF=runs[0][2], first=true;
-        const emit=(a,b,f)=>{ const t=buf.slice(a,b); if(!t) return; ctx.words.push(t); ctx.wf.push((f&~F_GLUE)|(first?0:F_GLUE)); first=false; };
+        const emit=(a,b,f)=>{ const t=buf.slice(a,b); if(!t) return; if(pend.length) pieces.push([a,b,ctx.words.length]); ctx.words.push(t); ctx.wf.push((f&~F_GLUE)|(first?0:F_GLUE)); first=false; };
         for(let q=1;q<runs.length;q++){
           const f=runs[q][2];
           if(((f^pieceF)&(F_P|F_S|F_N))){ emit(pieceS, runs[q][0], pieceF); pieceS=runs[q][0]; pieceF=f; }
@@ -196,6 +197,11 @@ function walkHTML(root, ctx, path){
         emit(pieceS, tokE, pieceF);
       }
     }
+    /* marked runs (words of Christ, cross-reference letters, verse numbers, preference links) → word ranges */
+    for(const pm of pend){ const mb=pm.b==null? buf.length : pm.b; let lo=-1, hi=-1;
+      for(const [a,b,w] of pieces) if(a<mb && b>pm.a){ if(lo<0) lo=w; hi=w+1; }
+      if(lo>=0){ if(pm.act) ctx.acts.push([lo,hi,pm.act]); else { const L=ctx.marks[pm.k]||(ctx.marks[pm.k]=[]); const z=L[L.length-1]; if(z && z[1]===lo) z[1]=hi; else L.push([lo,hi]); } } }
+    closeMarks();
     buf=''; segs=[];
     if(ctx.words.length>s){ ctx.ends.push(ctx.words.length-1); if(rich){ const b={s, e:ctx.words.length, t:curType()}; if(quote) b.q=1; if(hLeft && /^h/.test(b.t)) b.l=1; if(ctx.gap){ b.g=1; ctx.gap=false; } ctx.blocks.push(b); } }
   };
@@ -224,7 +230,7 @@ function walkHTML(root, ctx, path){
     if(tag==='br'){ flush(); return; }
     if(tag==='hr'){ flush(); if(rich) ctx.breaks.push(ctx.words.length); return; }
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
-    const saveFlags=flags; let isNote=false, ptag=tag, left=false;
+    const saveFlags=flags; let isNote=false, ptag=tag, left=false, myMark=null;
     if(rich && (tag==='p'||tag==='div') && !stack.some(x=>/^h[1-6]$/.test(x))){
       const hd=headingOf(n, ctx); if(hd){ ptag=hd.tag; left=!hd.center; }
     }
@@ -232,7 +238,10 @@ function walkHTML(root, ctx, path){
       if(INLINE_FLAG[tag]) flags|=INLINE_FLAG[tag];
       if(ctx.boldCls && ctx.boldCls.size){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.boldCls.has(c))) flags|=F_B; }
       if(ctx.supCls && ctx.supCls.size && !BLOCK.has(tag)){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.supCls.has(c))){ flags|=F_P; ptag='sup'; } }
-      if(tag==='a' && ctx.anchors){
+      { const cl=' '+(n.getAttribute('class')||'')+' ', k=/ woc /.test(cl)?'woc' : / crossref /.test(cl)?'xr' : / footnote /.test(cl)&&!BLOCK.has(tag)?'fn' : / verse-num /.test(cl)?'vn' : null;
+        const oc=/^\s*(redletter|crossrefs|footnotes|versenums|usenavigation)\.(show|hide|use|skip)\(/.exec(n.getAttribute('onclick')||'');
+        if((k||oc) && !BLOCK.has(tag)){ myMark={k, act:oc? oc[1]+'.'+oc[2] : null, a:buf.length, b:null}; pend.push(myMark); } }
+      if(tag==='a' && ctx.anchors && !/^\s*(redletter|crossrefs|footnotes|versenums|usenavigation)\./.test(n.getAttribute('onclick')||'')){   /* a book's preference switches aren't notes */
         const href=n.getAttribute('href')||'';
         const et=(n.getAttribute('epub:type')||n.getAttributeNS('http://www.idpf.org/2007/ops','type')||n.getAttribute('role')||'');
         const txt=(n.textContent||'').trim();
@@ -250,7 +259,7 @@ function walkHTML(root, ctx, path){
     }
     for(let c=n.firstChild;c;c=c.nextSibling) visit(c);
     if(isB) flush(); /* before leaving the element, so the paragraph keeps its type */
-    if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; }
+    if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; if(myMark) myMark.b=buf.length; }
   };
   visit(root); flush();
 }
@@ -383,7 +392,7 @@ async function parseEpub(buf, fname, onP){
   P('Looking for the book’s font…', 92);
   let font=null; try{ font=await epubFont(items, read, files, encSet); }catch(e){ font=null; }
   const secs=[...new Set(fileStarts.map(f=>f.i))].filter(i=>i>0&&i<ctx.words.length);
-  return {title, author, category, subjects, lang, kind:'epub', words:ctx.words, ends:ctx.ends, chapters, blocks:ctx.blocks, wf:ctx.wf, notes, breaks:ctx.breaks, secs, font, images: at.length?{files:imgFiles, at}:null, imagesMissing:missing};
+  return {title, author, category, subjects, lang, kind:'epub', words:ctx.words, ends:ctx.ends, chapters, blocks:ctx.blocks, wf:ctx.wf, notes, breaks:ctx.breaks, secs, font, marks:Object.keys(ctx.marks).length?ctx.marks:null, acts:ctx.acts.length?ctx.acts:null, images: at.length?{files:imgFiles, at}:null, imagesMissing:missing};
 }
 /* the font the book's own stylesheet uses for body text, if it ships one */
 async function epubFont(items, read, files, encSet){

@@ -136,6 +136,11 @@ details.yr{margin-top:10px}
 .tdet summary span{opacity:.75}
 #tagSet .tdet{margin-top:0}#tagSet .tdet summary{font-size:.95rem;color:var(--ink);font-weight:600;padding:2px 0}
 #tagSet .tdet .list{margin-top:10px}
+.book w.woc{color:color-mix(in srgb,#c62828 78%,var(--page-ink))}
+#v-reader.bp-nowoc .book w.woc{color:inherit}
+#v-reader.bp-noxr .book w.xr,#v-reader.bp-nofn .book w.fnm,#v-reader.bp-novn .book w.vn{display:none}
+.book w.pa{color:var(--page-link);cursor:pointer}
+.book w.pa.on{color:var(--page-ink);font-weight:700}
 .book w.sref{text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,var(--page-link) 70%,transparent);text-underline-offset:3px;cursor:pointer}
 .peek{font-family:var(--bfont);font-size:1.05rem;line-height:1.55;overflow-wrap:anywhere}
 .peek sup{font-size:.68em;color:var(--muted);font-family:var(--f-ui);margin-right:1px}
@@ -917,7 +922,7 @@ function fromPlainText(text){
 const BLOCK=new Set(['p','div','h1','h2','h3','h4','h5','h6','li','blockquote','section','article','tr','dd','dt','figcaption','pre','header','footer','aside','table','ul','ol','hr','br','td','th','caption','nav','figure','main','body']);
 const SKIP=new Set(['script','style','head','title','svg','math','noscript','rt','rp','template']);
 const INLINE_FLAG={em:F_I,i:F_I,cite:F_I,dfn:F_I,var:F_I,strong:F_B,b:F_B,code:F_C,kbd:F_C,samp:F_C,tt:F_C,sup:F_P,sub:F_S,u:F_U,ins:F_U};
-function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes:[], breaks:[], anchors:withAnchors?{}:null, firstHeading:withAnchors?{}:null, images:withAnchors?[]:null}; }
+function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes:[], breaks:[], marks:{}, acts:[], anchors:withAnchors?{}:null, firstHeading:withAnchors?{}:null, images:withAnchors?[]:null}; }
 /* Some books mark section titles as ordinary paragraphs and make them look like headings with their stylesheet.
    Read the stylesheet for classes that look like headings (bold, larger, centred, or named head/title), and classes that are bold. */
 function cssClasses(css){
@@ -962,12 +967,13 @@ function headingOf(n, ctx){
 /* walks an HTML tree into words, keeping paragraph types and inline styles */
 function walkHTML(root, ctx, path){
   const rich=!!ctx.blocks;
-  let buf='', segs=[], flags=0, quote=0, hLeft=0;
+  let buf='', segs=[], flags=0, quote=0, hLeft=0, pend=[];
+  const closeMarks=()=>{ pend=pend.filter(pm=>pm.b==null).map(pm=>Object.assign(pm,{a:0})); };   /* an open run carries on into the next paragraph */
   const stack=[];
   const curType=()=>{ for(let k=stack.length-1;k>=0;k--){ const t=stack[k]; if(/^h[1-6]$/.test(t)) return t; if(t==='li'||t==='dt') return 'li'; if(t==='pre') return 'pre'; if(t==='figcaption'||t==='caption') return 'cap'; } return 'p'; };
   const flush=()=>{
-    if(!/\S/.test(buf)){ buf=''; segs=[]; return; }
-    const s=ctx.words.length;
+    if(!/\S/.test(buf)){ buf=''; segs=[]; closeMarks(); return; }
+    const s=ctx.words.length; const pieces=[];
     if(!rich){ pushAll(ctx.words, splitWords(buf)); }
     else{
       const re=/\S+/g; let m;
@@ -978,7 +984,7 @@ function walkHTML(root, ctx, path){
         if(!runs.length) runs.push([tokS,tokE,0]);
         /* split a token where superscripts, subscripts or note links begin or end, so they render properly */
         let pieceS=tokS, pieceF=runs[0][2], first=true;
-        const emit=(a,b,f)=>{ const t=buf.slice(a,b); if(!t) return; ctx.words.push(t); ctx.wf.push((f&~F_GLUE)|(first?0:F_GLUE)); first=false; };
+        const emit=(a,b,f)=>{ const t=buf.slice(a,b); if(!t) return; if(pend.length) pieces.push([a,b,ctx.words.length]); ctx.words.push(t); ctx.wf.push((f&~F_GLUE)|(first?0:F_GLUE)); first=false; };
         for(let q=1;q<runs.length;q++){
           const f=runs[q][2];
           if(((f^pieceF)&(F_P|F_S|F_N))){ emit(pieceS, runs[q][0], pieceF); pieceS=runs[q][0]; pieceF=f; }
@@ -987,6 +993,11 @@ function walkHTML(root, ctx, path){
         emit(pieceS, tokE, pieceF);
       }
     }
+    /* marked runs (words of Christ, cross-reference letters, verse numbers, preference links) → word ranges */
+    for(const pm of pend){ const mb=pm.b==null? buf.length : pm.b; let lo=-1, hi=-1;
+      for(const [a,b,w] of pieces) if(a<mb && b>pm.a){ if(lo<0) lo=w; hi=w+1; }
+      if(lo>=0){ if(pm.act) ctx.acts.push([lo,hi,pm.act]); else { const L=ctx.marks[pm.k]||(ctx.marks[pm.k]=[]); const z=L[L.length-1]; if(z && z[1]===lo) z[1]=hi; else L.push([lo,hi]); } } }
+    closeMarks();
     buf=''; segs=[];
     if(ctx.words.length>s){ ctx.ends.push(ctx.words.length-1); if(rich){ const b={s, e:ctx.words.length, t:curType()}; if(quote) b.q=1; if(hLeft && /^h/.test(b.t)) b.l=1; if(ctx.gap){ b.g=1; ctx.gap=false; } ctx.blocks.push(b); } }
   };
@@ -1015,7 +1026,7 @@ function walkHTML(root, ctx, path){
     if(tag==='br'){ flush(); return; }
     if(tag==='hr'){ flush(); if(rich) ctx.breaks.push(ctx.words.length); return; }
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
-    const saveFlags=flags; let isNote=false, ptag=tag, left=false;
+    const saveFlags=flags; let isNote=false, ptag=tag, left=false, myMark=null;
     if(rich && (tag==='p'||tag==='div') && !stack.some(x=>/^h[1-6]$/.test(x))){
       const hd=headingOf(n, ctx); if(hd){ ptag=hd.tag; left=!hd.center; }
     }
@@ -1023,7 +1034,10 @@ function walkHTML(root, ctx, path){
       if(INLINE_FLAG[tag]) flags|=INLINE_FLAG[tag];
       if(ctx.boldCls && ctx.boldCls.size){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.boldCls.has(c))) flags|=F_B; }
       if(ctx.supCls && ctx.supCls.size && !BLOCK.has(tag)){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.supCls.has(c))){ flags|=F_P; ptag='sup'; } }
-      if(tag==='a' && ctx.anchors){
+      { const cl=' '+(n.getAttribute('class')||'')+' ', k=/ woc /.test(cl)?'woc' : / crossref /.test(cl)?'xr' : / footnote /.test(cl)&&!BLOCK.has(tag)?'fn' : / verse-num /.test(cl)?'vn' : null;
+        const oc=/^\s*(redletter|crossrefs|footnotes|versenums|usenavigation)\.(show|hide|use|skip)\(/.exec(n.getAttribute('onclick')||'');
+        if((k||oc) && !BLOCK.has(tag)){ myMark={k, act:oc? oc[1]+'.'+oc[2] : null, a:buf.length, b:null}; pend.push(myMark); } }
+      if(tag==='a' && ctx.anchors && !/^\s*(redletter|crossrefs|footnotes|versenums|usenavigation)\./.test(n.getAttribute('onclick')||'')){   /* a book's preference switches aren't notes */
         const href=n.getAttribute('href')||'';
         const et=(n.getAttribute('epub:type')||n.getAttributeNS('http://www.idpf.org/2007/ops','type')||n.getAttribute('role')||'');
         const txt=(n.textContent||'').trim();
@@ -1041,7 +1055,7 @@ function walkHTML(root, ctx, path){
     }
     for(let c=n.firstChild;c;c=c.nextSibling) visit(c);
     if(isB) flush(); /* before leaving the element, so the paragraph keeps its type */
-    if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; }
+    if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; if(myMark) myMark.b=buf.length; }
   };
   visit(root); flush();
 }
@@ -1201,7 +1215,7 @@ async function parseEpub(buf, fname, onP){
   P('Looking for the book’s font…', 92);
   let font=null; try{ font=await epubFont(items, read, files, encSet); }catch(e){ font=null; }
   const secs=[...new Set(fileStarts.map(f=>f.i))].filter(i=>i>0&&i<ctx.words.length);
-  return {title, author, category, subjects, lang, kind:'epub', words:ctx.words, ends:ctx.ends, chapters, blocks:ctx.blocks, wf:ctx.wf, notes, breaks:ctx.breaks, secs, font, images: at.length?{files:imgFiles, at}:null, imagesMissing:missing};
+  return {title, author, category, subjects, lang, kind:'epub', words:ctx.words, ends:ctx.ends, chapters, blocks:ctx.blocks, wf:ctx.wf, notes, breaks:ctx.breaks, secs, font, marks:Object.keys(ctx.marks).length?ctx.marks:null, acts:ctx.acts.length?ctx.acts:null, images: at.length?{files:imgFiles, at}:null, imagesMissing:missing};
 }
 /* the font the book's own stylesheet uses for body text, if it ships one */
 async function epubFont(items, read, files, encSet){
@@ -1515,7 +1529,7 @@ let LIB=[];
 async function addDoc(d){
   if(!d.words.length) throw new Error('There’s no text to read.');
   const id='d'+uid();
-  const text={id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null};
+  const text={id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};
   await Store.put('texts',text);
   const now=Date.now();
   const meta={id, title:d.title||'Untitled', kind:d.kind, source:d.source||null, count:d.words.length, pos:0, added:now, lastRead:0, mod:now, chapters:d.chapters||[], bookmarks:[], highlights:[], author:(d.author||'').trim(), tags:[], subjects:(d.subjects||[]).slice(0,20), finished:false, imageCount:d.images?d.images.at.length:0};
@@ -2044,6 +2058,8 @@ function blockHTML(blk,s,e,cont){
     const f=wf?(wf[k]|0):0; let c='';
     if(f){ if(f&F_I)c+=' i'; if(f&F_B)c+=' b'; if(f&F_C)c+=' c'; if(f&F_U)c+=' u'; if(f&F_N)c+=' n'; else { if(f&F_P)c+=' p'; if(f&F_S)c+=' s'; } }
     if(R.back && R.back.has(k) && !(f&F_N)) c+=' nb';
+    const mk=R.mk? R.mk[k] : 0; if(mk){ if(mk&1)c+=' woc'; if(mk&2)c+=' xr'; if(mk&4)c+=' fnm'; if(mk&8)c+=' vn'; }
+    if(R.acts && R.acts.has(k)) c+=' pa'+(prefOn(R.acts.get(k))?' on':'');
     const sp=(k<e-1 && !(wf && (wf[k+1]&F_GLUE)))?' ':'';
     /* a dash at the end of a word sits just outside the word, so a highlight can stop before it */
     const dm=(f&(F_C|F_N|F_P|F_S))?null:/^(.*[^—–\-\s])((?:[—–]|-{2,})["”’)\]]*)$/.exec(W[k]);
@@ -2398,6 +2414,7 @@ function readerTap(e){
   }
   const w=t.closest&&t.closest('w');
   if(w && w.classList.contains('nb')){ goTo(R.back.get(idxOf(w)), true); return; }
+  if(w && w.classList.contains('pa')){ tapBookPref(idxOf(w)); return; }
   if(w && w.classList.contains('n')){ openFootnote(idxOf(w)); return; }
   if(w && w.classList.contains('sref')){ openRefPeek(idxOf(w)); return; }
   if(w && /\bhl[1-4]\b/.test(w.className)){ const h=hlAt(idxOf(w)); if(h){ openHlMenu(h); return; } }
@@ -2665,6 +2682,8 @@ function remapWords(text, meta, words, wf, WF, M, MI, flag){
   if(text.chapters) text.chapters=text.chapters.map(c=>Object.assign({},c,{i:M(c.i)}));
   if(text.notes) text.notes=text.notes.map(([a,b])=>[M(a),M(b)]);
   if(text.breaks) text.breaks=text.breaks.map(M);
+  if(text.marks) for(const k in text.marks) text.marks[k]=text.marks[k].map(([a,b])=>[M(a),MI(b-1)+1]);
+  if(text.acts) text.acts=text.acts.map(([a,b,x])=>[M(a),MI(b-1)+1,x]);
   if(text.secs) text.secs=text.secs.map(M);
   if(text.images && text.images.at) text.images.at=text.images.at.map(a=>Object.assign({},a,{i:M(a.i)}));
   if(meta){
@@ -2729,7 +2748,7 @@ async function openDoc(id){
   R.n=text.words.length; R.ends=new Set(text.ends);
   R.wf=(text.wf && text.wf.length===R.n)? text.wf : null;
   R.blocks=deriveBlocks(text, meta.chapters);
-  R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks();
+  R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks(); loadMarks(text);
   if(!Array.isArray(meta.highlights)) meta.highlights=[]; if(!Array.isArray(meta.bookmarks)) meta.bookmarks=[];
   (R.imgUrls||[]).forEach(u=>{ if(u&&u.startsWith('blob:')) try{ URL.revokeObjectURL(u); }catch(e){} });
   R.imgUrls=[]; R.imgList=[]; R.imgAt=new Map(); R.imgBefore=new Map(); R.imgAfter=new Map(); R.imgEnd=[];
@@ -3022,6 +3041,28 @@ function openHlMenu(h, focusNote){
     del:()=>{ const L=R.meta.highlights; const k=L.indexOf(h); if(k>=0) L.splice(k,1); touch(R.meta); redecorate(); closeSheet(); toast('Highlight removed'); }
   });
   if(focusNote) setTimeout(()=>{ const t=$('#hlNote'); t&&t.focus(); },120);
+}
+
+/* ---------- a Bible's own preference switches ----------
+   The Crossway ESV has a Preferences page ([Red] [Black], cross-references [Yes] [No]…) worked by its own scripts,
+   which Tooz never runs. Tooz recognises those links and applies them itself, for that book: words of Christ in red,
+   cross-reference letters, footnote markers and verse numbers shown or hidden. Pop-ups are always on. */
+const BP_KEY={redletter:'woc', crossrefs:'xr', footnotes:'fn', versenums:'vn', usenavigation:'nav'}, MK_BIT={woc:1, xr:2, fn:4, vn:8};
+function loadMarks(text){
+  R.mk=null; R.acts=null;
+  if(text.marks){ R.mk=new Uint8Array(R.n); for(const k in text.marks){ const bit=MK_BIT[k]; if(!bit) continue; for(const [a,b] of text.marks[k]) for(let i=Math.max(0,a);i<Math.min(R.n,b);i++) R.mk[i]|=bit; } }
+  if(text.acts){ R.acts=new Map(); for(const [a,b,x] of text.acts) for(let i=a;i<b&&i<R.n;i++) R.acts.set(i,x); }
+  applyBookPrefs();
+}
+function bookPrefs(){ return Object.assign({woc:true, xr:true, fn:true, vn:true, nav:true}, (R.meta&&R.meta.bp)||{}); }
+function applyBookPrefs(){ const p=bookPrefs(), v=$('#v-reader'); for(const k of ['woc','xr','fn','vn']) v.classList.toggle('bp-no'+k, !p[k]); }
+function prefOn(act){ const [n,verb]=act.split('.'), k=BP_KEY[n]; return k==='nav'? verb==='use' : bookPrefs()[k]===(verb==='show'); }
+function tapBookPref(i){
+  const act=R.acts&&R.acts.get(i); if(!act) return; const [n,verb]=act.split('.'), k=BP_KEY[n];
+  if(k==='nav' || prefOn(act)) return;
+  R.meta.bp=Object.assign({}, R.meta.bp, {[k]: verb==='show'}); touch(R.meta); applyBookPrefs();
+  document.querySelectorAll('#v-reader w.pa').forEach(w=>{ const x=R.acts.get(idxOf(w)); if(x) w.classList.toggle('on', prefOn(x)); });
+  relayoutSoon();
 }
 
 /* ---------- footnotes ---------- */
@@ -4511,8 +4552,9 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.13 preview';
+const APP_VERSION='2026.11.25.14 preview';
 const WHATSNEW=[
+  ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (Add the Bible again to use this.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
   ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
   ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate; tap the circle after that to see it again.'],
@@ -5695,7 +5737,7 @@ async function fetchShelfBook(meta){
   if(!buf){ toast('Couldn’t download “'+meta.title+'”. Check your internet connection and try again.', null, 7000); return false; }
   let d; try{ d=await parseFile(new File([buf], meta.title+'.epub'), (m,p)=>P(m, p==null?null:65+p*0.3)); }catch(e){ toast(e&&e.message||'That book couldn’t be opened.', null, 7000); return false; }
   P('Saving to your library…', 97);
-  const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null};
+  const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};
   try{ await Store.put('texts',text); }catch(e){ toast('There isn’t enough storage on this device to save “'+meta.title+'”.', null, 7000); return false; }
   Object.assign(meta,{count:d.words.length, chapters:d.chapters||[], imageCount:d.images?d.images.at.length:0, pending:null, subjects:(d.subjects||[]).slice(0,20)}); SUGG.delete(meta.id);
   if(!meta.author && d.author) meta.author=d.author;

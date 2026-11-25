@@ -27,6 +27,7 @@ whole.**
 | Natural voices (Piper), live playback | `h_voice.js` | `PIP_VOICES`, `natSpeakFrom`, `natChunkAt`, `natPauseFor` |
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
 | Where you were (ghost drop, same book); return link (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnLink`, `endReturnLink`, `returnBack`, `#rCrumb`, `.crumbing` |
+| A book's own preference switches (Crossway ESV) | `c_js1.js` import → `text.marks` {woc,xr,fn,vn: word ranges}, `text.acts` [[s,e,'crossrefs.hide']]; `e_reader.js` `loadMarks`, `R.mk`, `R.acts`, `tapBookPref`, per-book `meta.bp`; CSS `#v-reader.bp-no*` | 
 | Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` (→ `bibleBookSpan`, `textChapters`, `textVerses` when the contents don't list chapters; cached in `R.bibleCache`); `refsIn` finds references in any word range; note cards show only the tapped entry (`R.noteT`), take the book from the tapped verse (`bookAt`) so "ch. 3:28"/"ver. 33"/"Rev. 1:4, 8" work; import reads stylesheet-raised classes (`cssClasses` → `ctx.supCls`) as superscripts; note cards (`openFootnote`) make them tappable (`.nref` → `peekRef`) |
 | Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
 | Daily goal circle in the reader; goal celebration | `e_reader.js`, `f_js3.js`, `k_blob.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs`, `Drop.celebrate`, `.drop-buddy` |

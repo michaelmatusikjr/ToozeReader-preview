@@ -912,7 +912,7 @@ async function fetchShelfBook(meta){
   if(!buf){ toast('Couldn’t download “'+meta.title+'”. Check your internet connection and try again.', null, 7000); return false; }
   let d; try{ d=await parseFile(new File([buf], meta.title+'.epub'), (m,p)=>P(m, p==null?null:65+p*0.3)); }catch(e){ toast(e&&e.message||'That book couldn’t be opened.', null, 7000); return false; }
   P('Saving to your library…', 97);
-  const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null};
+  const text={id:meta.id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};
   try{ await Store.put('texts',text); }catch(e){ toast('There isn’t enough storage on this device to save “'+meta.title+'”.', null, 7000); return false; }
   Object.assign(meta,{count:d.words.length, chapters:d.chapters||[], imageCount:d.images?d.images.at.length:0, pending:null, subjects:(d.subjects||[]).slice(0,20)}); SUGG.delete(meta.id);
   if(!meta.author && d.author) meta.author=d.author;

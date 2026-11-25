@@ -97,6 +97,8 @@ function blockHTML(blk,s,e,cont){
     const f=wf?(wf[k]|0):0; let c='';
     if(f){ if(f&F_I)c+=' i'; if(f&F_B)c+=' b'; if(f&F_C)c+=' c'; if(f&F_U)c+=' u'; if(f&F_N)c+=' n'; else { if(f&F_P)c+=' p'; if(f&F_S)c+=' s'; } }
     if(R.back && R.back.has(k) && !(f&F_N)) c+=' nb';
+    const mk=R.mk? R.mk[k] : 0; if(mk){ if(mk&1)c+=' woc'; if(mk&2)c+=' xr'; if(mk&4)c+=' fnm'; if(mk&8)c+=' vn'; }
+    if(R.acts && R.acts.has(k)) c+=' pa'+(prefOn(R.acts.get(k))?' on':'');
     const sp=(k<e-1 && !(wf && (wf[k+1]&F_GLUE)))?' ':'';
     /* a dash at the end of a word sits just outside the word, so a highlight can stop before it */
     const dm=(f&(F_C|F_N|F_P|F_S))?null:/^(.*[^—–\-\s])((?:[—–]|-{2,})["”’)\]]*)$/.exec(W[k]);
@@ -451,6 +453,7 @@ function readerTap(e){
   }
   const w=t.closest&&t.closest('w');
   if(w && w.classList.contains('nb')){ goTo(R.back.get(idxOf(w)), true); return; }
+  if(w && w.classList.contains('pa')){ tapBookPref(idxOf(w)); return; }
   if(w && w.classList.contains('n')){ openFootnote(idxOf(w)); return; }
   if(w && w.classList.contains('sref')){ openRefPeek(idxOf(w)); return; }
   if(w && /\bhl[1-4]\b/.test(w.className)){ const h=hlAt(idxOf(w)); if(h){ openHlMenu(h); return; } }
@@ -718,6 +721,8 @@ function remapWords(text, meta, words, wf, WF, M, MI, flag){
   if(text.chapters) text.chapters=text.chapters.map(c=>Object.assign({},c,{i:M(c.i)}));
   if(text.notes) text.notes=text.notes.map(([a,b])=>[M(a),M(b)]);
   if(text.breaks) text.breaks=text.breaks.map(M);
+  if(text.marks) for(const k in text.marks) text.marks[k]=text.marks[k].map(([a,b])=>[M(a),MI(b-1)+1]);
+  if(text.acts) text.acts=text.acts.map(([a,b,x])=>[M(a),MI(b-1)+1,x]);
   if(text.secs) text.secs=text.secs.map(M);
   if(text.images && text.images.at) text.images.at=text.images.at.map(a=>Object.assign({},a,{i:M(a.i)}));
   if(meta){
@@ -782,7 +787,7 @@ async function openDoc(id){
   R.n=text.words.length; R.ends=new Set(text.ends);
   R.wf=(text.wf && text.wf.length===R.n)? text.wf : null;
   R.blocks=deriveBlocks(text, meta.chapters);
-  R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks();
+  R.notes=new Map(text.notes||[]); R.breaks=new Set(text.breaks||[]); buildBacklinks(); loadMarks(text);
   if(!Array.isArray(meta.highlights)) meta.highlights=[]; if(!Array.isArray(meta.bookmarks)) meta.bookmarks=[];
   (R.imgUrls||[]).forEach(u=>{ if(u&&u.startsWith('blob:')) try{ URL.revokeObjectURL(u); }catch(e){} });
   R.imgUrls=[]; R.imgList=[]; R.imgAt=new Map(); R.imgBefore=new Map(); R.imgAfter=new Map(); R.imgEnd=[];
@@ -1075,6 +1080,28 @@ function openHlMenu(h, focusNote){
     del:()=>{ const L=R.meta.highlights; const k=L.indexOf(h); if(k>=0) L.splice(k,1); touch(R.meta); redecorate(); closeSheet(); toast('Highlight removed'); }
   });
   if(focusNote) setTimeout(()=>{ const t=$('#hlNote'); t&&t.focus(); },120);
+}
+
+/* ---------- a Bible's own preference switches ----------
+   The Crossway ESV has a Preferences page ([Red] [Black], cross-references [Yes] [No]…) worked by its own scripts,
+   which Tooz never runs. Tooz recognises those links and applies them itself, for that book: words of Christ in red,
+   cross-reference letters, footnote markers and verse numbers shown or hidden. Pop-ups are always on. */
+const BP_KEY={redletter:'woc', crossrefs:'xr', footnotes:'fn', versenums:'vn', usenavigation:'nav'}, MK_BIT={woc:1, xr:2, fn:4, vn:8};
+function loadMarks(text){
+  R.mk=null; R.acts=null;
+  if(text.marks){ R.mk=new Uint8Array(R.n); for(const k in text.marks){ const bit=MK_BIT[k]; if(!bit) continue; for(const [a,b] of text.marks[k]) for(let i=Math.max(0,a);i<Math.min(R.n,b);i++) R.mk[i]|=bit; } }
+  if(text.acts){ R.acts=new Map(); for(const [a,b,x] of text.acts) for(let i=a;i<b&&i<R.n;i++) R.acts.set(i,x); }
+  applyBookPrefs();
+}
+function bookPrefs(){ return Object.assign({woc:true, xr:true, fn:true, vn:true, nav:true}, (R.meta&&R.meta.bp)||{}); }
+function applyBookPrefs(){ const p=bookPrefs(), v=$('#v-reader'); for(const k of ['woc','xr','fn','vn']) v.classList.toggle('bp-no'+k, !p[k]); }
+function prefOn(act){ const [n,verb]=act.split('.'), k=BP_KEY[n]; return k==='nav'? verb==='use' : bookPrefs()[k]===(verb==='show'); }
+function tapBookPref(i){
+  const act=R.acts&&R.acts.get(i); if(!act) return; const [n,verb]=act.split('.'), k=BP_KEY[n];
+  if(k==='nav' || prefOn(act)) return;
+  R.meta.bp=Object.assign({}, R.meta.bp, {[k]: verb==='show'}); touch(R.meta); applyBookPrefs();
+  document.querySelectorAll('#v-reader w.pa').forEach(w=>{ const x=R.acts.get(idxOf(w)); if(x) w.classList.toggle('on', prefOn(x)); });
+  relayoutSoon();
 }
 
 /* ---------- footnotes ---------- */

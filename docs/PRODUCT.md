@@ -89,6 +89,9 @@ and move items out of **Pending changes** once they're built.
   (its notes and cross-reference sections), never in the verse text. In a study Bible's cross-reference card: only the
   tapped letter's entry, titled with its verse ("John 1:6"); "ch. 3:28" = same book, "ver. 33" = same chapter,
   "Rev. 1:4, 8" = Rev. 1:8 too. A bare "12:1" counts as a follow-on reference only after ";", ",", "and", "cf.".
+- **A Bible's own Preferences page** (Crossway ESV): its [Yes]/[No] links work, per book: words of Christ red/black,
+  cross-reference letters, footnote markers, verse numbers shown/hidden; the chosen option is bold. Pop-ups always on.
+  Tooz never runs a book's scripts; it recognises the links (Mick chose this over Aa switches or self-fading marks).
 - **Exact citations:** in a Bible, copy/share/quote cards cite "John 3:16–18 (KJV)" (across chapters
   "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII". "Copy all highlights" adds each one's place.
 - **Daily goal circle:** a small progress circle at the bottom right of the page, only with the controls hidden and

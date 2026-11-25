@@ -42,9 +42,10 @@ function styleE(book){ let h=`<h1>${book}</h1>`;
 const R_CSS='span.verse-num{font-weight:bold;font-size:75%;vertical-align:super} span.crossref{font-size:75%;vertical-align:super;font-style:italic} b{font-weight:bold}';
 let XRR='';
 function styleR(book){ let h=`<h1>${book}</h1><p>${CHS[book].join(' ')}</p>`;
+  if(book==='Genesis') h=`<h1>Preferences</h1><p id="crossrefs-pref">Display cross-references: [<span class="crossrefs-show"><a href="#crossrefs-pref" onclick="crossrefs.show(true); return false;">Yes</a></span>] [<span class="crossrefs-hide"><a href="#crossrefs-pref" onclick="crossrefs.hide(true); return false;">No</a></span>]</p><p id="woc-pref">Words of Christ: [<span><a href="#woc-pref" onclick="redletter.show(true); return false;">Red</a></span>] [<span><a href="#woc-pref" onclick="redletter.hide(true); return false;">Black</a></span>]</p>`+h;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; const id=`${fid(book)}-${c}`;
     h+=`<p class="normal"><b>Heading ${c}</b> <b>${book.toUpperCase()}</b> <b>${c}</b> <span class="crossref"><a class="pop-link" href="crossrefs.xhtml#rr-${id}.a">a</a></span>${vs[0]} <span class="crossref"><a class="pop-link" href="crossrefs.xhtml#rr-${id}.b">b</a></span>`;
-    vs.slice(1).forEach((v,k)=>{ h+=` <span class="verse-num"><a class="pop-link">${k+2}</a></span>${v}`; if(k===1) h+='</p><p class="normal">'; }); h+='</p>';
+    vs.slice(1).forEach((v,k)=>{ h+=` <span class="verse-num"><a class="pop-link">${k+2}</a></span>${k+2===16&&book==='John'?'<span class="woc">'+v+'</span>':v}`; if(k===1) h+='</p><p class="normal">'; }); h+='</p>';
     XRR+=`<p class="crossref"><span id="rr-${id}.a"><a href="${fid(book)}.xhtml">${c}:1</a> <a href="${fid(book)}.xhtml">a</a> <a href="x">ver. 2</a>; [ch. <a href="x">3:16</a>; Rev. 1:4, 8; 1 Cor. 13:4–5]</span> <span id="rr-${id}.b"><a href="${fid(book)}.xhtml">${c}:1</a> b Gen. 1:1</span></p>`; }
   return h; }
 // style B: big drop-cap chapter number, no verse 1, verse numbers in plain spans stuck to the next word
@@ -136,6 +137,16 @@ async function epub(title, style, chapterNav, extra){
   let o=await tapR('ver. 2'); ok('ver. 2 → John 1:2', /^John 1:2/.test(o.h) && /He was in the beginning/.test(o.p), o);
   await reopen(); o=await tapR('ch. 3:16'); ok('ch. 3:16 → John 3:16', /^John 3:16/.test(o.h) && /For God so loved/.test(o.p), o);
   await reopen(); o=await tapR('8'); ok('"8" after Rev. 1:4 → Revelation 1:8', /^Revelation 1:8/.test(o.h), o);
+  // the book's own Preferences links work (Mick, Nov 25: "the preferences don't work")
+  const pf=await pg.evaluate(async()=>{ const c=R.meta.chapters.find(c=>c.t==='Preferences')||{i:0}; await goTo(c.i,true); await new Promise(r=>setTimeout(r,500));
+    const pa=[...document.querySelectorAll('#v-reader w.pa')].map(w=>[w.textContent.trim(), R.acts.get(idxOf(w)), w.classList.contains('on'), w.classList.contains('n')]);
+    const no=[...document.querySelectorAll('#v-reader w.pa')].find(w=>R.acts.get(idxOf(w))==='crossrefs.hide'); tapBookPref(idxOf(no)); await new Promise(r=>setTimeout(r,400));
+    const blk=[...document.querySelectorAll('#v-reader w.pa')].find(w=>R.acts.get(idxOf(w))==='redletter.hide'); tapBookPref(idxOf(blk)); await new Promise(r=>setTimeout(r,600));
+    const j=R.meta.chapters.find(c=>c.t==='John'); await goTo(j.i+40,true); await new Promise(r=>setTimeout(r,600));
+    const xr=[...document.querySelectorAll('#v-reader w.xr')], woc=[...document.querySelectorAll('#v-reader w.woc')];
+    return {pa, bp:R.meta.bp, xrShown:xr.filter(w=>w.offsetParent!==null).length, xrAll:xr.length, wocRed:woc.some(w=>getComputedStyle(w).color!==getComputedStyle(w.parentNode).color), wocAll:woc.length}; });
+  ok('preference links are recognised (not notes), with the current choice marked', pf.pa.length===4 && pf.pa.every(p=>!p[3]) && pf.pa.filter(p=>p[2]).map(p=>p[0]).join()==='[Yes],[Red]', pf.pa);
+  ok('tapping [No] hides the cross-reference letters, [Black] the red letters, for this book', pf.bp && pf.bp.xr===false && pf.bp.woc===false && pf.xrAll>0 && pf.xrShown===0 && pf.wocAll>0 && !pf.wocRed, pf);
   // style E: the letter in the verse is a cross-reference link; its note's references can be tapped
   const ex=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible'); await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
     const k=R.words.findIndex((w,i)=>w==='17'); const raised=k>=0 && !!(R.wf[k]&F_P) && /^For\b/.test(R.words[k+1]||'');

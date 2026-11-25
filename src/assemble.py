@@ -96,7 +96,7 @@ parts=[open(D+f,encoding='utf-8').read() for f in ['a_head.html','b_body.html','
 d=L(601,854)
 def rep(s,o,n):
     assert s.count(o)==1,(s.count(o),o[:80]); return s.replace(o,n)
-d=rep(d,"  const text={id, words:d.words, ends:d.ends, images:d.images||null};","  const text={id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null};")
+d=rep(d,"  const text={id, words:d.words, ends:d.ends, images:d.images||null};","  const text={id, words:d.words, ends:d.ends, images:d.images||null, blocks:d.blocks||null, wf:d.wf||null, notes:d.notes||null, breaks:d.breaks||null, secs:d.secs||null, font:d.font||null, lang:d.lang||null, marks:d.marks||null, acts:d.acts||null};")
 d=rep(d,"chapters:d.chapters||[], bookmarks:[], finished:false,","chapters:d.chapters||[], bookmarks:[], highlights:[], finished:false,")
 d=rep(d,"    paras.push({text:t});\n  });","    paras.push({text:t, type: el.tagName==='LI'?'li': el.tagName==='PRE'?'pre':'p', quote: el.tagName==='BLOCKQUOTE'});\n  });")
 d=rep(d,"if(textLen<300){ const ctx={words:[],ends:[],anchors:null,firstHeading:null}; walkHTML(root,ctx,''); if(ctx.words.length>out.words.length) out={words:ctx.words, ends:ctx.ends, chapters:[]}; }",
