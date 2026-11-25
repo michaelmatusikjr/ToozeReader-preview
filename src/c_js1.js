@@ -130,17 +130,21 @@ function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes
 /* Some books mark section titles as ordinary paragraphs and make them look like headings with their stylesheet.
    Read the stylesheet for classes that look like headings (bold, larger, centred, or named head/title), and classes that are bold. */
 function cssClasses(css){
-  const head=new Map(), bold=new Set(); css=String(css||'').replace(/\/\*[\s\S]*?\*\//g,'');
+  const head=new Map(), bold=new Set(), sup=new Set(); css=String(css||'').replace(/\/\*[\s\S]*?\*\//g,'');
   const re=/([^{}@]+)\{([^{}]*)\}/g; let m;
   while((m=re.exec(css))){
     const d=m[2].toLowerCase();
     const isBold=/font-weight\s*:\s*(bold|bolder|[6-9]00)\b/.test(d);
+    /* raised by the stylesheet (verse numbers, cross-reference letters in many Bibles) */
+    const isSup=/vertical-align\s*:\s*(super|top|text-top|0?\.\d+em|[1-9]\d*(?:\.\d+)?(?:em|ex|%|px))\b/.test(d) && !/vertical-align\s*:\s*-/.test(d);
     let big=false; const fs=d.match(/font-size\s*:\s*(?:([\d.]+)\s*(em|rem|%|pt|px)?|(larger|large|x-large|xx-large))/);
     if(fs){ if(fs[3]) big=true; else { const v=parseFloat(fs[1]), u=fs[2]||''; big= u==='%'? v>=112 : (u==='em'||u==='rem')? v>=1.12 : u==='pt'? v>=14 : u==='px'? v>=19 : false; } }
     const center=/text-align\s*:\s*center/.test(d), caps=/font-variant\s*:\s*small-caps|text-transform\s*:\s*uppercase/.test(d);
     for(const sel of m[1].split(',')){
       const last=(sel.trim().split(/[\s>+~]+/).pop()||'').replace(/::?[\w-]+(\(.*?\))?/g,'');
-      const tg=(last.match(/^[a-z][\w-]*/i)||[''])[0].toLowerCase(); if(tg && !/^(p|div|span|section)$/.test(tg)) continue;
+      const tg=(last.match(/^[a-z][\w-]*/i)||[''])[0].toLowerCase();
+      if(isSup && (!tg || /^(span|a|b|strong|small|em|i|sup)$/.test(tg))) for(const c of (last.match(/\.[\w-]+/g)||[]).map(x=>x.slice(1))) sup.add(c);
+      if(tg && !/^(p|div|span|section)$/.test(tg)) continue;
       for(const c of (last.match(/\.[\w-]+/g)||[]).map(x=>x.slice(1))){
         if(isBold) bold.add(c);
         if(tg==='span') continue;
@@ -150,7 +154,7 @@ function cssClasses(css){
       }
     }
   }
-  return {head, bold};
+  return {head, bold, sup};
 }
 function headingOf(n, ctx){
   const tx=(n.textContent||'').replace(/\s+/g,' ').trim(); if(!tx || tx.length>160) return null;
@@ -227,12 +231,13 @@ function walkHTML(root, ctx, path){
     if(rich){
       if(INLINE_FLAG[tag]) flags|=INLINE_FLAG[tag];
       if(ctx.boldCls && ctx.boldCls.size){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.boldCls.has(c))) flags|=F_B; }
+      if(ctx.supCls && ctx.supCls.size && !BLOCK.has(tag)){ const cl=(n.getAttribute('class')||'').split(/\s+/); if(cl.some(c=>ctx.supCls.has(c))){ flags|=F_P; ptag='sup'; } }
       if(tag==='a' && ctx.anchors){
         const href=n.getAttribute('href')||'';
         const et=(n.getAttribute('epub:type')||n.getAttributeNS('http://www.idpf.org/2007/ops','type')||n.getAttribute('role')||'');
         const txt=(n.textContent||'').trim();
         const hint=/note|fn|ftn|sup|super|ref/i.test((n.getAttribute('class')||'')+' '+(n.getAttribute('id')||'')+' '+href.split('#')[1]);
-        const inSup=stack.includes('sup') || !!(n.querySelector&&n.querySelector('sup'));
+        const inSup=stack.includes('sup') || !!(flags&F_P) || !!(n.querySelector&&n.querySelector('sup'));   /* raised itself, by <sup> or the stylesheet */
         const sym=/^[\[(]?[*†‡§¶]{1,3}[\])]?$/.test(txt), bracket=/^[\[(]\d{1,3}[\])]$/.test(txt), digit=/^\d{1,3}$/.test(txt), letter=/^[a-z]{1,2}$/i.test(txt);
         if(href.includes('#') && (/noteref/.test(et) || sym || bracket || ((digit||letter) && (inSup||hint)))){
           isNote=true; flags|=F_N;
@@ -327,7 +332,7 @@ async function parseEpub(buf, fname, onP){
   }
   const refs=byTag(spineEl,'itemref');
   const ctx=newCtx(true); const fileStarts=[];
-  try{ ctx.headCls=new Map(); ctx.boldCls=new Set(); for(const it of Object.values(items)){ if(!/css/.test(it.type)) continue; const css=await read(it.href); if(!css) continue; const r=cssClasses(css); for(const [k,v] of r.head) ctx.headCls.set(k,v); for(const b of r.bold) ctx.boldCls.add(b); } }catch(e){}
+  try{ ctx.headCls=new Map(); ctx.boldCls=new Set(); ctx.supCls=new Set(); for(const it of Object.values(items)){ if(!/css/.test(it.type)) continue; const css=await read(it.href); if(!css) continue; const r=cssClasses(css); for(const [k,v] of r.head) ctx.headCls.set(k,v); for(const b of r.bold) ctx.boldCls.add(b); for(const x of r.sup) ctx.supCls.add(x); } }catch(e){}
   let done=0;
   for(const ref of refs){
     done++;
@@ -336,7 +341,7 @@ async function parseEpub(buf, fname, onP){
     if(it.type && !/html|xml/.test(it.type)) continue;
     const html=await read(it.href); if(html==null) continue;
     const d=parseXHTML(html); const body=d.body||d.getElementsByTagNameNS('*','body')[0]||d.documentElement;
-    try{ for(const st of d.getElementsByTagName('style')){ const r=cssClasses(st.textContent); for(const [k,v] of r.head) if(!ctx.headCls.has(k)) ctx.headCls.set(k,v); for(const b of r.bold) ctx.boldCls.add(b); } }catch(e){}
+    try{ for(const st of d.getElementsByTagName('style')){ const r=cssClasses(st.textContent); for(const [k,v] of r.head) if(!ctx.headCls.has(k)) ctx.headCls.set(k,v); for(const b of r.bold) ctx.boldCls.add(b); for(const x of r.sup) ctx.supCls.add(x); } }catch(e){}
     ctx.anchors[it.href]=ctx.words.length; fileStarts.push({path:it.href, i:ctx.words.length});
     walkHTML(body, ctx, it.href);
   }

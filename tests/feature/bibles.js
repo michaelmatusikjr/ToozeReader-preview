@@ -25,6 +25,16 @@ function styleA(book){ let h=`<h1>${book}</h1><h2>A Section Heading</h2>`;
   return h+`<div class="crossrefs">${CHS[book].map(c=>`<p id="cr-${fid(book)}-${c}"><a href="#c${c}">a</a> ${c}:1 Job 38:4–7; Gen. 2:2; John 1:1–3; 3:16; 1 Cor. 13:4 b ${c}:2 Ps. 33:6</p>`).join('')}</div>`; }
 // style S: like A but with real superscript verse numbers (the app then treats it as a Bible proper)
 function styleS(book){ return styleA(book).replace(/<b class="verse-num">(\d+)&#160;<\/b>/g,'<sup class="v">$1</sup>&#160;'); }
+// style E (Mick's screenshot, Nov 25): verse numbers and cross-reference letters raised only by the stylesheet, verse
+// numbers stuck to the next word ("17And"), cross references in their own file at the end
+const E_CSS='.vn{font-weight:bold;font-size:.7em;vertical-align:super} a.cf{font-size:.7em;vertical-align:super;color:#888} .cn{font-weight:bold;font-size:2em}';
+let XR='';
+function styleE(book){ let h=`<h1>${book}</h1>`;
+  for(const c of CHS[book]){ const vs=VERSES[book][c]; const id=`${fid(book)}-${c}`;
+    h+=`<h2>Heading ${c}</h2><p><span class="cn">${c}</span> <a class="cf" href="crossrefs.xhtml#x-${id}">h</a>${vs[0]}`;
+    vs.slice(1).forEach((v,k)=>{ h+=` <span class="vn">${k+2}</span>${v}`; if(k===1) h+='</p><p>'; }); h+='</p>';
+    XR+=`<p id="x-${id}"><a class="cf" href="${fid(book)}.xhtml">h</a> ${c}:1 Job 38:4–7; John 3:16; 1 Cor. 13:4–5</p>`; }
+  return h; }
 // style B: big drop-cap chapter number, no verse 1, verse numbers in plain spans stuck to the next word
 function styleB(book){ let h=`<h1>${book}</h1>`;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<h3>Heading ${c}</h3><p><span class="chapter-num">${c}</span> ${vs[0]}`;
@@ -36,14 +46,18 @@ function styleC(book){ let h=`<h1>${book}</h1>`;
     vs.slice(1).forEach((v,k)=>{ h+=` <span class="v">${k+2}</span> ${v}`; }); h+='</p>'; }
   return h; }
 
-async function epub(title, style, chapterNav){
+let s2;
+async function epub(title, style, chapterNav, extra){
   const z=new JSZip(); z.file('mimetype','application/epub+zip');
   z.file('META-INF/container.xml','<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
   const books=Object.keys(CHS); let man='<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>', spine='';
   for(const b of books){ man+=`<item id="${fid(b)}" href="${fid(b)}.xhtml" media-type="application/xhtml+xml"/>`; spine+=`<itemref idref="${fid(b)}"/>`;
-    z.file(`OEBPS/${fid(b)}.xhtml`,`<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>${b}</title></head><body>${style(b)}</body></html>`); }
+    z.file(`OEBPS/${fid(b)}.xhtml`,`<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>${b}</title>${extra?'<link rel="stylesheet" href="esv.css"/>':''}</head><body>${style(b)}</body></html>`); }
   const li=b=>`<li><a href="${fid(b)}.xhtml">${b}</a>${chapterNav?'<ol>'+CHS[b].map(c=>`<li><a href="${fid(b)}.xhtml#ch${c}">Chapter ${c}</a></li>`).join('')+'</ol>':''}</li>`;
   z.file('OEBPS/nav.xhtml',`<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><body><nav epub:type="toc"><ol><li><a href="${fid('Genesis')}.xhtml">Old Testament</a><ol>${li('Genesis')}</ol></li><li><a href="${fid('John')}.xhtml">New Testament</a><ol>${li('John')}${li('1 Corinthians')}</ol></li></ol></nav></body></html>`);
+  if(extra){ man+=`<item id="css" href="esv.css" media-type="text/css"/><item id="xr" href="crossrefs.xhtml" media-type="application/xhtml+xml"/>`; spine+='<itemref idref="xr"/>';
+    z.file('OEBPS/esv.css', extra.css); z.file('OEBPS/crossrefs.xhtml', `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Cross References</title><link rel="stylesheet" href="esv.css"/></head><body><h1>Cross References</h1>${extra.xr}</body></html>`);
+    s2=1; }
   z.file('OEBPS/content.opf',`<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${title}</dc:title><dc:language>en</dc:language><dc:identifier id="id">${fid(title)}</dc:identifier></metadata><manifest>${man}</manifest><spine>${spine}</spine></package>`);
   return [...await z.generateAsync({type:'uint8array'})];
 }
@@ -55,9 +69,10 @@ async function epub(title, style, chapterNav){
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto('http://localhost:8750/'); await sleep(1200);
-  const cases=[['ESV Reference Bible', styleA, false], ['ESV Sup Bible', styleS, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
-  for(const [title, style, nav] of cases){
-    const bytes=await epub(title, style, nav);
+  const cases=[['ESV Bible', styleE, false, true], ['ESV Reference Bible', styleA, false], ['ESV Sup Bible', styleS, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
+  for(const [title, style, nav, ex] of cases){
+    if(ex){ XR=''; for(const b in CHS) styleE(b); }
+    const bytes=await epub(title, style, nav, ex? {css:E_CSS, xr:XR} : null);
     const res=await pg.evaluate(async({bytes,title})=>{
       const d=await parseFile(new File([new Uint8Array(bytes)], title+'.epub')); const m=await addDoc(d); m.lastRead=Date.now()+1e6;
       const pick=pickBible(); const t=await Store.get('texts',m.id); R.bible=null; R.bibleCache=null;
@@ -95,6 +110,19 @@ async function epub(title, style, chapterNav){
     const ix=scanRefs(); return {bible:hasVerses(), words:ix.map(i=>R.words[i]).slice(0,6), inVerse:ix.some(i=>versesIn(blockOf(i).s,blockOf(i).e).length)};
     function blockOf(i){ return R.blocks.find(b=>i>=b.s&&i<b.e); } });
   ok('superscript Bible: treated as a Bible, cross-reference section still tappable', sup.bible && sup.words.includes('Job') && !sup.inVerse, sup);
+  // style E: the letter in the verse is a cross-reference link; its note's references can be tapped
+  const ex=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible'); await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
+    const k=R.words.findIndex((w,i)=>w==='17'); const raised=k>=0 && !!(R.wf[k]&F_P) && /^For\b/.test(R.words[k+1]||'');
+    const c=R.meta.chapters.find(c=>/John/.test(c.t)); const n=[...R.notes.keys()].filter(i=>i>=c.i).sort((a,b)=>a-b)[0];
+    const isLetter=n!=null && R.words[n]==='h'; openFootnote(n); await new Promise(r=>setTimeout(r,500));
+    return {raised, bible:hasVerses(), isLetter, bs:[...document.querySelectorAll('#sheet .nref')].map(b=>b.textContent)}; });
+  ok('stylesheet-raised verse numbers are split off and raised ("17And" → 17 And)', ex.raised, ex);
+  ok('…so the ESV counts as a Bible', ex.bible);
+  ok('the raised letter "h" is a cross-reference link', ex.isLetter, ex);
+  ok('its note lists tappable references', JSON.stringify(ex.bs)===JSON.stringify(['Job 38:4–7','John 3:16','1 Cor. 13:4–5']), ex.bs);
+  await pg.click('#sheet .nref:nth-of-type(2)'); await sleep(900);
+  ok('tapping John 3:16 shows the verse', await pg.evaluate(()=>/For God so loved/.test((document.querySelector('#sheet .peek')||{}).textContent||'')));
+  await pg.evaluate(()=>closeSheet());
   ok('ESV is shown as "ESV"', await pg.evaluate(()=>bibleAbbr({title:'ESV Reference Bible'})==='ESV'));
   // the shelf KJV keeps working the old way
   const kjv=await pg.evaluate(async()=>{ for(const m of LIB) if(!/^shelf-/.test(m.id)) m.lastRead=0; const m=LIB.find(m=>m.id==='shelf-kjv'); if(m.pending){ const ok=await fetchShelfBook(m); if(!ok) return 'no-net'; }

@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — screenshot of his ESV (Crossway, has a Preferences page): cross-reference letters show as plain "h",
+  verse numbers stuck to words ("17And").** Real cause: the ESV raises verse numbers and cross-reference letters with
+  its stylesheet (vertical-align), not <sup>, so import saw plain text and the letters weren't links. Now
+  (2026.11.25.12) import treats stylesheet-raised classes as superscripts, and a raised letter link counts as a note
+  link. Existing books aren't re-read: he has to remove and re-add the ESV. Test: `bibles.js` (style E).
 - **Mick — ESV cross references "still not working" after .10.** Likely cause: a Bible with real superscript verse
   numbers was treated as a Bible proper, and no references were marked anywhere in it (the rule meant to keep its
   verse text clean also hid its cross-reference section). Now (2026.11.25.11) references are marked in a Bible's
