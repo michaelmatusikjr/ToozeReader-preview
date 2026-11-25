@@ -21,9 +21,8 @@ const ok=(n,c,x)=>console.log((c?'PASS ':'FAIL ')+n+(x!==undefined?' '+JSON.stri
   // settings: version, storage
   await pg.evaluate(()=>showView('settings')); await sleep(800);
   ok('version shown', await pg.evaluate(()=>$('#settingsBody').textContent.includes('Version '+APP_VERSION)));
-  ok('storage summary', await pg.evaluate(()=>$('#storeUse').textContent), await pg.evaluate(()=>$('#storeUse').textContent));
   await pg.evaluate(()=>$('#storeBooks').click()); await sleep(1200);
-  ok('storage sheet', await pg.evaluate(()=>/downloaded book/.test($('#sheet').textContent) && /Not listed: \d+ book/.test($('#sheet').textContent)), await pg.evaluate(()=>$('#sheet .note').textContent));
+  ok('storage sheet', await pg.evaluate(()=>/Storage/.test($('#sheet h2').textContent) && /on this phone/.test($('#stgUse').textContent) && !!document.querySelector('#stgList .swrow') && /reading log/.test($('#stgList').textContent)), await pg.evaluate(()=>$('#stgUse').textContent));
   await pg.evaluate(()=>closeSheet());
   // full-text search
   await pg.evaluate(()=>showView('library')); await sleep(500);
