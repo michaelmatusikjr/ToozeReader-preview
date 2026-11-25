@@ -8,7 +8,7 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 - **Mick + Claude — branch cleanup; backlog recovered.** Mick's six backlog items (Nov 24) had been saved only on branch
   `claude/happy-planck-sknlbs` and never reached `main`. Copied into Pending changes in `PRODUCT.md`, each checked
   against the code: ePub cross-references already done (2026.11.25.9–.14); the other five not built. Old `claude/*`
-  branches (all fully merged) deleted on his OK. Rule: notes-only work must also land on `main`, or later sessions
+  branches (all fully merged) OK to delete; cloud sessions can't delete branches (403), so Mick does it on GitHub. Rule: notes-only work must also land on `main`, or later sessions
   can't see it.
 - **Mick — tint the verses a reference takes you to; replace the hollow drop with a toast; toasts at the top, pushed
   down by the controls.** Built as he specified (2026.11.25.17): "Read it in context" (same Bible or from another
