@@ -56,26 +56,74 @@ async function bookBytes(id){
   for(const f of (t.font&&t.font.faces)||[]) n+= f.blob?f.blob.size:(f.data||'').length;
   return n;
 }
-async function storageSummary(){
-  const el=$('#storeUse'); if(!el) return;
+async function storageSummary(el, short){
+  el=el||$('#storeUse'); if(!el) return;
   try{
-    if(navigator.storage&&navigator.storage.estimate){ const e=await navigator.storage.estimate(); el.innerHTML=`Tooz is using <b>${fmtBytes(e.usage||0)}</b> on this device${e.quota?' (space allowed: about '+fmtBytes(e.quota)+')':''}.`; }
-    else el.textContent='This browser doesn’t report how much space Tooz uses. Tap below to add it up book by book.';
+    if(navigator.storage&&navigator.storage.estimate){ const e=await navigator.storage.estimate(); el.innerHTML= short? `<b>${fmtBytes(e.usage||0)}</b> on this phone` : `Tooz is using <b>${fmtBytes(e.usage||0)}</b> on this device${e.quota?' (space allowed: about '+fmtBytes(e.quota)+')':''}.`; }
+    else el.textContent='This browser doesn’t report how much space Tooz uses.';
   }catch(err){ el.textContent='Couldn’t read storage use.'; }
 }
-async function storageSheet(){
-  openSheet('Space used by each book','<p class="note">Adding it up…</p>');
-  const have=LIB.filter(d=>!d.pending), notDl=LIB.length-have.length;
-  const rows=[]; for(const d of have) rows.push({d, n:await bookBytes(d.id)});
-  rows.sort((a,b)=>b.n-a.n);
-  const total=rows.reduce((s,r)=>s+r.n,0);
+/* Storage: one list of everything kept on the phone, biggest first. Swipe a row left to delete it; the delete itself
+   waits until the Undo toast is gone (STG.hide keeps the row out of the list meanwhile), so Undo can't lose anything. */
+const STG={hide:new Set(), timers:{}};
+async function stgItems(){
+  const items=[];
+  for(const d of LIB){ if(d.pending) continue; items.push({k:'book:'+d.id, kind:'Book', name:d.title, n:await bookBytes(d.id)}); }
+  try{ const root=await navigator.storage.getDirectory(); const a=await root.getDirectoryHandle('audiobooks');
+    for await (const [id,h] of a.entries()){ if(h.kind!=='directory') continue; let n=0; for await (const [,f] of h.entries()) if(f.kind==='file') n+=(await f.getFile()).size;
+      const d=LIB.find(x=>x.id===id); items.push({k:'audio:'+id, kind:'Saved audio', name:d?d.title:'Removed book', n}); } }catch(e){}
+  try{ const root=await navigator.storage.getDirectory(); const dir=await root.getDirectoryHandle('piper'); const sums={};
+    for await (const [name,h] of dir.entries()){ const m=h.kind==='file' && name.match(/^(.+?)\.onnx(\.json)?$/); if(m) sums[m[1]]=(sums[m[1]]||0)+(await h.getFile()).size; }
+    const known=PIP_VOICES.flatMap(g=>g[1]);
+    for(const v in sums){ const kv=known.find(x=>x[0]===v); items.push({k:'voice:'+v, kind:'Voice', name:kv?kv[1]:v, n:sums[v]}); } }catch(e){}
+  return items.filter(x=>!STG.hide.has(x.k)).sort((a,b)=>b.n-a.n);
+}
+async function storageSheet(again){
+  if(!again) openSheet('Storage','<p class="note">Adding it up…</p>');
+  const items=await stgItems();
   let other=0; try{ for(let k=0;k<localStorage.length;k++){ const key=localStorage.key(k); if(key.startsWith('rf.')) other+=(key.length+(localStorage.getItem(key)||'').length)*2; } }catch(e){}
   if($('#sheet').hidden) return;
-  openSheet('Space used by each book', `
-    <p class="note" style="margin-top:0">${rows.length} downloaded book${rows.length===1?'':'s'} use about <b>${fmtBytes(total)}</b>. Notes, highlights, settings, reading log and archive use about <b>${fmtBytes(other)}</b>.</p>
-    <div class="list">${rows.map(r=>`<div class="li" style="cursor:default"><span class="grow" style="min-width:0"><b>${esc(r.d.title)}</b>${r.d.author?`<span class="small" style="display:block">${esc(r.d.author)}</span>`:''}</span><span class="small" style="font-family:var(--f-mono);white-space:nowrap">${fmtBytes(r.n)}</span></div>`).join('')}</div>
-    ${notDl?`<p class="note">Not listed: ${notDl} book${notDl===1?'':'s'} on your shelf that ${notDl===1?'hasn’t':'haven’t'} been downloaded yet, so ${notDl===1?'it takes':'they take'} no space.</p>`:''}
-    <p class="note">Sizes are estimates of the stored text, pictures and fonts. The phone’s own total (above, in Settings) also counts the app itself and the browser’s overhead, so it is usually larger.</p>`);
+  const row=(cls,inner)=>`<div class="li ${cls}" style="cursor:default"><span class="grow" style="min-width:0">${inner[0]}</span><span class="small" style="font-family:var(--f-mono);white-space:nowrap">${inner[1]}</span></div>`;
+  openSheet('Storage', `
+    <p class="note" style="margin-top:0" id="stgUse"></p>
+    <div class="list" id="stgList">${items.map(x=>`<div class="swrow" data-k="${esc(x.k)}"><button class="swdel" type="button" tabindex="-1">Delete</button>${row('swfront',[`<b>${esc(x.name)}</b><span class="small" style="display:block">${x.kind}</span>`, fmtBytes(x.n)])}</div>`).join('')}${row('',['<b>Notes, highlights, settings and reading log</b>', fmtBytes(other)])}</div>`);
+  storageSummary($('#stgUse'), true);
+  swipeRows($('#stgList'), stgDelete);
+}
+function stgCollapse(row){
+  if(!row) return; row.style.height=row.offsetHeight+'px'; row.style.transition='height .22s ease'; void row.offsetHeight; row.style.height='0';
+  setTimeout(()=>row.remove(), 240);
+}
+function stgDelete(row){
+  const k=row.dataset.k, type=k.slice(0,k.indexOf(':')), id=k.slice(k.indexOf(':')+1);
+  let msg, undo, commit; const hide=[k];
+  if(type==='book'){
+    const d=LIB.find(x=>x.id===id); if(!d) return;
+    if(R.meta&&R.meta.id===id&&R.mode) closeReader(true);
+    if(d.source && SHELF.some(s=>s.id===id)){   /* starter-shelf book: only the download goes; places and notes stay */
+      d.pending={src:d.source}; renderLibrary(); msg='Deleted download of '+d.title;
+      undo=()=>{ d.pending=null; renderLibrary(); };
+      commit=async()=>{ if(!d.pending) return; await Store.del('texts',id).catch(()=>{}); BK.cache.delete(id); FTX.delete(id); touch(d); };
+    } else {                                    /* a book he added: gone from the library, with its saved audio */
+      const at=LIB.indexOf(d); LIB.splice(at,1); renderLibrary(); hide.push('audio:'+id); msg='Deleted '+d.title;
+      undo=()=>{ LIB.splice(Math.min(at,LIB.length),0,d); renderLibrary(); };
+      commit=()=>removeBook(id);
+    }
+  } else if(type==='audio'){
+    const d=LIB.find(x=>x.id===id); msg='Deleted audio'+(d?' for '+d.title:'');
+    undo=()=>{};
+    commit=async()=>{ if(TTS.on && TTS.ab && R.meta && R.meta.id===id) ttsStop(); await abDelete(id); };
+  } else {
+    const kv=PIP_VOICES.flatMap(g=>g[1]).find(x=>x[0]===id); msg='Deleted '+(kv?kv[1]:id)+' voice';
+    undo=()=>{};
+    commit=async()=>{ if(TTS.on && pipVoice()===id) ttsStop(); await pipRemove(id); };
+  }
+  for(const h of hide){ STG.hide.add(h); stgCollapse(h===k?row:document.querySelector('#stgList [data-k="'+h+'"]')); }
+  STG.timers[k]=setTimeout(async()=>{ delete STG.timers[k]; try{ await commit(); }catch(e){} for(const h of hide) STG.hide.delete(h); }, 5400);
+  toast(msg, {label:'Undo', fn:()=>{
+    clearTimeout(STG.timers[k]); delete STG.timers[k]; undo(); for(const h of hide) STG.hide.delete(h);
+    if(!$('#sheet').hidden && $('#stgList')) storageSheet(true);
+  }});
 }
 
 /* ---------- search inside every book ---------- */

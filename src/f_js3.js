@@ -124,10 +124,7 @@ function renderSettings(){
     </div>`}</details></div></div>
     <h2>Storage</h2>
     <div class="group"><div class="set">
-      <div class="desc" id="storeUse" style="color:var(--ink)">Checking…</div>
-      <button class="btn" type="button" id="storeBooks">Show space used by each book</button>
-      <button class="btn" type="button" id="rmVoices" style="margin-top:8px">Remove all downloaded voices</button>
-      <button class="btn" type="button" id="rmAudio" style="margin-top:8px">Remove all saved book audio</button><div class="desc" id="abUse"></div>
+      <button class="btn" type="button" id="storeBooks">See what’s stored</button>
     </div></div>
     <h2>Library</h2>
     <div class="group"><div class="set"><div class="hd"><b>Tags</b></div></div><div class="set" id="tagSet">${(()=>{ const n=tagCounts().length; return n? `<details class="tdet" id="tagDet"${TAGS_OPEN?' open':''}><summary>${n} tag${n===1?'':'s'} <span>· tap to ${TAGS_OPEN?'hide':'show'}</span></summary>${tagsSettingsHTML()}</details>` : tagsSettingsHTML(); })()}</div></div>
@@ -171,19 +168,7 @@ function renderSettings(){
   $('#storeNote').textContent=Store.db?'':'Storage is unavailable in this view, so documents will disappear when you close the app.';
   $('#sLinkSvc').addEventListener('change',e=>{ S.linkService=e.target.value.trim(); saveSettings(); toast(S.linkService?'Reader service saved':'Reader service cleared'); });
   $('#backupBtn').onclick=backup;
-  abTotalSize().then(n=>{ const el=$('#abUse'); if(el) el.textContent= n? 'Saved book audio uses '+fmtBytes(n)+'.' : 'No book audio is saved.'; });
-  $('#rmAudio').onclick=()=>openSheet('Remove all saved book audio?', `<p class="note" style="margin-top:0">This deletes the read-aloud audio saved for every book. Your books, places and notes stay.</p>
-    <button class="btn danger block" type="button" data-act="yes">Remove all saved audio</button><button class="btn block" type="button" data-act="no">Cancel</button>`, { no:closeSheet, yes:async()=>{
-      closeSheet(); if(TTS.on && TTS.ab) ttsStop(); const n=await abDeleteAll(); toast(n? 'Saved audio removed for '+n+' book'+(n===1?'':'s') : 'No saved audio to remove'); const el=$('#abUse'); if(el) el.textContent='No book audio is saved.'; } });
-  $('#storeBooks').onclick=storageSheet; $('#rmVoices').onclick=()=>openSheet('Remove all downloaded voices?', `<p class="note" style="margin-top:0">This deletes every read-aloud voice saved on this phone. Your books, notes and settings stay. A voice downloads again the next time you use it.</p>
-    <button class="btn danger block" type="button" data-act="yes">Remove all voices</button><button class="btn block" type="button" data-act="no">Cancel</button>`, { no:closeSheet, yes:async()=>{
-      closeSheet(); if(TTS.on) ttsStop();
-      let before=0, after=0; try{ before=(await navigator.storage.estimate()).usage||0; }catch(e){}
-      const n=await natRemoveAll();
-      try{ after=(await navigator.storage.estimate()).usage||0; }catch(e){}
-      const freed=Math.max(0,before-after);
-      toast(n? `Removed ${n} voice${n===1?'':'s'}${freed>1048576?' · freed about '+fmtBytes(freed):''}` : 'No downloaded voices to remove'); storageSummary();
-    } }); $('#wnBtn').onclick=whatsNewSheet; storageSummary();
+  $('#storeBooks').onclick=()=>storageSheet(); $('#wnBtn').onclick=whatsNewSheet;
   $('#idleSeg').onclick=e=>{ const b=e.target.closest('button[data-v]'); if(!b) return; S.idleMins=+b.dataset.v; saveSettings(); $('#idleSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); };
   bkSettingsUI();
   if($('#bkPick')) $('#bkPick').onclick=pickBackupFolder;

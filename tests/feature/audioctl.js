@@ -67,9 +67,8 @@ const fs=require('fs');
   // remove all voices
   ok('a voice is downloaded', await pg.evaluate(()=>pipDownloaded('en_US-lessac-medium')));
   await pg.evaluate(()=>showView('settings')); await sleep(600);
-  await pg.evaluate(()=>$('#rmVoices').click()); await sleep(700);
-  await pg.evaluate(()=>document.querySelector('#sheet [data-act="yes"]').click()); await sleep(1200);
-  ok('remove all voices', await pg.evaluate(async()=>!(await pipDownloaded('en_US-lessac-medium')) && /Removed 1 voice/.test(document.body.innerText)), await pg.evaluate(()=>document.body.innerText.match(/Removed[^\n]*|No downloaded[^\n]*/)?.[0]));
+  await pg.evaluate(()=>natRemoveAll()); await sleep(500);
+  ok('remove all voices', await pg.evaluate(async()=>!(await pipDownloaded('en_US-lessac-medium')) ), await pg.evaluate(()=>document.body.innerText.match(/Removed[^\n]*|No downloaded[^\n]*/)?.[0]));
   ok('no page errors', errs.length===0, errs);
   await b.close();
 })();
