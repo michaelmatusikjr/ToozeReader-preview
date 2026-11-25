@@ -8,20 +8,10 @@ and move items out of **Pending changes** once they're built.
 - **The drop, stage 2 — the pull-up pool: on hold.** Mock-ups of four takes (Nov 24: quick actions, + speed dial, quick
   dials, fits-the-moment) left him unsure he likes the pool idea at all; he asked for other ideas instead and chose
   the Nov 25 batch below. Don't rebuild the pool unless he brings it back.
-- **Backlog from Mick (Nov 24, 2026; notes only, not started unless marked).** Recovered Nov 25 from a session branch
-  that never reached `main`; checked against the code that day.
-  1. **Storage panel rethink.** Settings → Storage should show everything the app keeps on the device and let him
-     delete what he chooses, down to a single book. Today it only lists sizes per book (`storageSheet` in
-     `g_extra.js`); nothing can be deleted from it except all voices.
-  2. **Themes, app-wide.** Themes apply across the whole app. Any theme, shipped or his, can have its accent colour
-     customised; shipped themes can be edited and deleted; he can create new ones; 5 themes max. Theme settings move
-     into app settings. "Switch theme at night" picks from whatever themes exist. Today `THEMES` (`c_js1.js`) is fixed.
-  3. **Subtle motion throughout.** Stats chart bars animate in when the chart comes into view (they don't yet). Add
-     subtle motion elsewhere, using the blob (`k_blob.js`) where it fits. Motion must have a job.
-  4. **Named bookmarks.** Option to name a bookmark. Today a bookmark is auto-named after its chapter; no way to rename.
-  5. **Notes tab at scale.** It will get too big after many books. Rethink its organisation (propose options first).
-  6. **Full ePub support check.** *Cross-references: done* (2026.11.25.9–.14, his ESV). Still open: check other ePub
-     features for gaps.
+- **ePub gaps found by the Nov 25 check (need a decision; details in `docs/briefs/epub-check-findings.md`).** Tables
+  (each cell becomes its own line; real layout medium–large, " | " joined rows small), right-to-left languages
+  (medium–large), small pictures inside a sentence (medium), non-linear spine items shown inline (small; hide unless
+  linked?). Offer options before building.
 - **Not chosen (Nov 24 list):** a sleep timer for listening, and "Today's highlight" on the library. Also offered
   then and not picked yet: the chapter horizon (bottom drop shows what's left of the chapter).
 
@@ -34,6 +24,11 @@ and move items out of **Pending changes** once they're built.
 - Visible progress whenever something is loading.
 - Only text inside a book is selectable; app interface text is not. In books, the phone's own selection menu is
   suppressed; Tooz's **Define** gives access to the phone's lookup.
+
+- **Notes tab (built Nov 25):** each book is one folded row (counts + latest item), most recently read first; tap to
+  unfold. A search field (once there are 2+ books or 10+ items) finds text across highlights, notes, bookmarks and
+  titles. **Bookmarks** keep the chapter as their name (no renaming, Mick's call); tap a bookmark's icon to put one
+  character inside it and pick its fill colour (shown everywhere the bookmark appears, and on the bookmark button).
 
 ## Reading modes
 
@@ -63,6 +58,16 @@ and move items out of **Pending changes** once they're built.
   restore, Storage, Library, Adding books, Help (tutorial, version, What's new), Erase.
 - Bottom bars (tab bar and in-book bar) are tall enough and fill the home-indicator area.
 - The OpenDyslexic title must not overflow the font picker.
+
+- **Themes (built Nov 25):** up to 5 themes, his own list (`S.themes`), shipped ones editable and deletable. Each
+  has page, text and accent colours; the whole app (library, sheets, settings) takes its colours from the current
+  theme. Settings → Themes holds the cards (tap = use, pencil = edit, + under 5) and "Switch theme at night" (picks
+  from his themes). Aa keeps a quick theme row. "Phone" uses the first light / first dark theme in his list.
+- **Storage (built Nov 25):** Settings → Storage opens one list of everything kept on the phone, biggest first
+  (books, each book's saved audio, each voice); swipe left to delete, with Undo. A starter-shelf book loses only its
+  download (notes and place stay); a book he added is removed. The old "remove all" buttons are gone.
+- **Motion (Nov 25):** stats bars grow in when seen, library cards collapse out, bookmark button drops in, goal bar
+  glows once on the day the goal is met. Reduce Motion turns it all off.
 
 ## Library
 

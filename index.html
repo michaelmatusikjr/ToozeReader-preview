@@ -2788,11 +2788,12 @@ function bmIcon(b){
   return `<svg class="bmi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}${txt}</svg>`;
 }
 /* the little sheet for a bookmark's character and colour; changes apply and save as you make them */
-function bmEdit(meta,b){
+function bmEdit(meta,b,back){
   const dots=COLORS.map(([n,h])=>`<button class="swatch" type="button" data-act="bmc" data-c="${h}" aria-label="${n}" aria-pressed="${b.c===h}" style="background:${h}"></button>`).join('')
     +`<button class="swatch none" type="button" data-act="bmc" data-c="" aria-label="No color" aria-pressed="${!b.c}"></button>`;
   openSheet('Bookmark', `<div class="bmprev" id="bmPrev">${bmIcon(b)}</div><input class="input bmch" id="bmCh" type="text" value="${esc(b.ch||'')}" placeholder="+" aria-label="One character" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="chips bmdots" id="bmDots">${dots}</div>`, {
-    bmc:(x)=>{ if(x.dataset.c) b.c=x.dataset.c; else delete b.c; $('#bmDots').querySelectorAll('.swatch').forEach(y=>y.setAttribute('aria-pressed',y===x)); save(); }
+    bmc:(x)=>{ if(x.dataset.c) b.c=x.dataset.c; else delete b.c; $('#bmDots').querySelectorAll('.swatch').forEach(y=>y.setAttribute('aria-pressed',y===x)); save(); },
+    __back:back
   }, 'short');
   const inp=$('#bmCh'), save=()=>{ $('#bmPrev').innerHTML=bmIcon(b); touch(meta); if(R.meta===meta) updateChrome(); if(!$('#v-words').hidden) renderNotes(); };
   inp.addEventListener('input',e=>{ if(e.isComposing) return; const g=graphemes(inp.value); if(g.length>1) inp.value=g[g.length-1]; if(inp.value) b.ch=inp.value; else delete b.ch; save(); });
@@ -3680,7 +3681,7 @@ function openToc(tab, inPlace){
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
     res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
-    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x); },
+    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x,()=>openToc()); },
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
@@ -6184,7 +6185,7 @@ function openSheet(title, body, acts, cls){
   sh.hidden=false; const bd=$('#backdrop'); bd.className=cls&&cls.includes('short')?'light':''; bd.hidden=false;
 }
 function closeSheet(){ $('#sheet').hidden=true; $('#backdrop').hidden=true; sheetActs={}; }
-$('#sheet').addEventListener('click',e=>{ if(ghost()){ e.preventDefault(); return; } const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='__close'){ closeSheet(); return; } const fn=sheetActs[a]; if(fn) fn(b,e); });
+$('#sheet').addEventListener('click',e=>{ if(ghost()){ e.preventDefault(); return; } const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='__close'){ const bk=sheetActs.__back; if(bk) bk(); else closeSheet(); return; } const fn=sheetActs[a]; if(fn) fn(b,e); });
 $('#backdrop').onclick=()=>{ if(!ghost()) closeSheet(); };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!$('#sheet').hidden) closeSheet(); else if($('#imgOverlay')) $('#imgOverlay').remove(); } });
 /* toasts sit at the top of the screen; in a book with the controls showing they sit just below them */
