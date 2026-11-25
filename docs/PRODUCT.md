@@ -27,6 +27,18 @@ and move items out of **Pending changes** once they're built.
      code (`S.tocStyle` 'spine', `drawSpine`, `spineUse`, `versesIn`, `kidsOf`, `pageEntries`, `wheelLabel`, the
      `.sp-*` CSS, `tests/feature/spine.js`, the tutorial/What's new lines). Check what else uses `fullTitle` /
      `refTarget` before deleting them. "I don't want it anymore."
+  6. **Bookmarks live in the text.** Adding a bookmark puts a bookmark icon in line with the text, between words.
+     - Hold it and drag it to another place on the page; while dragging, the text moves around it **by word**, not by
+       letter: a bookmark sits before or after any word, never between letters. Here a "word" is everything between
+       spaces, punctuation included.
+     - Tap an in-line bookmark to edit its colour and the character inside it.
+     - Several bookmarks can share a place: add two in a row and they sit side by side in the text.
+     - The bookmark button at the bottom left of the reader controls no longer fills or empties depending on whether
+       the page has a bookmark; it's simply "add a bookmark", so its icon should say that (e.g. bookmark with a +).
+     - The bookmark colour choices get a custom colour picker as well as the preset dots.
+     (Today: bookmarks are word positions `b.i` shown in Contents/Notes and on `#rMark`; `bmIcon`, `bmEdit` in
+     `e_reader.js`. In-line drawing would go through `decorate` / Pages + Scroll layout; dragging must respect the
+     reader's own selection and swipe handling.)
 - **ePub gaps found by the Nov 25 check (need a decision; details in `docs/briefs/epub-check-findings.md`).** Tables
   (each cell becomes its own line; real layout medium–large, " | " joined rows small), right-to-left languages
   (medium–large), small pictures inside a sentence (medium), non-linear spine items shown inline (small; hide unless
