@@ -90,7 +90,7 @@ function wsHTML(w){
 }
 function blockHTML(blk,s,e,cont){
   const t=blk.t; const tag=/^h[1-6]$/.test(t)?t:'p';
-  let cls=(cont?'cont ':'')+(t==='li'?'bli':t==='pre'?'pre':t==='cap'?'cap':''); /* 'bli', not 'li': that class styles the app's menu rows */ if(blk.q) cls+=(cls?' ':'')+'bq'; if(blk.g) cls+=(cls?' ':'')+'gap'; if(blk.l && tag!=='p') cls+=(cls?' ':'')+'hl';
+  let cls=(cont?'cont ':'')+(t==='li'?'bli':t==='pre'?'pre':t==='cap'?'cap':''); /* 'bli', not 'li': that class styles the app's menu rows */ if(blk.q) cls+=(cls?' ':'')+'bq'; if(blk.g) cls+=(cls?' ':'')+'gap'; if(blk.l && tag!=='p') cls+=(cls?' ':'')+'hl'; if(blk.d) cls+=(cls?' ':'')+'in'+Math.min(3,blk.d); if(blk.o) cls+=' ol'; if(blk.v) cls+=' vs';
   let h='<'+tag+(cls?' class="'+cls+'"':'')+'>';
   const wf=R.wf, W=R.words, ws=S.wordStart && t!=='pre';
   for(let k=s;k<e;k++){

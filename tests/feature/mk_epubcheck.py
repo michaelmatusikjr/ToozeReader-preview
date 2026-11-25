@@ -25,8 +25,9 @@ ch['c1']=page('Headings and text','''<h1 id="h1">Heading one</h1><h2>Heading two
 <p>Plain words with H<sub>2</sub>O and E=mc<sup>2</sup> and <span class="sc">Small Caps Words</span> here.</p>
 <ul><li>Unordered one</li><li>Unordered two<ul><li>Nested unordered inner</li></ul></li></ul>
 <ol><li>Ordered first</li><li>Ordered second<ol><li>Nested ordered inner</li></ol></li></ol>
+<ol start="3"><li>Starts at three</li><li>Four with bullets<ul><li>Bullet under four</li></ul></li></ol><ol type="a"><li>Lettered first</li><li>Lettered second</li></ol><ol type="I"><li>Roman one</li><li>Roman two</li></ol>
 <blockquote><p>Blockquote charlie paragraph.</p></blockquote>
-<div class="poem"><p>Poem line one<br/>Poem line two<br/><span class="ind">Poem indented three</span><br/>Poem line four</p></div>
+<div class="poem"><p>Poem line one<br/>Poem line two<br/><span class="i1">Poem indented three</span><br/>Poem line four<br/><span style="margin-left:3em">Poem styled five</span></p><p>Plain paragraph after the poem.</p></div>
 <pre>pre line one
   pre line two indented
 pre line three</pre><p>Inline <code>code_sample()</code> here.</p>

@@ -16,7 +16,7 @@ let fails=0; const ok=(name,c,extra)=>{ if(!c) fails++; console.log((c?'PASS ':'
     const txt=(s,e)=>d.words.slice(s,e).join(' ');
     const blk=(re)=>d.blocks.filter(x=>re.test(txt(x.s,x.e)));
     return { title:d.title, chapters:d.chapters, text:d.words.join(' '), n:d.words.length,
-      blocks:d.blocks.map(x=>({t:x.t,q:!!x.q,s:txt(x.s,x.e)})), notes:d.notes.map(([a,t])=>({w:d.words[a],at:txt(t,t+4)})),
+      blocks:d.blocks.map(x=>({t:x.t,q:!!x.q,d:x.d||0,o:!!x.o,v:!!x.v,s:txt(x.s,x.e)})), notes:d.notes.map(([a,t])=>({w:d.words[a],at:txt(t,t+4)})),
       imgs:(d.images&&d.images.at||[]).map(a=>({i:a.i,alt:a.alt})), nfiles:d.images?d.images.files.length:0, font:d.font&&d.font.family,
       wordAt:(i)=>0 };
   }, fs.readFileSync(__E.FEAT+f).toString('base64'));
@@ -40,7 +40,10 @@ let fails=0; const ok=(name,c,extra)=>{ if(!c) fails++; console.log((c?'PASS ':'
     ok(label+': pre block kept line by line', has(d.blocks,'pre','pre line two indented'));
     ok(label+': sub/sup, code, ruby base text, rtl and lang text kept', ['H 2 O','mc 2','code_sample()','漢字','مرحبا بالعالم','Bonjour le monde'].every(s=>T.includes(s)), T.slice(0,200));
     ok(label+': small caps and drop caps read as plain words', T.includes('Small Caps Words') && T.includes('Then a span drop cap') && T.includes('Dropcapped paragraph'));
-    ok(label+': MathML does not break the paragraph', T.includes('Math before') && T.includes('math after'));
+    ok(label+': MathML is read as text in the sentence (x = 2)', T.includes('Math before x = 2 math after'), T.match(/Math before.{0,30}/));
+    ok(label+': ordered lists keep their numbers (start, a/A, i/I, nested)', ['1. Ordered first','2. Ordered second','1. Nested ordered inner','3. Starts at three','4. Four with bullets','a. Lettered first','b. Lettered second','I. Roman one','II. Roman two'].every(s=>d.blocks.some(x=>x.t==='li'&&x.s.startsWith(s))), d.blocks.filter(x=>x.t==='li').map(x=>x.s));
+    ok(label+': list nesting levels, bullets only on unordered', (()=>{ const g=s=>d.blocks.find(x=>x.s.includes(s)); return g('Nested unordered inner').d===1 && !g('Nested unordered inner').o && g('Unordered one').d===0 && g('Nested ordered inner').d===1 && g('Nested ordered inner').o && g('Bullet under four').d===1 && !g('Bullet under four').o && g('Ordered first').o; })());
+    ok(label+': poetry indent levels (class i1 and margin-left style) and no first-line indent', (()=>{ const g=s=>d.blocks.find(x=>x.s.includes(s)); return g('Poem line one').d===0 && g('Poem indented three').d===1 && g('Poem styled five').d===2 && g('Poem line one').v && g('Poem styled five').v && !g('Plain paragraph after').v && !g('Plain paragraph after').d; })(), d.blocks.filter(x=>/Poem|Plain para/.test(x.s)));
     ok(label+': page-break markers add no stray words (fixed)', T.includes('Text break eight continues and nine too') && T.includes('Page seven continues'), T.match(/Text break.{0,40}/));
     ok(label+': footnote and endnote links resolve', d.notes.length===2 && /Footnote one body/.test(d.notes[0].at) && /Endnote two body/.test(d.notes[1].at), d.notes);
     ok(label+': back-link arrow is not read as a word (fixed)', !T.includes('↩') && T.includes('Footnote one body.'));

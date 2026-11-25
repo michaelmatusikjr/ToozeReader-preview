@@ -163,7 +163,21 @@ function fromParagraphs(paras){
 }
 /*@@OLD:395-409@@*/
 const BLOCK=new Set(['p','div','h1','h2','h3','h4','h5','h6','li','blockquote','section','article','tr','dd','dt','figcaption','pre','header','footer','aside','table','ul','ol','hr','br','td','th','caption','nav','figure','main','body']);
-const SKIP=new Set(['script','style','head','title','svg','math','noscript','rt','rp','template']);
+const SKIP=new Set(['script','style','head','title','svg','noscript','rt','rp','template','annotation','annotation-xml']);   /* math is read as text: its tokens are spaced out in walkHTML */
+const MATH_TOK=new Set(['mi','mo','mn','mtext','ms']);
+function toRoman(n){ const m=[[1000,'m'],[900,'cm'],[500,'d'],[400,'cd'],[100,'c'],[90,'xc'],[50,'l'],[40,'xl'],[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']]; let r=''; for(const [v,c] of m) while(n>=v){ r+=c; n-=v; } return r; }
+function toAlpha(n){ let r=''; while(n>0){ n--; r=String.fromCharCode(97+n%26)+r; n=Math.floor(n/26); } return r; }
+/* how far in a line is pushed, from the book's own inline style or an indent class (0 = not at all) */
+function indentLevel(n, tag){
+  const st=(n.getAttribute('style')||'').toLowerCase(); let lv=0;
+  const m=/(?:margin-left|padding-left)\s*:\s*([\d.]+)\s*(em|rem|%|px|pt)?/.exec(st);
+  if(m){ const v=parseFloat(m[1]), u=m[2]||'px'; if(v>0) lv=Math.min(3, Math.max(1, Math.ceil(u==='em'||u==='rem'? v/1.5 : u==='%'? v/5 : v/24))); }
+  for(const c of (n.getAttribute('class')||'').split(/\s+/)){
+    const k=/^i(\d)$/i.exec(c) || ((tag==='span') && /(?:^|[-_])(?:indent|ind)(\d+)?$/i.exec(c));
+    if(k) lv=Math.max(lv, Math.min(3, +(k[1]||1)||1));
+  }
+  return lv;
+}
 const INLINE_FLAG={em:F_I,i:F_I,cite:F_I,dfn:F_I,var:F_I,strong:F_B,b:F_B,code:F_C,kbd:F_C,samp:F_C,tt:F_C,sup:F_P,sub:F_S,u:F_U,ins:F_U};
 function newCtx(withAnchors){ return {words:[], ends:[], blocks:[], wf:[], notes:[], breaks:[], marks:{}, acts:[], anchors:withAnchors?{}:null, firstHeading:withAnchors?{}:null, images:withAnchors?[]:null}; }
 /* Some books mark section titles as ordinary paragraphs and make them look like headings with their stylesheet.
@@ -211,6 +225,7 @@ function headingOf(n, ctx){
 function walkHTML(root, ctx, path){
   const rich=!!ctx.blocks;
   let buf='', segs=[], flags=0, quote=0, hLeft=0, pend=[];
+  const lists=[]; let ind=0, lineInd=0, vsplit=false, pendLabel=null;   /* open lists (for numbers and nesting), indent of the line being read, verse lines (split by line breaks), a list number waiting for its item's text */
   const closeMarks=()=>{ pend=pend.filter(pm=>pm.b==null).map(pm=>Object.assign(pm,{a:0})); };   /* an open run carries on into the next paragraph */
   const stack=[];
   const curType=()=>{ for(let k=stack.length-1;k>=0;k--){ const t=stack[k]; if(/^h[1-6]$/.test(t)) return t; if(t==='li'||t==='dt') return 'li'; if(t==='pre') return 'pre'; if(t==='figcaption'||t==='caption') return 'cap'; } return 'p'; };
@@ -242,9 +257,14 @@ function walkHTML(root, ctx, path){
       if(lo>=0){ if(pm.act) ctx.acts.push([lo,hi,pm.act]); else { const L=ctx.marks[pm.k]||(ctx.marks[pm.k]=[]); const z=L[L.length-1]; if(z && z[1]===lo) z[1]=hi; else L.push([lo,hi]); } } }
     closeMarks();
     buf=''; segs=[];
-    if(ctx.words.length>s){ ctx.ends.push(ctx.words.length-1); if(rich){ const b={s, e:ctx.words.length, t:curType()}; if(quote) b.q=1; if(hLeft && /^h/.test(b.t)) b.l=1; if(ctx.gap){ b.g=1; ctx.gap=false; } ctx.blocks.push(b); } }
+    if(ctx.words.length>s){ ctx.ends.push(ctx.words.length-1); if(rich){ const b={s, e:ctx.words.length, t:curType()}; if(quote) b.q=1; if(hLeft && /^h/.test(b.t)) b.l=1; if(ctx.gap){ b.g=1; ctx.gap=false; }
+      const dd=Math.max(b.t==='li'&&lists.length? lists.length-1 : 0, lineInd); if(dd && b.t!=='pre' && !/^h/.test(b.t)) b.d=Math.min(3,dd);   /* nesting / indent level */
+      if(b.t==='li' && lists.length && lists[lists.length-1].ol) b.o=1; if(vsplit && b.t==='p') b.v=1; ctx.blocks.push(b); } }
+    lineInd=0; vsplit=false;
   };
-  const addText=(t)=>{ if(rich && (!segs.length || segs[segs.length-1][1]!==flags)) segs.push([buf.length, flags]); buf+=t; };
+  const addText=(t)=>{
+    if(rich && /\S/.test(t)){ if(ind>lineInd) lineInd=ind; if(pendLabel){ const lab=pendLabel; pendLabel=null; const f0=flags; flags=0; addText(lab+' '); flags=f0; } }
+    if(rich && (!segs.length || segs[segs.length-1][1]!==flags)) segs.push([buf.length, flags]); buf+=t; };
   const visit=(n)=>{
     if(n.nodeType===3){
       const nv=n.nodeValue.replace(/\u00ad/g,'');   /* soft hyphens would end up inside words (search, read aloud) */
@@ -264,17 +284,24 @@ function walkHTML(root, ctx, path){
     }
     if(SKIP.has(tag)) return;
     if(tag==='br' && stack.some(x=>/^h[1-6]$/.test(x))){ addText(' '); return; }   /* a line break inside a title is one title, not two */
+    if(tag==='br'){ if(rich && /\S/.test(buf)){ vsplit=true; flush(); vsplit=true; } else flush(); return; }   /* lines split by a break are verse lines: no first-line indent */
     const isB=BLOCK.has(tag);
-    if(isB) flush();
+    if(isB){ flush(); vsplit=false; }
     const id=n.getAttribute&&(n.getAttribute('id')||(tag==='a'&&n.getAttribute('name')));
     if(id && ctx.anchors) ctx.anchors[path+'#'+id]=ctx.words.length+splitWords(buf).length;
     { /* printed page numbers and "back to the text" arrows are navigation aids, not words (the id above still works as a link target) */
       const et0=(n.getAttribute('epub:type')||n.getAttribute('role')||''), t0=(n.textContent||'').trim();
       if(/pagebreak/.test(et0) && t0.length<=10) return;
       if(tag==='a' && (/backlink/.test(et0) || /^[\u21a9\u2191\u21b5\u23ce\u2934][\ufe0e\ufe0f]?$/.test(t0))) return; }
-    if(tag==='br'){ flush(); return; }
     if(tag==='hr'){ flush(); if(rich) ctx.breaks.push(ctx.words.length); return; }
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
+    let myList=false, myInd=0, myMath=false;
+    if(rich){
+      if(tag==='ol'||tag==='ul'){ const L={ol:tag==='ol', n:0, type:'1'}; if(L.ol){ const st=parseInt(n.getAttribute('start'),10); L.n=(isNaN(st)?1:st)-1; if(n.getAttribute('reversed')!=null) L.rev=1; L.type=n.getAttribute('type')||'1'; } lists.push(L); myList=true; }
+      else if(tag==='li' && lists.length){ const L=lists[lists.length-1]; if(L.ol){ const v=parseInt(n.getAttribute('value'),10); if(!isNaN(v)) L.n=v-1; L.n++; const k=L.n, ty=L.type; pendLabel=(ty==='a'?toAlpha(k):ty==='A'?toAlpha(k).toUpperCase():ty==='i'?toRoman(k):ty==='I'?toRoman(k).toUpperCase():String(k))+'.'; } }
+      const il=indentLevel(n, tag); if(il){ myInd=il; ind=Math.min(3,ind+il); }
+      if(MATH_TOK.has(tag)){ myMath=true; addText(' '); }
+    }
     const saveFlags=flags; let isNote=false, ptag=tag, left=false, myMark=null;
     if(rich && (tag==='p'||tag==='div') && !stack.some(x=>/^h[1-6]$/.test(x))){
       const hd=headingOf(n, ctx); if(hd){ ptag=hd.tag; left=!hd.center; }
@@ -303,6 +330,7 @@ function walkHTML(root, ctx, path){
       stack.push(ptag); if(left) hLeft++;
     }
     for(let c=n.firstChild;c;c=c.nextSibling) visit(c);
+    if(rich){ if(myList) lists.pop(); if(myInd) ind=Math.max(0,ind-myInd); if(myMath) addText(' '); }
     if(isB) flush(); /* before leaving the element, so the paragraph keeps its type */
     if(rich){ stack.pop(); if(left) hLeft--; if(tag==='blockquote') quote--; flags=saveFlags; if(myMark) myMark.b=buf.length; }
   };
