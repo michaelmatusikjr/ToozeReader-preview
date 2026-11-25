@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick + Claude — branch cleanup; backlog recovered.** Mick's six backlog items (Nov 24) had been saved only on branch
+  `claude/happy-planck-sknlbs` and never reached `main`. Copied into Pending changes in `PRODUCT.md`, each checked
+  against the code: ePub cross-references already done (2026.11.25.9–.14); the other five not built. Old `claude/*`
+  branches (all fully merged) deleted on his OK. Rule: notes-only work must also land on `main`, or later sessions
+  can't see it.
 - **Mick — tint the verses a reference takes you to; replace the hollow drop with a toast; toasts at the top, pushed
   down by the controls.** Built as he specified (2026.11.25.17): "Read it in context" (same Bible or from another
   book) tints the verses until he goes back or leaves the book. Any jump shows "‹ Back to <chapter>" as a toast:

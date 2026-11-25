@@ -8,6 +8,20 @@ and move items out of **Pending changes** once they're built.
 - **The drop, stage 2 — the pull-up pool: on hold.** Mock-ups of four takes (Nov 24: quick actions, + speed dial, quick
   dials, fits-the-moment) left him unsure he likes the pool idea at all; he asked for other ideas instead and chose
   the Nov 25 batch below. Don't rebuild the pool unless he brings it back.
+- **Backlog from Mick (Nov 24, 2026; notes only, not started unless marked).** Recovered Nov 25 from a session branch
+  that never reached `main`; checked against the code that day.
+  1. **Storage panel rethink.** Settings → Storage should show everything the app keeps on the device and let him
+     delete what he chooses, down to a single book. Today it only lists sizes per book (`storageSheet` in
+     `g_extra.js`); nothing can be deleted from it except all voices.
+  2. **Themes, app-wide.** Themes apply across the whole app. Any theme, shipped or his, can have its accent colour
+     customised; shipped themes can be edited and deleted; he can create new ones; 5 themes max. Theme settings move
+     into app settings. "Switch theme at night" picks from whatever themes exist. Today `THEMES` (`c_js1.js`) is fixed.
+  3. **Subtle motion throughout.** Stats chart bars animate in when the chart comes into view (they don't yet). Add
+     subtle motion elsewhere, using the blob (`k_blob.js`) where it fits. Motion must have a job.
+  4. **Named bookmarks.** Option to name a bookmark. Today a bookmark is auto-named after its chapter; no way to rename.
+  5. **Notes tab at scale.** It will get too big after many books. Rethink its organisation (propose options first).
+  6. **Full ePub support check.** *Cross-references: done* (2026.11.25.9–.14, his ESV). Still open: check other ePub
+     features for gaps.
 - **Not chosen (Nov 24 list):** a sleep timer for listening, and "Today's highlight" on the library. Also offered
   then and not picked yet: the chapter horizon (bottom drop shows what's left of the chapter).
 
