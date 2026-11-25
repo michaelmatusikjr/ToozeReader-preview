@@ -1017,22 +1017,63 @@ async function bookSnips(d){
 const snip=(d,s,e)=>SNIPS.get(d.id+'|'+s+'|'+e)||'';
 const pctOf=(d,i)=>Math.round(100*i/Math.max(1,(d.count||1)-1));
 function chapterName(d,i){ let c=null; for(const x of d.chapters||[]){ if(x.i<=i) c=x; else break; } return c?c.t:''; }
+/* Notes tab: each book is one folded row (title, counts, latest item); tap to unfold. A search field filters across
+   everything and unfolds the books that match. NFOLD remembers what's unfolded for this session only. */
+const NFOLD=new Map(); let NQ='';
+const noteCounts=(d,hl)=>{ const L=d[hl?'highlights':'bookmarks']||[], n=L.length;
+  if(!hl) return n+' bookmark'+(n===1?'':'s');
+  const nn=L.filter(h=>h.note).length; return n+' highlight'+(n===1?'':'s')+(nn?' · '+nn+' note'+(nn===1?'':'s'):''); };
+const latestOf=L=>L.reduce((m,x,k)=>(m==null||(x.at||0)>=(L[m].at||0))?k:m, null);
+function noteLast(d,hl){
+  const L=d[hl?'highlights':'bookmarks']||[]; if(!L.length) return '';
+  if(hl){ const wn=L.filter(h=>h.note); if(wn.length) return wn[latestOf(wn)].note; const h=L[latestOf(L)]; return snip(d,h.s,h.e); }
+  const b=L[latestOf(L)]; return (b.name||'Bookmark')+' · '+pctOf(d,b.i)+'%';
+}
+/* escape text and wrap the search matches in <mark> (matching ignores case and curly quotes) */
+function markQ(t,q){
+  if(!q) return esc(t);
+  const low=t.toLowerCase().replace(/[’‘]/g,"'").replace(/[“”]/g,'"'); let o='', p=0, k;
+  while((k=low.indexOf(q,p))>=0){ o+=esc(t.slice(p,k))+'<mark>'+esc(t.slice(k,k+q.length))+'</mark>'; p=k+q.length; }
+  return o+esc(t.slice(p));
+}
 async function renderNotes(){
   if(!['hl','bm','w'].includes(NOTESEG)) NOTESEG='hl';
   document.querySelectorAll('#notesSeg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.n===NOTESEG));
   $('#notesHl').hidden=NOTESEG!=='hl'; $('#notesBm').hidden=NOTESEG!=='bm'; $('#wordsPane').hidden=NOTESEG!=='w';
-  if(NOTESEG==='w'){ renderWords(); return; }
+  if(NOTESEG==='w'){ $('#notesQ').hidden=true; renderWords(); return; }
   const hl=NOTESEG==='hl', key=hl?'highlights':'bookmarks', el=hl?$('#notesHl'):$('#notesBm');
   const books=LIB.filter(d=>(d[key]||[]).length).sort((a,b)=>(b.lastRead||0)-(a.lastRead||0));
+  const qi=$('#notesQ'), total=books.reduce((n,d)=>n+d[key].length,0), canSearch=books.length>=2||total>=10;
+  qi.hidden=!canSearch; qi.placeholder=hl?'Search highlights and notes':'Search bookmarks';
+  if(document.activeElement!==qi) qi.value=NQ;
   if(!books.length){ el.innerHTML=`<div class="empty">${hl?'Highlights and notes from all your books appear here. In a book, press and hold a word, drag to select, then pick a color or tap Note.':'Bookmarks from all your books appear here. In a book, tap the bookmark button at the bottom left.'}</div>`; return; }
   const tok=++notesTok; await Promise.all(books.map(bookSnips)); if(tok!==notesTok) return;
-  el.innerHTML=books.map(d=>{
-    const L=d[key]; const n=L.length;
-    const rows=hl? L.map((h,k)=>{ const t=snip(d,h.s,h.e); return `<div class="hlrow"><span class="bar" style="background:var(--hl${h.c||1})"></span><div class="grow" data-nb="${d.id}" data-ni="${h.s}"><div class="t">${esc(t.length>320?t.slice(0,320)+'…':t)}</div>${h.note?`<div class="nt">${esc(h.note)}</div>`:''}<div class="where">${esc(chapterName(d,h.s))}${chapterName(d,h.s)?' · ':''}${pctOf(d,h.s)}%</div></div></div>`; }).join('')
-      : L.map(b=>`<div class="swrow" data-bmbook="${d.id}" data-bmi="${b.i}" data-bmat="${b.at||0}"><button class="swdel" type="button" tabindex="-1">Delete</button><div class="hlrow swfront"><span class="bar" style="background:var(--accent)"></span><div class="grow" data-nb="${d.id}" data-ni="${b.i}"><div class="t"><b>${esc(b.name||'Bookmark')}</b></div><div class="where">${pctOf(d,b.i)}% · ${esc(snip(d,b.i,b.i+11))}…</div></div></div></div>`).join('');
-    return `<div class="nbook"><div class="nbook-h"><b>${esc(d.title)}</b><span class="small">${n} ${hl?'highlight':'bookmark'}${n===1?'':'s'}</span>${hl?`<button class="btn" type="button" data-copy="${d.id}" style="padding:6px 10px;font-size:.8rem">Copy</button>`:''}<button class="btn" type="button" data-exp="${d.id}" style="padding:6px 10px;font-size:.8rem">Export</button></div>${rows}</div>`;
-  }).join('');
+  const q=canSearch? normQ(NQ) : '';
+  let out='', shown=0;
+  for(const d of books){
+    const L=d[key], titleHit=!!q && normQ(d.title).includes(q); let rowsOf=L;
+    if(q && !titleHit) rowsOf=L.filter(x=> hl? (normQ(snip(d,x.s,x.e)).includes(q) || normQ(x.note||'').includes(q)) : (normQ(x.name||'').includes(q) || normQ(snip(d,x.i,x.i+11)).includes(q)));
+    if(q && !rowsOf.length) continue; shown++;
+    const mq=q&&!titleHit? q : '';
+    const rows=hl? rowsOf.map(h=>{ const t=snip(d,h.s,h.e), tt=t.length>320?t.slice(0,320)+'…':t; return `<div class="hlrow"><span class="bar" style="background:var(--hl${h.c||1})"></span><div class="grow" data-nb="${d.id}" data-ni="${h.s}"><div class="t">${markQ(tt,mq)}</div>${h.note?`<div class="nt">${markQ(h.note,mq)}</div>`:''}<div class="where">${esc(chapterName(d,h.s))}${chapterName(d,h.s)?' · ':''}${pctOf(d,h.s)}%</div></div></div>`; }).join('')
+      : rowsOf.map(b=>`<div class="swrow" data-bmbook="${d.id}" data-bmi="${b.i}" data-bmat="${b.at||0}"><button class="swdel" type="button" tabindex="-1">Delete</button><div class="hlrow swfront"><button class="bmic" type="button" data-bmedit="1" aria-label="Change this bookmark’s mark">${bmIcon(b)}</button><div class="grow" data-nb="${d.id}" data-ni="${b.i}"><div class="t"><b>${markQ(b.name||'Bookmark',mq)}</b></div><div class="where">${pctOf(d,b.i)}% · ${markQ(snip(d,b.i,b.i+11),mq)}…</div></div></div></div>`).join('');
+    const nk=NOTESEG+'|'+d.id, open= q? true : (NFOLD.has(nk)? NFOLD.get(nk) : books.length===1);
+    const last=noteLast(d,hl);
+    out+=`<div class="nbook nfold${open?' open':''}" data-nk="${nk}"><button class="nsum" type="button" aria-expanded="${open}"><span class="nsum-r"><b>${esc(d.title)}</b><span class="chev">${ICON.fwd}</span></span><span class="small">${noteCounts(d,hl)}</span>${last?`<span class="nlast">${esc(last.replace(/\s+/g,' '))}</span>`:''}</button><div class="nbody"><div class="nbody-in"><div class="nacts">${hl?`<button class="btn" type="button" data-copy="${d.id}">Copy</button>`:''}<button class="btn" type="button" data-exp="${d.id}">Export</button></div>${rows}</div></div></div>`;
+  }
+  el.innerHTML= shown? out : `<div class="empty">Nothing matches “${esc(NQ.trim())}”</div>`;
 }
+/* fold / unfold a book's row with an animated height */
+function nfoldToggle(box){
+  const body=box.querySelector('.nbody'), btn=box.querySelector('.nsum'), open=!box.classList.contains('open');
+  NFOLD.set(box.dataset.nk, open); btn.setAttribute('aria-expanded',open);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ box.classList.toggle('open',open); body.style.height=''; return; }
+  const done=()=>{ body.removeEventListener('transitionend',done); if(box.classList.contains('open')) body.style.height='auto'; };
+  if(open){ body.style.height='0px'; box.classList.add('open'); body.style.height=body.scrollHeight+'px'; body.addEventListener('transitionend',done); }
+  else { body.style.height=body.scrollHeight+'px'; body.getBoundingClientRect(); box.classList.remove('open'); body.style.height='0px'; }
+}
+$('#notesQ').addEventListener('input',e=>{ NQ=e.target.value; renderNotes(); });
 /* swipe a bookmark left to show Delete; tap Delete to remove it (with Undo) */
 function swipeRows(host, onDelete){
   let row=null, x0=0, y0=0, dx=0, horiz=null, base=0;
@@ -1067,6 +1108,8 @@ swipeRows($('#notesBm'), r=>{
 });
 $('#notesSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-n]'); if(!b) return; NOTESEG=b.dataset.n; LS.set('notesSeg',NOTESEG); renderNotes(); });
 for(const id of ['#notesHl','#notesBm']) $(id).addEventListener('click',async e=>{
+  const sm=e.target.closest('.nsum'); if(sm){ nfoldToggle(sm.closest('.nfold')); return; }
+  const ed=e.target.closest('[data-bmedit]'); if(ed){ const r=ed.closest('.swrow'), d=LIB.find(x=>x.id===r.dataset.bmbook); const b=d&&(d.bookmarks||[]).find(x=>x.i===+r.dataset.bmi && String(x.at||0)===r.dataset.bmat); if(b) bmEdit(d,b); return; }
   const x=e.target.closest('[data-exp]'); if(x){ const d=LIB.find(y=>y.id===x.dataset.exp); if(d) exportSheet(d); return; }
   const c=e.target.closest('[data-copy]');
   if(c){ const d=LIB.find(x=>x.id===c.dataset.copy); if(!d) return; await bookSnips(d); const txt=d.title+'\n\n'+d.highlights.map(h=>'“'+snip(d,h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+d.highlights.length+' highlight'+(d.highlights.length===1?'':'s')); }catch(err){ toast('Couldn’t copy on this device.'); } return; }

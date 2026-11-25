@@ -208,6 +208,8 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #rMark svg path{fill:currentColor;fill-opacity:0;transition:fill-opacity .2s}
 #rMark.on svg path{fill-opacity:1}
 #rMark.on{color:var(--page-link)}
+.bmi text{fill:currentColor}
+#rMark.on .bmi text{fill:var(--page-bg)}
 #rTts.on{color:var(--page-link)}
 .run{position:absolute;left:0;right:0;z-index:4;text-align:center;font-size:.72rem;color:var(--page-muted);opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 56px;font-variant-numeric:tabular-nums}
 #runHead{top:16px}
@@ -448,8 +450,15 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:0}
 .tocscope span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tocshow button{font-size:.85rem;padding:6px 4px}
 .bmli{background:var(--accent-soft);padding:0 0 0 0;cursor:default}
-.bmli>.grow{all:unset;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start;padding:10px 4px 10px 14px;cursor:pointer;color:var(--accent)}
-.bmli>.grow svg{flex:none;width:18px;height:18px;margin-top:2px}
+.bmli>.grow{all:unset;flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start;padding:10px 4px 10px 6px;cursor:pointer;color:var(--accent)}
+.bmic{all:unset;flex:none;box-sizing:border-box;width:44px;align-self:stretch;display:flex;align-items:flex-start;justify-content:center;padding:10px 0 0 8px;cursor:pointer;color:var(--accent);-webkit-tap-highlight-color:transparent}
+.bmic svg{width:22px;height:22px}
+.hlrow .bmic{width:34px;padding:2px 0 0;align-self:flex-start}
+.bmprev{display:grid;place-items:center;color:var(--accent);padding:6px 0}
+.bmprev svg{width:84px;height:84px}
+input.bmch{text-align:center;font-size:1.4rem;font-weight:800;max-width:120px;align-self:center}
+.bmdots{justify-content:center;gap:12px}
+.swatch.none{background:var(--surface);background-image:linear-gradient(135deg,transparent 46%,var(--muted) 46% 54%,transparent 54%)}
 .bmli>.grow>span{min-width:0}
 .bmli .small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tochd{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 0 0}
@@ -474,6 +483,21 @@ code{font-family:var(--f-mono);font-size:.85em;background:var(--raise);padding:1
 .result .where{display:block;font-size:.76rem;color:var(--muted);margin-top:2px}
 .nbook{border:1px solid var(--line);border-radius:14px;padding:10px 14px 4px;background:var(--surface);min-width:0;max-width:100%;box-sizing:border-box}
 .nbook .nt{background:var(--raise)}
+.nfold{padding:0}
+.nsum{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;width:100%;padding:12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.nsum-r{display:flex;align-items:center;gap:8px}
+.nsum-r b{flex:1;min-width:0;font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nsum .chev{flex:none;color:var(--muted);display:inline-flex;transition:transform .25s ease}
+.nsum .chev svg{width:18px;height:18px}
+.nfold.open .nsum .chev{transform:rotate(90deg)}
+.nsum .small{color:var(--muted);font-size:.78rem}
+.nlast{font-size:.85rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nbody{height:0;overflow:hidden;visibility:hidden;transition:height .25s ease,visibility 0s .25s}
+.nfold.open .nbody{height:auto;visibility:visible;transition:height .25s ease,visibility 0s}
+.nbody-in{padding:0 14px 4px}
+.nacts{display:flex;justify-content:flex-end;gap:8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.nacts .btn{padding:6px 10px;font-size:.8rem}
+@media (prefers-reduced-motion:reduce){ .nbody,.nsum .chev{transition:none} }
 #notesHl,#notesBm,#wordsPane{width:100%;min-width:0}
 .nbook-h .btn{flex:none}
 .nbook-h{display:flex;align-items:center;gap:8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
@@ -639,6 +663,7 @@ input[type=color]{width:44px;height:44px;border:0;padding:0;background:none;bord
     <div class="wrap">
       <div class="topbar"><div><div class="eyebrow">From every book</div><h1>Notes</h1></div></div>
       <div class="seg" id="notesSeg"><button type="button" data-n="hl">Highlights</button><button type="button" data-n="bm">Bookmarks</button><button type="button" data-n="w">Words</button></div>
+      <input class="input" id="notesQ" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" hidden>
       <div id="notesHl" class="wrap" style="gap:14px"></div>
       <div id="notesBm" class="wrap" style="gap:14px" hidden></div>
       <div id="wordsPane" class="wrap" style="gap:10px" hidden>
@@ -2745,17 +2770,39 @@ function updateChrome(){
   if(R.mode==='speed'||!R.mode) return;
   const sc=$('#rScrub'); sc.max=Math.max(1,R.n-1); if(!scrubbing) sc.value=R.pos;
   const info=infoText(); $('#rInfo').textContent=info; $('#runFoot').textContent=info; $('#runHead').textContent=ch?ch.t:R.meta.title;
-  $('#rMark').classList.toggle('on', !!bookmarkHere());
+  const bh=bookmarkHere(); $('#rMark').classList.toggle('on', !!bh);
+  const bk=bh? (bh.c||'')+'|'+(bh.ch||'') : ''; if($('#rMark').dataset.bk!==bk){ $('#rMark').dataset.bk=bk; $('#rMark').innerHTML=bmIcon(bh); }
   $('#rAs').hidden=R.mode!=='scroll'; $('#rAs').classList.toggle('on', !!S.autoScroll && !TTS.mode); $('#rAs').setAttribute('aria-label',S.autoScroll?'Close auto-scroll controls':'Auto-scroll');
   $('#rTts').classList.toggle('on', !!TTS.mode); $('#rTts').innerHTML=ICON.speaker; $('#rTts').setAttribute('aria-label',TTS.mode?'Close read-aloud controls':'Read aloud'); ttsBarUI();
 }
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
 $('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
+/* a bookmark's own look: an optional character inside the icon and an optional fill colour (b.ch, b.c) */
+const graphemes=t=>{ try{ if(window.Intl&&Intl.Segmenter) return [...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)].map(x=>x.segment); }catch(_){} return [...t]; };
+function bmIcon(b){
+  if(!b || (!b.c && !b.ch)) return ICON.mark;
+  let fg=''; if(b.c){ const n=parseInt(b.c.slice(1),16), L=(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255; fg=L>0.6?'#111':'#fff'; }
+  const path=`<path d="M6 3h12v18l-6-4-6 4z"${b.c?` style="fill:${b.c};stroke:${b.c}"`:''}/>`;
+  const txt=b.ch? `<text x="12" y="10.5" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="800" stroke="none"${fg?` style="fill:${fg}"`:''}>${esc(b.ch)}</text>` : '';
+  return `<svg class="bmi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}${txt}</svg>`;
+}
+/* the little sheet for a bookmark's character and colour; changes apply and save as you make them */
+function bmEdit(meta,b){
+  const dots=COLORS.map(([n,h])=>`<button class="swatch" type="button" data-act="bmc" data-c="${h}" aria-label="${n}" aria-pressed="${b.c===h}" style="background:${h}"></button>`).join('')
+    +`<button class="swatch none" type="button" data-act="bmc" data-c="" aria-label="No color" aria-pressed="${!b.c}"></button>`;
+  openSheet('Bookmark', `<div class="bmprev" id="bmPrev">${bmIcon(b)}</div><input class="input bmch" id="bmCh" type="text" value="${esc(b.ch||'')}" placeholder="+" aria-label="One character" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="chips bmdots" id="bmDots">${dots}</div>`, {
+    bmc:(x)=>{ if(x.dataset.c) b.c=x.dataset.c; else delete b.c; $('#bmDots').querySelectorAll('.swatch').forEach(y=>y.setAttribute('aria-pressed',y===x)); save(); }
+  }, 'short');
+  const inp=$('#bmCh'), save=()=>{ $('#bmPrev').innerHTML=bmIcon(b); touch(meta); if(R.meta===meta) updateChrome(); if(!$('#v-words').hidden) renderNotes(); };
+  inp.addEventListener('input',e=>{ if(e.isComposing) return; const g=graphemes(inp.value); if(g.length>1) inp.value=g[g.length-1]; if(inp.value) b.ch=inp.value; else delete b.ch; save(); });
+  inp.addEventListener('focus',()=>setTimeout(()=>{ try{ inp.select(); }catch(_){} },0));
+  setTimeout(()=>inp.focus(),60);
+}
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
-  else { const ch=currentChapter(R.pos); bm.push({i:R.pos, name:ch?ch.t:'', at:Date.now()}); bm.sort((a,b)=>a.i-b.i); toast('Bookmarked', {label:'See all', fn:()=>openToc('marks')}); }
+  else { const ch=currentChapter(R.pos); const nb={i:R.pos, name:ch?ch.t:'', at:Date.now()}; bm.push(nb); bm.sort((a,b)=>a.i-b.i); const m=R.meta; toast('Bookmarked', {label:'Mark', fn:()=>bmEdit(m,nb)}); }
   touch(R.meta); updateChrome();
   const ic=$('#rMark svg'); if(ic && ic.animate && !reducedMotion()){   /* drops in when added, dips when removed */
     if(ex) ic.animate([{transform:'scale(1)'},{transform:'scale(.78)',offset:.4},{transform:'scale(1)'}],{duration:200,easing:'ease-out'});
@@ -3401,7 +3448,7 @@ function norm(s){ return (s||'').toLowerCase().replace(/[’‘]/g,"'").replace(
 function bmRow(b){
   const k=R.meta.bookmarks.indexOf(b), ch=currentChapter(b.i), cht=ch?ch.t:'';
   const sub=[cht?'in '+cht:'', b.name&&b.name!==cht? b.name:'', '“'+textOf(b.i,Math.min(R.n-1,b.i+8))+'…”'].filter(Boolean).join(' · ');
-  return `<div class="li bmli"><button type="button" class="grow" data-act="go" data-i="${b.i}">${ICON.mark}<span><b>${esc(placeLabel(b.i))}</b><span class="small">${esc(sub)}</span></span></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`;
+  return `<div class="li bmli"><button type="button" class="bmic" data-act="bmedit" data-k="${k}" aria-label="Change this bookmark’s mark">${bmIcon(b)}</button><button type="button" class="grow" data-act="go" data-i="${b.i}"><span><b>${esc(placeLabel(b.i))}</b><span class="small">${esc(sub)}</span></span></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`;
 }
 function tocList(){
   const ch=R.meta.chapters||[], bm=(R.meta.bookmarks||[]).slice().sort((a,b)=>a.i-b.i);
@@ -3528,7 +3575,7 @@ function drawSpine(el){
   if(items.length<400) for(const k of items) h+=`<i class="sp-tick" style="top:${y(ch[k].i)}px;left:${X-5}px"></i>`;
   h+=`</div>`;
   for(const x of (R.meta.highlights||[])) if(x.s>=lo&&x.s<hi) h+=`<button type="button" class="sp-bead" data-h="${x.id}" style="top:${y(x.s)}px;left:${X}px;--hc:var(--hl${x.c})" aria-label="Highlight"></button>`;
-  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X+4}px" aria-label="Bookmark">${ICON.mark}</button>`; });
+  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X+4}px" aria-label="Bookmark">${bmIcon(b)}</button>`; });
   if(R.pos>=lo&&R.pos<hi) h+=`<i class="sp-drop" style="top:${y(R.pos)}px;left:${X}px"></i>`;
   h+=`<i class="wh-tgt" style="left:${X}px"></i><div class="whs" style="bottom:${GOH}px"><i class="wh-band"></i></div>
     <button type="button" class="btn primary whgo"><span class="wg-t"></span><span class="wg-s"></span></button>
@@ -3590,7 +3637,7 @@ function drawSpine(el){
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
     if(!card.hidden && !e.target.closest('.sp-bead,.sp-flag')){ card.hidden=true; }
     if(bd){ const x=R.meta.highlights.find(z=>z.id===bd.dataset.h); if(x) showCard(x.s, `<span class="t" style="--hc:var(--hl${x.c})">${esc(textOf(x.s,Math.min(x.e,x.s+40)))}${x.e>x.s+40?'…':''}</span>${x.note?`<span class="nt">${esc(x.note)}</span>`:''}<span class="where">${esc(((currentChapter(x.s)||{}).t||''))} · ${esc(placeLabel(x.s))}</span>`); return; }
-    if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${ICON.mark}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
+    if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${bmIcon(b)}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
   };
 }
 /* a typed reference ("rev 22 3", "jn 3:16", "1 cor 13") in a book with verses */
@@ -3633,6 +3680,7 @@ function openToc(tab, inPlace){
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
     res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
+    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x); },
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
@@ -6025,22 +6073,63 @@ async function bookSnips(d){
 const snip=(d,s,e)=>SNIPS.get(d.id+'|'+s+'|'+e)||'';
 const pctOf=(d,i)=>Math.round(100*i/Math.max(1,(d.count||1)-1));
 function chapterName(d,i){ let c=null; for(const x of d.chapters||[]){ if(x.i<=i) c=x; else break; } return c?c.t:''; }
+/* Notes tab: each book is one folded row (title, counts, latest item); tap to unfold. A search field filters across
+   everything and unfolds the books that match. NFOLD remembers what's unfolded for this session only. */
+const NFOLD=new Map(); let NQ='';
+const noteCounts=(d,hl)=>{ const L=d[hl?'highlights':'bookmarks']||[], n=L.length;
+  if(!hl) return n+' bookmark'+(n===1?'':'s');
+  const nn=L.filter(h=>h.note).length; return n+' highlight'+(n===1?'':'s')+(nn?' · '+nn+' note'+(nn===1?'':'s'):''); };
+const latestOf=L=>L.reduce((m,x,k)=>(m==null||(x.at||0)>=(L[m].at||0))?k:m, null);
+function noteLast(d,hl){
+  const L=d[hl?'highlights':'bookmarks']||[]; if(!L.length) return '';
+  if(hl){ const wn=L.filter(h=>h.note); if(wn.length) return wn[latestOf(wn)].note; const h=L[latestOf(L)]; return snip(d,h.s,h.e); }
+  const b=L[latestOf(L)]; return (b.name||'Bookmark')+' · '+pctOf(d,b.i)+'%';
+}
+/* escape text and wrap the search matches in <mark> (matching ignores case and curly quotes) */
+function markQ(t,q){
+  if(!q) return esc(t);
+  const low=t.toLowerCase().replace(/[’‘]/g,"'").replace(/[“”]/g,'"'); let o='', p=0, k;
+  while((k=low.indexOf(q,p))>=0){ o+=esc(t.slice(p,k))+'<mark>'+esc(t.slice(k,k+q.length))+'</mark>'; p=k+q.length; }
+  return o+esc(t.slice(p));
+}
 async function renderNotes(){
   if(!['hl','bm','w'].includes(NOTESEG)) NOTESEG='hl';
   document.querySelectorAll('#notesSeg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.n===NOTESEG));
   $('#notesHl').hidden=NOTESEG!=='hl'; $('#notesBm').hidden=NOTESEG!=='bm'; $('#wordsPane').hidden=NOTESEG!=='w';
-  if(NOTESEG==='w'){ renderWords(); return; }
+  if(NOTESEG==='w'){ $('#notesQ').hidden=true; renderWords(); return; }
   const hl=NOTESEG==='hl', key=hl?'highlights':'bookmarks', el=hl?$('#notesHl'):$('#notesBm');
   const books=LIB.filter(d=>(d[key]||[]).length).sort((a,b)=>(b.lastRead||0)-(a.lastRead||0));
+  const qi=$('#notesQ'), total=books.reduce((n,d)=>n+d[key].length,0), canSearch=books.length>=2||total>=10;
+  qi.hidden=!canSearch; qi.placeholder=hl?'Search highlights and notes':'Search bookmarks';
+  if(document.activeElement!==qi) qi.value=NQ;
   if(!books.length){ el.innerHTML=`<div class="empty">${hl?'Highlights and notes from all your books appear here. In a book, press and hold a word, drag to select, then pick a color or tap Note.':'Bookmarks from all your books appear here. In a book, tap the bookmark button at the bottom left.'}</div>`; return; }
   const tok=++notesTok; await Promise.all(books.map(bookSnips)); if(tok!==notesTok) return;
-  el.innerHTML=books.map(d=>{
-    const L=d[key]; const n=L.length;
-    const rows=hl? L.map((h,k)=>{ const t=snip(d,h.s,h.e); return `<div class="hlrow"><span class="bar" style="background:var(--hl${h.c||1})"></span><div class="grow" data-nb="${d.id}" data-ni="${h.s}"><div class="t">${esc(t.length>320?t.slice(0,320)+'…':t)}</div>${h.note?`<div class="nt">${esc(h.note)}</div>`:''}<div class="where">${esc(chapterName(d,h.s))}${chapterName(d,h.s)?' · ':''}${pctOf(d,h.s)}%</div></div></div>`; }).join('')
-      : L.map(b=>`<div class="swrow" data-bmbook="${d.id}" data-bmi="${b.i}" data-bmat="${b.at||0}"><button class="swdel" type="button" tabindex="-1">Delete</button><div class="hlrow swfront"><span class="bar" style="background:var(--accent)"></span><div class="grow" data-nb="${d.id}" data-ni="${b.i}"><div class="t"><b>${esc(b.name||'Bookmark')}</b></div><div class="where">${pctOf(d,b.i)}% · ${esc(snip(d,b.i,b.i+11))}…</div></div></div></div>`).join('');
-    return `<div class="nbook"><div class="nbook-h"><b>${esc(d.title)}</b><span class="small">${n} ${hl?'highlight':'bookmark'}${n===1?'':'s'}</span>${hl?`<button class="btn" type="button" data-copy="${d.id}" style="padding:6px 10px;font-size:.8rem">Copy</button>`:''}<button class="btn" type="button" data-exp="${d.id}" style="padding:6px 10px;font-size:.8rem">Export</button></div>${rows}</div>`;
-  }).join('');
+  const q=canSearch? normQ(NQ) : '';
+  let out='', shown=0;
+  for(const d of books){
+    const L=d[key], titleHit=!!q && normQ(d.title).includes(q); let rowsOf=L;
+    if(q && !titleHit) rowsOf=L.filter(x=> hl? (normQ(snip(d,x.s,x.e)).includes(q) || normQ(x.note||'').includes(q)) : (normQ(x.name||'').includes(q) || normQ(snip(d,x.i,x.i+11)).includes(q)));
+    if(q && !rowsOf.length) continue; shown++;
+    const mq=q&&!titleHit? q : '';
+    const rows=hl? rowsOf.map(h=>{ const t=snip(d,h.s,h.e), tt=t.length>320?t.slice(0,320)+'…':t; return `<div class="hlrow"><span class="bar" style="background:var(--hl${h.c||1})"></span><div class="grow" data-nb="${d.id}" data-ni="${h.s}"><div class="t">${markQ(tt,mq)}</div>${h.note?`<div class="nt">${markQ(h.note,mq)}</div>`:''}<div class="where">${esc(chapterName(d,h.s))}${chapterName(d,h.s)?' · ':''}${pctOf(d,h.s)}%</div></div></div>`; }).join('')
+      : rowsOf.map(b=>`<div class="swrow" data-bmbook="${d.id}" data-bmi="${b.i}" data-bmat="${b.at||0}"><button class="swdel" type="button" tabindex="-1">Delete</button><div class="hlrow swfront"><button class="bmic" type="button" data-bmedit="1" aria-label="Change this bookmark’s mark">${bmIcon(b)}</button><div class="grow" data-nb="${d.id}" data-ni="${b.i}"><div class="t"><b>${markQ(b.name||'Bookmark',mq)}</b></div><div class="where">${pctOf(d,b.i)}% · ${markQ(snip(d,b.i,b.i+11),mq)}…</div></div></div></div>`).join('');
+    const nk=NOTESEG+'|'+d.id, open= q? true : (NFOLD.has(nk)? NFOLD.get(nk) : books.length===1);
+    const last=noteLast(d,hl);
+    out+=`<div class="nbook nfold${open?' open':''}" data-nk="${nk}"><button class="nsum" type="button" aria-expanded="${open}"><span class="nsum-r"><b>${esc(d.title)}</b><span class="chev">${ICON.fwd}</span></span><span class="small">${noteCounts(d,hl)}</span>${last?`<span class="nlast">${esc(last.replace(/\s+/g,' '))}</span>`:''}</button><div class="nbody"><div class="nbody-in"><div class="nacts">${hl?`<button class="btn" type="button" data-copy="${d.id}">Copy</button>`:''}<button class="btn" type="button" data-exp="${d.id}">Export</button></div>${rows}</div></div></div>`;
+  }
+  el.innerHTML= shown? out : `<div class="empty">Nothing matches “${esc(NQ.trim())}”</div>`;
 }
+/* fold / unfold a book's row with an animated height */
+function nfoldToggle(box){
+  const body=box.querySelector('.nbody'), btn=box.querySelector('.nsum'), open=!box.classList.contains('open');
+  NFOLD.set(box.dataset.nk, open); btn.setAttribute('aria-expanded',open);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ box.classList.toggle('open',open); body.style.height=''; return; }
+  const done=()=>{ body.removeEventListener('transitionend',done); if(box.classList.contains('open')) body.style.height='auto'; };
+  if(open){ body.style.height='0px'; box.classList.add('open'); body.style.height=body.scrollHeight+'px'; body.addEventListener('transitionend',done); }
+  else { body.style.height=body.scrollHeight+'px'; body.getBoundingClientRect(); box.classList.remove('open'); body.style.height='0px'; }
+}
+$('#notesQ').addEventListener('input',e=>{ NQ=e.target.value; renderNotes(); });
 /* swipe a bookmark left to show Delete; tap Delete to remove it (with Undo) */
 function swipeRows(host, onDelete){
   let row=null, x0=0, y0=0, dx=0, horiz=null, base=0;
@@ -6075,6 +6164,8 @@ swipeRows($('#notesBm'), r=>{
 });
 $('#notesSeg').addEventListener('click',e=>{ const b=e.target.closest('button[data-n]'); if(!b) return; NOTESEG=b.dataset.n; LS.set('notesSeg',NOTESEG); renderNotes(); });
 for(const id of ['#notesHl','#notesBm']) $(id).addEventListener('click',async e=>{
+  const sm=e.target.closest('.nsum'); if(sm){ nfoldToggle(sm.closest('.nfold')); return; }
+  const ed=e.target.closest('[data-bmedit]'); if(ed){ const r=ed.closest('.swrow'), d=LIB.find(x=>x.id===r.dataset.bmbook); const b=d&&(d.bookmarks||[]).find(x=>x.i===+r.dataset.bmi && String(x.at||0)===r.dataset.bmat); if(b) bmEdit(d,b); return; }
   const x=e.target.closest('[data-exp]'); if(x){ const d=LIB.find(y=>y.id===x.dataset.exp); if(d) exportSheet(d); return; }
   const c=e.target.closest('[data-copy]');
   if(c){ const d=LIB.find(x=>x.id===c.dataset.copy); if(!d) return; await bookSnips(d); const txt=d.title+'\n\n'+d.highlights.map(h=>'“'+snip(d,h.s,h.e)+'”'+(h.note?'\nNote: '+h.note:'')).join('\n\n'); try{ await navigator.clipboard.writeText(txt); toast('Copied '+d.highlights.length+' highlight'+(d.highlights.length===1?'':'s')); }catch(err){ toast('Couldn’t copy on this device.'); } return; }

@@ -697,17 +697,39 @@ function updateChrome(){
   if(R.mode==='speed'||!R.mode) return;
   const sc=$('#rScrub'); sc.max=Math.max(1,R.n-1); if(!scrubbing) sc.value=R.pos;
   const info=infoText(); $('#rInfo').textContent=info; $('#runFoot').textContent=info; $('#runHead').textContent=ch?ch.t:R.meta.title;
-  $('#rMark').classList.toggle('on', !!bookmarkHere());
+  const bh=bookmarkHere(); $('#rMark').classList.toggle('on', !!bh);
+  const bk=bh? (bh.c||'')+'|'+(bh.ch||'') : ''; if($('#rMark').dataset.bk!==bk){ $('#rMark').dataset.bk=bk; $('#rMark').innerHTML=bmIcon(bh); }
   $('#rAs').hidden=R.mode!=='scroll'; $('#rAs').classList.toggle('on', !!S.autoScroll && !TTS.mode); $('#rAs').setAttribute('aria-label',S.autoScroll?'Close auto-scroll controls':'Auto-scroll');
   $('#rTts').classList.toggle('on', !!TTS.mode); $('#rTts').innerHTML=ICON.speaker; $('#rTts').setAttribute('aria-label',TTS.mode?'Close read-aloud controls':'Read aloud'); ttsBarUI();
 }
 $('#rInfo').onclick=()=>{ S.info=(S.info+1)%3; saveSettings(); updateChrome(); };
 $('#rScrub').addEventListener('input',e=>{ scrubbing=true; const i=+e.target.value; Drop.progress(i/Math.max(1,R.n-1),true); const ch=currentChapter(i); $('#rInfo').textContent=`Go to ${Math.round(100*i/Math.max(1,R.n-1))}%`+(ch?' · '+ch.t:''); });
 $('#rScrub').addEventListener('change',e=>{ scrubbing=false; goTo(+e.target.value, true); });
+/* a bookmark's own look: an optional character inside the icon and an optional fill colour (b.ch, b.c) */
+const graphemes=t=>{ try{ if(window.Intl&&Intl.Segmenter) return [...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)].map(x=>x.segment); }catch(_){} return [...t]; };
+function bmIcon(b){
+  if(!b || (!b.c && !b.ch)) return ICON.mark;
+  let fg=''; if(b.c){ const n=parseInt(b.c.slice(1),16), L=(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255; fg=L>0.6?'#111':'#fff'; }
+  const path=`<path d="M6 3h12v18l-6-4-6 4z"${b.c?` style="fill:${b.c};stroke:${b.c}"`:''}/>`;
+  const txt=b.ch? `<text x="12" y="10.5" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="800" stroke="none"${fg?` style="fill:${fg}"`:''}>${esc(b.ch)}</text>` : '';
+  return `<svg class="bmi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}${txt}</svg>`;
+}
+/* the little sheet for a bookmark's character and colour; changes apply and save as you make them */
+function bmEdit(meta,b){
+  const dots=COLORS.map(([n,h])=>`<button class="swatch" type="button" data-act="bmc" data-c="${h}" aria-label="${n}" aria-pressed="${b.c===h}" style="background:${h}"></button>`).join('')
+    +`<button class="swatch none" type="button" data-act="bmc" data-c="" aria-label="No color" aria-pressed="${!b.c}"></button>`;
+  openSheet('Bookmark', `<div class="bmprev" id="bmPrev">${bmIcon(b)}</div><input class="input bmch" id="bmCh" type="text" value="${esc(b.ch||'')}" placeholder="+" aria-label="One character" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="chips bmdots" id="bmDots">${dots}</div>`, {
+    bmc:(x)=>{ if(x.dataset.c) b.c=x.dataset.c; else delete b.c; $('#bmDots').querySelectorAll('.swatch').forEach(y=>y.setAttribute('aria-pressed',y===x)); save(); }
+  }, 'short');
+  const inp=$('#bmCh'), save=()=>{ $('#bmPrev').innerHTML=bmIcon(b); touch(meta); if(R.meta===meta) updateChrome(); if(!$('#v-words').hidden) renderNotes(); };
+  inp.addEventListener('input',e=>{ if(e.isComposing) return; const g=graphemes(inp.value); if(g.length>1) inp.value=g[g.length-1]; if(inp.value) b.ch=inp.value; else delete b.ch; save(); });
+  inp.addEventListener('focus',()=>setTimeout(()=>{ try{ inp.select(); }catch(_){} },0));
+  setTimeout(()=>inp.focus(),60);
+}
 $('#rMark').onclick=()=>{
   const ex=bookmarkHere(); const bm=R.meta.bookmarks||(R.meta.bookmarks=[]);
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
-  else { const ch=currentChapter(R.pos); bm.push({i:R.pos, name:ch?ch.t:'', at:Date.now()}); bm.sort((a,b)=>a.i-b.i); toast('Bookmarked', {label:'See all', fn:()=>openToc('marks')}); }
+  else { const ch=currentChapter(R.pos); const nb={i:R.pos, name:ch?ch.t:'', at:Date.now()}; bm.push(nb); bm.sort((a,b)=>a.i-b.i); const m=R.meta; toast('Bookmarked', {label:'Mark', fn:()=>bmEdit(m,nb)}); }
   touch(R.meta); updateChrome();
   const ic=$('#rMark svg'); if(ic && ic.animate && !reducedMotion()){   /* drops in when added, dips when removed */
     if(ex) ic.animate([{transform:'scale(1)'},{transform:'scale(.78)',offset:.4},{transform:'scale(1)'}],{duration:200,easing:'ease-out'});
@@ -1353,7 +1375,7 @@ function norm(s){ return (s||'').toLowerCase().replace(/[’‘]/g,"'").replace(
 function bmRow(b){
   const k=R.meta.bookmarks.indexOf(b), ch=currentChapter(b.i), cht=ch?ch.t:'';
   const sub=[cht?'in '+cht:'', b.name&&b.name!==cht? b.name:'', '“'+textOf(b.i,Math.min(R.n-1,b.i+8))+'…”'].filter(Boolean).join(' · ');
-  return `<div class="li bmli"><button type="button" class="grow" data-act="go" data-i="${b.i}">${ICON.mark}<span><b>${esc(placeLabel(b.i))}</b><span class="small">${esc(sub)}</span></span></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`;
+  return `<div class="li bmli"><button type="button" class="bmic" data-act="bmedit" data-k="${k}" aria-label="Change this bookmark’s mark">${bmIcon(b)}</button><button type="button" class="grow" data-act="go" data-i="${b.i}"><span><b>${esc(placeLabel(b.i))}</b><span class="small">${esc(sub)}</span></span></button><button class="icon-btn" type="button" data-act="rmbm" data-k="${k}" aria-label="Remove bookmark">${ICON.close}</button></div>`;
 }
 function tocList(){
   const ch=R.meta.chapters||[], bm=(R.meta.bookmarks||[]).slice().sort((a,b)=>a.i-b.i);
@@ -1480,7 +1502,7 @@ function drawSpine(el){
   if(items.length<400) for(const k of items) h+=`<i class="sp-tick" style="top:${y(ch[k].i)}px;left:${X-5}px"></i>`;
   h+=`</div>`;
   for(const x of (R.meta.highlights||[])) if(x.s>=lo&&x.s<hi) h+=`<button type="button" class="sp-bead" data-h="${x.id}" style="top:${y(x.s)}px;left:${X}px;--hc:var(--hl${x.c})" aria-label="Highlight"></button>`;
-  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X+4}px" aria-label="Bookmark">${ICON.mark}</button>`; });
+  (R.meta.bookmarks||[]).forEach((b,k)=>{ if(b.i>=lo&&b.i<hi) h+=`<button type="button" class="sp-flag" data-b="${k}" style="top:${y(b.i)}px;left:${X+4}px" aria-label="Bookmark">${bmIcon(b)}</button>`; });
   if(R.pos>=lo&&R.pos<hi) h+=`<i class="sp-drop" style="top:${y(R.pos)}px;left:${X}px"></i>`;
   h+=`<i class="wh-tgt" style="left:${X}px"></i><div class="whs" style="bottom:${GOH}px"><i class="wh-band"></i></div>
     <button type="button" class="btn primary whgo"><span class="wg-t"></span><span class="wg-s"></span></button>
@@ -1542,7 +1564,7 @@ function drawSpine(el){
     if(cd){ closeSheet(); goTo(+cd.dataset.i,true); return; }
     if(!card.hidden && !e.target.closest('.sp-bead,.sp-flag')){ card.hidden=true; }
     if(bd){ const x=R.meta.highlights.find(z=>z.id===bd.dataset.h); if(x) showCard(x.s, `<span class="t" style="--hc:var(--hl${x.c})">${esc(textOf(x.s,Math.min(x.e,x.s+40)))}${x.e>x.s+40?'…':''}</span>${x.note?`<span class="nt">${esc(x.note)}</span>`:''}<span class="where">${esc(((currentChapter(x.s)||{}).t||''))} · ${esc(placeLabel(x.s))}</span>`); return; }
-    if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${ICON.mark}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
+    if(fl){ const b=R.meta.bookmarks[+fl.dataset.b]; if(b) showCard(b.i, `<span class="bt">${bmIcon(b)}${esc(placeLabel(b.i))}</span><span class="where">${esc(((currentChapter(b.i)||{}).t||''))}${b.name&&b.name!==(currentChapter(b.i)||{}).t?' · '+esc(b.name):''}</span>`); return; }
   };
 }
 /* a typed reference ("rev 22 3", "jn 3:16", "1 cor 13") in a book with verses */
@@ -1585,6 +1607,7 @@ function openToc(tab, inPlace){
     tocx:(b)=>{ const k=+b.dataset.k; const was=R.tocOpen&&R.tocOpen.id===R.meta.id&&R.tocOpen.k===k; R.tocOpen={id:R.meta.id, k: was? -1 : k}; openToc(); setTimeout(()=>{ const o=$('#sheet .li.open'); o&&o.scrollIntoView({block:'start'}); },40); },
     go:(b)=>{ closeSheet(); goTo(+b.dataset.i, true); },
     res:(b)=>{ const i=+b.dataset.i, len=+b.dataset.l; closeSheet(); goTo(i,true).then(()=>flashFound(i,len)); },
+    bmedit:(b)=>{ const x=R.meta.bookmarks[+b.dataset.k]; if(x) bmEdit(R.meta,x); },
     rmbm:(b)=>{ const bm=R.meta.bookmarks, k=+b.dataset.k, gone=bm[k]; bm.splice(k,1); touch(R.meta); updateChrome(); openToc();
       toast('Bookmark deleted', {label:'Undo', fn:()=>{ bm.push(gone); bm.sort((a,c)=>a.i-c.i); touch(R.meta); updateChrome(); if(!$('#sheet').hidden) openToc(); }}); },
     edit:(b)=>{ const h=R.meta.highlights.find(x=>x.id===b.dataset.id); if(h) openHlMenu(h); },
