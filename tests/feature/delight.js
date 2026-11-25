@@ -42,7 +42,8 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('no goal: no circle', await pg.evaluate(()=>$('#goalRing').hidden));
   ok('the tab bar drop is plain again (no gauge)', await pg.evaluate(()=>!document.querySelector('#dropHit') && !document.querySelector('.drop-ripple')));
   await pg.evaluate(()=>{ S.goalMins=10; saveSettings(); updateToday(); }); await sleep(300);
-  ok('with a goal: a circle half full, only with the controls hidden', await pg.evaluate(()=>{ const g=$('#goalRing'); return !g.hidden && getComputedStyle(g).opacity==='1' && g.style.getPropertyValue('--p')==='0.500'; }));
+  ok('with a goal: a circle half full, only with the controls hidden', await pg.evaluate(()=>{ const g=$('#goalRing'); return !g.hidden && getComputedStyle(g).opacity==='1' && g.style.getPropertyValue('--p')==='44.50'; }));
+  ok('ring never looks closed before the goal', await pg.evaluate(()=>{ const v=f=>ringFill(f)+RING_CAP; return ringFill(0)===0 && v(0.001)>=5 && Math.abs(v(0.5)-50)<0.01 && Math.abs(v(0.79)-79)<0.01 && v(0.99)<=93.1 && v(0.99)>=92.5 && ringFill(0.999)<90 && ringFill(1)===100 && v(0.9)<v(0.95); }));
   await pg.click('#goalRing'); await sleep(300);
   ok('goal not met yet: no celebration on tap', await pg.evaluate(()=>!document.querySelector('.drop-buddy')));
   const pop=await pg.evaluate(()=>{ const x=document.querySelector('.goalpop'); return x&&x.innerText; });
@@ -52,7 +53,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.evaluate(()=>setChrome(true)); await sleep(300);
   ok('hidden while the controls are up', await pg.evaluate(()=>getComputedStyle($('#goalRing')).opacity==='0'));
   await pg.evaluate(()=>{ recordStats(6*60000, 1200); }); await sleep(200);
-  ok('meeting the goal fills it', await pg.evaluate(()=>$('#goalRing').style.getPropertyValue('--p')==='1.000'));
+  ok('meeting the goal fills it', await pg.evaluate(()=>$('#goalRing').style.getPropertyValue('--p')==='100.00'));
   // reaching the goal: the drop comes alive as a little creature, and a 7-second message (Mick, Nov 25)
   ok('the drop swells into a faceless blob (one soft shape, no eyes or mouth)', await pg.evaluate(()=>{ const b=document.querySelector('.drop-buddy'); return !!b && b.querySelectorAll('path').length===1 && !b.querySelector('circle,ellipse'); }));
   ok('the page line steps aside while it celebrates', await pg.evaluate(()=>document.body.classList.contains('db-on')));

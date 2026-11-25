@@ -523,7 +523,14 @@ document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefau
 function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing();
   if(on && R.backPos!=null && !R.backGone && $('#toast').hidden) showBackToast(); placeToast(); }
 /* the daily-goal circle: how much of today's goal is read; nothing at all without a goal */
-function goalRing(){ const g=$('#goalRing'); if(!g) return; const goal=(S.goalMins||0)*60000; g.hidden=!goal||!R.meta; if(g.hidden) return; const f=Math.min(1,todayMs()/goal); g.style.setProperty('--p', f.toFixed(3)); }
+function goalRing(){ const g=$('#goalRing'); if(!g) return; const goal=(S.goalMins||0)*60000; g.hidden=!goal||!R.meta; if(g.hidden) return; const f=Math.min(1,todayMs()/goal); g.style.setProperty('--p', ringFill(f).toFixed(2)); }
+/* How much of the goal ring is drawn (0–100) for a share f of today's goal. What you see must never look closed before
+   the goal is met: any progress shows at least 5%, it tracks the goal up to 80%, then slows so 99% shows only ~93%.
+   The rounded ends add about 5.5% of the circle to what's drawn, so that's taken off (the ring only closes at 100%). */
+const RING_CAP=5.5;
+function ringFill(f){ if(!(f>0)) return 0; if(f>=1) return 100;
+  const seen= f<0.8 ? Math.max(5, f*100) : 80+13*Math.min(1,(f-0.8)/0.19);
+  return Math.max(0.1, seen-RING_CAP); }   /* a dot (just the rounded ends) at the very start */
 $('#goalRing').addEventListener('click',e=>{
   e.stopPropagation(); const goal=S.goalMins||0; if(!goal) return;
   const m=Math.round(todayMs()/60000), r=$('#goalRing').getBoundingClientRect(), pl=n=>n===1?'minute':'minutes';
