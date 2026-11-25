@@ -5,6 +5,13 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — tint the verses a reference takes you to; replace the hollow drop with a toast; toasts at the top, pushed
+  down by the controls.** Built as he specified (2026.11.25.17): "Read it in context" (same Bible or from another
+  book) tints the verses until he goes back or leaves the book. Any jump shows "‹ Back to <chapter>" as a toast:
+  stays until swiped (swipe = gone for good) or 3 minutes (then it returns when he shows the controls). Toasts sit
+  below #rTop/#rCrumb when the controls show. Claude's calls: the "‹ Book" line for cross-book jumps stays (he asked
+  for it Nov 25); going back ends the cycle (no "forth" toast); in Scroll mode the jump lands below the toast; a swipe
+  can start on the toast's button. Tests: delight, toast, scrolljump.
 - **Mick — Scroll mode, ESV: "Read it in context" for Heb. 1:7 showed Hebrews 6 cross references.** The lookup was
   right on his file (every import version tested) and his footer showed the right place ("48 min left"), so the page
   slid away after the jump (iPhone Safari dropping a scroll correction while text is added/trimmed, or a late font).

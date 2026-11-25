@@ -38,7 +38,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   const tgt=await pg.evaluate(async()=>{ const i=Math.floor(R.n*0.6); await goTo(i,true); await new Promise(r=>setTimeout(r,200)); scView.scrollTop+=6000; return i; });
   await sleep(2000);
   const back=await pg.evaluate(i=>{ const w=wordEl(i); return w? Math.round(w.getBoundingClientRect().top-scView.getBoundingClientRect().top) : null; }, tgt);
-  ok('a jump stays on its word even if the page is thrown away before you touch it', back!=null && back>=0 && back<60, back);
+  const gap=await pg.evaluate(()=>scGap()); ok('a jump stays on its word even if the page is thrown away before you touch it', back!=null && Math.abs(back-gap)<20, [back,gap]);
   ok('no page errors', !errs.length, errs);
   console.log(fails?'FAIL '+fails:'ALL PASS'); await b.close();
 })();

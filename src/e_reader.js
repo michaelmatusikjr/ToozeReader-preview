@@ -163,7 +163,7 @@ function idxOf(node){ const w=node&&node.closest?node.closest('w'):null; if(!w) 
 /* the dash shown after a word: highlighted only when the highlight carries on past it */
 function dashOf(w){ const d=w&&w.nextElementSibling; return d&&d.tagName==='WD'?d:null; }
 function decorate(sec){
-  sec.querySelectorAll('w.hl1,w.hl2,w.hl3,w.hl4,w.hn,wd.hl1,wd.hl2,wd.hl3,wd.hl4,wd.hn,wd.tsel').forEach(x=>x.classList.remove('hl1','hl2','hl3','hl4','hn','tsel'));
+  sec.querySelectorAll('w.hl1,w.hl2,w.hl3,w.hl4,w.hn,wd.hl1,wd.hl2,wd.hl3,wd.hl4,wd.hn,wd.tsel,w.flash,wd.flash').forEach(x=>x.classList.remove('hl1','hl2','hl3','hl4','hn','tsel','flash'));
   const a=sec._a, b=sec._b;
   for(const h of (R.meta.highlights||[])){
     if(h.e<a || h.s>=b) continue;
@@ -171,6 +171,7 @@ function decorate(sec){
   }
   if(R.meta){ const ri=scanRefs(); if(ri.length){ let lo=0, hi=ri.length; while(lo<hi){ const m=(lo+hi)>>1; if(ri[m]<a) lo=m+1; else hi=m; }
     for(let q=lo;q<ri.length&&ri[q]<b;q++){ const w=sec._ws[ri[q]-a]; if(w) w.classList.add('sref'); } } }
+  if(R.flash && R.flash.e>a && R.flash.s<b) for(let k=Math.max(R.flash.s,a); k<Math.min(R.flash.e,b); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('flash'); const d=dashOf(w); if(d) d.classList.add('flash'); } }
   if(TTS.on && TTS.cur>=a && TTS.cur<b){ const w=sec._ws[TTS.cur-a]; if(w) w.classList.add('tts'); }
   if(TTS.pick!=null && TTS.pick>=a && TTS.pick<b){ const w=sec._ws[TTS.pick-a]; if(w) w.classList.add('ttspick'); }
   if(typeof TS!=='undefined' && TS.on) for(let k=Math.max(TS.a,a); k<=Math.min(TS.b,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('tsel'); const d=k<TS.b&&dashOf(w); if(d) d.classList.add('tsel'); } }
@@ -298,7 +299,7 @@ async function scShow(i){
   SC.busy=true; SC.userScrolled=false; /* the place stays exactly on word i until the reader scrolls */
   try{
     scFlow.replaceChildren(); await renderSec(scFlow, secAt(i), 'append');
-    const w=wordEl(i); scView.scrollTop=w?Math.max(0, scTopOf(w)-10):0;
+    const w=wordEl(i); scView.scrollTop=w?Math.max(0, scTopOf(w)-scGap()):0;
   } finally{ SC.busy=false; }
   await scEnsure();
   if(R.tearCenter){ R.tearCenter=false; tearCenterNow(); await scEnsure(); tearCenterNow(); }
@@ -308,12 +309,15 @@ async function scShow(i){
 /* After a jump, text is still being added and trimmed around the spot, and fonts may finish loading; iPhone Safari can
    drop a scroll correction, sliding the page thousands of lines away (Mick, Nov 25: "Read it in context" for Heb. 1:7
    showed Hebrews 6 cross references). Until the reader touches the page, keep word i where it was put. */
+/* how far below the top a jump lands: clear of the "‹ Back to …" toast when it's showing */
+function scGap(){ const t=$('#toast'); if(t.hidden || !t.dataset.back) return 10; const top=parseFloat(t.style.top)||12;   /* where it settles, not mid-slide */
+  return Math.max(10, Math.round(top+t.offsetHeight-scView.getBoundingClientRect().top+12)); }
 function scSettle(i){
   const tok=SC.settle=(SC.settle||0)+1;
   for(const ms of [120, 400, 900, 1600, 2600]) setTimeout(async()=>{
     if(SC.settle!==tok || R.mode!=='scroll' || SC.userScrolled || SC.auto || SC.busy || R.pos!==i || $('#v-reader').hidden) return;
     const w=wordEl(i); if(!w){ SC.settle=0; await scShow(i); return; }
-    const d=scTopOf(w)-10-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
+    const d=scTopOf(w)-scGap()-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
   }, ms);
 }
 /* put the middle of the tear in the middle of the screen */
@@ -516,7 +520,8 @@ for(const t of ['gesturestart','gesturechange','gestureend']) document.addEventL
 document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
 
 /* ---------- moving around ---------- */
-function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing(); }
+function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing();
+  if(on && R.backPos!=null && !R.backGone && $('#toast').hidden) showBackToast(); placeToast(); }
 /* the daily-goal circle: how much of today's goal is read; nothing at all without a goal */
 function goalRing(){ const g=$('#goalRing'); if(!g) return; const goal=(S.goalMins||0)*60000; g.hidden=!goal||!R.meta; if(g.hidden) return; const f=Math.min(1,todayMs()/goal); g.style.setProperty('--p', f.toFixed(3)); }
 $('#goalRing').addEventListener('click',e=>{
@@ -535,14 +540,19 @@ function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS
    tap it and you flow back (and it moves to where you'd jumped to, so you can go back and forth).
    Across books (a scripture peek) it waits at the start of the line and takes you back to the other book.
    It fades away after a few minutes of not being needed. ---------- */
-function setBack(prev){ R.backPos=prev; showGhost(); }
-function showGhost(){
-  clearTimeout(R.backT);
-  if(!R.meta || R.backPos==null){ Drop.ghost(null); return; }
-  Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
-  R.backT=setTimeout(()=>{ R.backPos=null; Drop.ghost(null); }, 180000);
+function setBack(prev){ R.backPos=prev; R.backGone=false; showBackToast(); }
+/* a toast at the top: "‹ Back to Genesis". It stays until it's swiped away; after 3 minutes it tucks itself away and
+   comes back the next time the controls are shown (Mick, Nov 25: replaces the hollow drop on the progress line) */
+function backLabel(){ const c=currentChapter(R.backPos); return c? c.t : placeLabel(R.backPos); }
+function showBackToast(){
+  if(R.backPos==null || R.backGone || !R.meta) return;
+  toast('', {label:'‹ Back to '+backLabel(), fn:ghostBack}, 0); $('#toast').dataset.back='1';
+  clearTimeout(R.backT); R.backT=setTimeout(()=>{ const t=$('#toast'); if(t.dataset.back) t.hidden=true; }, 180000);
 }
-function ghostBack(){ const p=R.backPos; if(p==null) return; goTo(p,true); }
+function clearBack(){ R.backPos=null; clearTimeout(R.backT); const t=$('#toast'); if(t.dataset.back){ t.hidden=true; delete t.dataset.back; } }
+async function ghostBack(){ const p=R.backPos; if(p==null) return; clearFlash(); await goTo(p,true); clearBack(); }
+/* the verses a reference took you to stay tinted until you go back or leave the book */
+function clearFlash(){ if(R.flash){ R.flash=null; redecorate(); } }
 /* a link into another book (a scripture peek → the Bible): the back arrow becomes "‹ <book you came from>", like the
    iPhone's own "◀ Safari" after a jump between apps. With the controls hidden the same link sits at the top left
    of the page. It lasts until you leave that book or ten minutes pass; tap it to go back (Mick, Nov 25). */
@@ -567,7 +577,7 @@ async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
   if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
   await goTo(typeof pos==='function'? pos() : pos, true);
-  if(from && from.id!==R.meta.id){ R.backPos=null; Drop.ghost(null); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnLink(); }
+  if(from && from.id!==R.meta.id){ clearBack(); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnLink(); }
   return true;
 }
 /* Endnotes: the number in front of each note leads back to where it was cited.
@@ -812,7 +822,7 @@ async function openDoc(id){
       if(!m.has(bi)) m.set(bi,[]); m.get(bi).push(idx);
     });
   }
-  buildSections(); R.sIdx=null; R.backPos=null; Drop.ghost(null); goalRing(); diffCache={s:-1,e:-1,f:1};
+  buildSections(); R.sIdx=null; clearBack(); R.flash=null; goalRing(); diffCache={s:-1,e:-1,f:1};
   R.pos=clamp(meta.finished?0:meta.pos,0,R.n-1); if(meta.finished) meta.finished=false;
   R.tear=LS.get('tear.'+meta.id,null); if(R.tear!=null && !(R.tear>0 && R.tear<R.n)) R.tear=null;
   R.tearCenter= R.tear!=null && Math.abs(R.tear-R.pos)<400; R.tearShow=false;
@@ -849,7 +859,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
+  clearBack(); R.flash=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -1293,7 +1303,7 @@ async function peekRef(r){
   if(!at){ openSheet(name, `<p class="note">${esc(name)} isn’t in this Bible.</p>`, {}, 'short'); return; }
   const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e, at.vs)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
   openSheet(name+' · '+bibleAbbr(m), body+`<button class="btn primary block" type="button" data-act="ctx">Read it in context</button>`, {
-    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); return v? v.i : at.i; }); }   /* found again once open: opening can renumber words */
+    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); R.flash= v&&v.s>=0? {s:v.s, e:v.e} : null; return v? v.i : at.i; }).then(()=>redecorate()); }   /* found again once open: opening can renumber words */
   }, 'short');
 }
 function openFootnote(i){

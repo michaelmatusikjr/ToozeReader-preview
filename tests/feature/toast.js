@@ -37,7 +37,9 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.screenshot({path:__E.SCRATCH+'toast_dark.png'});
   // in a book, it's at the top too
   await pg.evaluate(()=>{ S.theme='auto'; saveSettings(); applyLook(); openDoc('shelf-gatsby'); }); await sleep(900);
-  await show(true); await sleep(500); bx=await box(); ok('in a book too', bx.y<40, bx);
+  await pg.evaluate(()=>setChrome(true)); await show(true); await sleep(500); bx=await box();
+  ok('in a book with the controls showing, just below them (Mick, Nov 25: the controls push toasts down)', Math.abs(bx.y-(await pg.evaluate(()=>$('#rTop').getBoundingClientRect().bottom))-8)<=2, bx);
+  await pg.evaluate(()=>setChrome(false)); await show(true); await sleep(500); bx=await box(); ok('controls hidden: at the top', bx.y<40, bx);
   await pg.screenshot({path:__E.SCRATCH+'toast_book.png'});
   await pg.evaluate(()=>{ S.theme='sepia'; saveSettings(); applyLook(); }); await sleep(300);
   await show(true); await sleep(500);

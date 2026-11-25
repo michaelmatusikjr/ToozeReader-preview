@@ -136,6 +136,9 @@ details.yr{margin-top:10px}
 .tdet summary span{opacity:.75}
 #tagSet .tdet{margin-top:0}#tagSet .tdet summary{font-size:.95rem;color:var(--ink);font-weight:600;padding:2px 0}
 #tagSet .tdet .list{margin-top:10px}
+.book w.flash,.book wd.flash{background:color-mix(in srgb,var(--page-link) 16%,transparent);animation:flashIn .9s ease-out}
+@keyframes flashIn{from{background:color-mix(in srgb,var(--page-link) 42%,transparent)}}
+@media (prefers-reduced-motion:reduce){.book w.flash{animation:none}}
 .book w.woc{color:color-mix(in srgb,#c62828 78%,var(--page-ink))}
 #v-reader.bp-nowoc .book w.woc{color:inherit}
 #v-reader.bp-noxr .book w.xr,#v-reader.bp-nofn .book w.fnm,#v-reader.bp-novn .book w.vn{display:none}
@@ -522,7 +525,7 @@ h3.subh{margin:16px 0 8px}
 .goalbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 
 /* toasts: at the top, in the theme's colours; they drop in from the top and flick away up or sideways */
-#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);transition:top .28s cubic-bezier(.2,.8,.2,1);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
 #toast:not([hidden]){animation:toastIn .34s cubic-bezier(.2,.9,.25,1.15)}
 @keyframes toastIn{from{transform:translate(-50%,calc(-100% - 20px));opacity:0}}
 @media (prefers-reduced-motion:reduce){#toast:not([hidden]){animation:none}}
@@ -2124,7 +2127,7 @@ function idxOf(node){ const w=node&&node.closest?node.closest('w'):null; if(!w) 
 /* the dash shown after a word: highlighted only when the highlight carries on past it */
 function dashOf(w){ const d=w&&w.nextElementSibling; return d&&d.tagName==='WD'?d:null; }
 function decorate(sec){
-  sec.querySelectorAll('w.hl1,w.hl2,w.hl3,w.hl4,w.hn,wd.hl1,wd.hl2,wd.hl3,wd.hl4,wd.hn,wd.tsel').forEach(x=>x.classList.remove('hl1','hl2','hl3','hl4','hn','tsel'));
+  sec.querySelectorAll('w.hl1,w.hl2,w.hl3,w.hl4,w.hn,wd.hl1,wd.hl2,wd.hl3,wd.hl4,wd.hn,wd.tsel,w.flash,wd.flash').forEach(x=>x.classList.remove('hl1','hl2','hl3','hl4','hn','tsel','flash'));
   const a=sec._a, b=sec._b;
   for(const h of (R.meta.highlights||[])){
     if(h.e<a || h.s>=b) continue;
@@ -2132,6 +2135,7 @@ function decorate(sec){
   }
   if(R.meta){ const ri=scanRefs(); if(ri.length){ let lo=0, hi=ri.length; while(lo<hi){ const m=(lo+hi)>>1; if(ri[m]<a) lo=m+1; else hi=m; }
     for(let q=lo;q<ri.length&&ri[q]<b;q++){ const w=sec._ws[ri[q]-a]; if(w) w.classList.add('sref'); } } }
+  if(R.flash && R.flash.e>a && R.flash.s<b) for(let k=Math.max(R.flash.s,a); k<Math.min(R.flash.e,b); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('flash'); const d=dashOf(w); if(d) d.classList.add('flash'); } }
   if(TTS.on && TTS.cur>=a && TTS.cur<b){ const w=sec._ws[TTS.cur-a]; if(w) w.classList.add('tts'); }
   if(TTS.pick!=null && TTS.pick>=a && TTS.pick<b){ const w=sec._ws[TTS.pick-a]; if(w) w.classList.add('ttspick'); }
   if(typeof TS!=='undefined' && TS.on) for(let k=Math.max(TS.a,a); k<=Math.min(TS.b,b-1); k++){ const w=sec._ws[k-a]; if(w){ w.classList.add('tsel'); const d=k<TS.b&&dashOf(w); if(d) d.classList.add('tsel'); } }
@@ -2259,7 +2263,7 @@ async function scShow(i){
   SC.busy=true; SC.userScrolled=false; /* the place stays exactly on word i until the reader scrolls */
   try{
     scFlow.replaceChildren(); await renderSec(scFlow, secAt(i), 'append');
-    const w=wordEl(i); scView.scrollTop=w?Math.max(0, scTopOf(w)-10):0;
+    const w=wordEl(i); scView.scrollTop=w?Math.max(0, scTopOf(w)-scGap()):0;
   } finally{ SC.busy=false; }
   await scEnsure();
   if(R.tearCenter){ R.tearCenter=false; tearCenterNow(); await scEnsure(); tearCenterNow(); }
@@ -2269,12 +2273,15 @@ async function scShow(i){
 /* After a jump, text is still being added and trimmed around the spot, and fonts may finish loading; iPhone Safari can
    drop a scroll correction, sliding the page thousands of lines away (Mick, Nov 25: "Read it in context" for Heb. 1:7
    showed Hebrews 6 cross references). Until the reader touches the page, keep word i where it was put. */
+/* how far below the top a jump lands: clear of the "‹ Back to …" toast when it's showing */
+function scGap(){ const t=$('#toast'); if(t.hidden || !t.dataset.back) return 10; const top=parseFloat(t.style.top)||12;   /* where it settles, not mid-slide */
+  return Math.max(10, Math.round(top+t.offsetHeight-scView.getBoundingClientRect().top+12)); }
 function scSettle(i){
   const tok=SC.settle=(SC.settle||0)+1;
   for(const ms of [120, 400, 900, 1600, 2600]) setTimeout(async()=>{
     if(SC.settle!==tok || R.mode!=='scroll' || SC.userScrolled || SC.auto || SC.busy || R.pos!==i || $('#v-reader').hidden) return;
     const w=wordEl(i); if(!w){ SC.settle=0; await scShow(i); return; }
-    const d=scTopOf(w)-10-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
+    const d=scTopOf(w)-scGap()-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
   }, ms);
 }
 /* put the middle of the tear in the middle of the screen */
@@ -2477,7 +2484,8 @@ for(const t of ['gesturestart','gesturechange','gestureend']) document.addEventL
 document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
 
 /* ---------- moving around ---------- */
-function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing(); }
+function setChrome(on){ if(TTS.mode) on=true; /* the audio controls stay on screen in voice mode */ R.chrome=on; $('#v-reader').classList.toggle('chrome-off',!on); if(!on) goalRing();
+  if(on && R.backPos!=null && !R.backGone && $('#toast').hidden) showBackToast(); placeToast(); }
 /* the daily-goal circle: how much of today's goal is read; nothing at all without a goal */
 function goalRing(){ const g=$('#goalRing'); if(!g) return; const goal=(S.goalMins||0)*60000; g.hidden=!goal||!R.meta; if(g.hidden) return; const f=Math.min(1,todayMs()/goal); g.style.setProperty('--p', f.toFixed(3)); }
 $('#goalRing').addEventListener('click',e=>{
@@ -2496,14 +2504,19 @@ function stopActivity(){ if(R.playing) pause(); if(SC.auto) asStop(true); if(TTS
    tap it and you flow back (and it moves to where you'd jumped to, so you can go back and forth).
    Across books (a scripture peek) it waits at the start of the line and takes you back to the other book.
    It fades away after a few minutes of not being needed. ---------- */
-function setBack(prev){ R.backPos=prev; showGhost(); }
-function showGhost(){
-  clearTimeout(R.backT);
-  if(!R.meta || R.backPos==null){ Drop.ghost(null); return; }
-  Drop.ghost(R.backPos/Math.max(1,R.n-1), ghostBack, false);
-  R.backT=setTimeout(()=>{ R.backPos=null; Drop.ghost(null); }, 180000);
+function setBack(prev){ R.backPos=prev; R.backGone=false; showBackToast(); }
+/* a toast at the top: "‹ Back to Genesis". It stays until it's swiped away; after 3 minutes it tucks itself away and
+   comes back the next time the controls are shown (Mick, Nov 25: replaces the hollow drop on the progress line) */
+function backLabel(){ const c=currentChapter(R.backPos); return c? c.t : placeLabel(R.backPos); }
+function showBackToast(){
+  if(R.backPos==null || R.backGone || !R.meta) return;
+  toast('', {label:'‹ Back to '+backLabel(), fn:ghostBack}, 0); $('#toast').dataset.back='1';
+  clearTimeout(R.backT); R.backT=setTimeout(()=>{ const t=$('#toast'); if(t.dataset.back) t.hidden=true; }, 180000);
 }
-function ghostBack(){ const p=R.backPos; if(p==null) return; goTo(p,true); }
+function clearBack(){ R.backPos=null; clearTimeout(R.backT); const t=$('#toast'); if(t.dataset.back){ t.hidden=true; delete t.dataset.back; } }
+async function ghostBack(){ const p=R.backPos; if(p==null) return; clearFlash(); await goTo(p,true); clearBack(); }
+/* the verses a reference took you to stay tinted until you go back or leave the book */
+function clearFlash(){ if(R.flash){ R.flash=null; redecorate(); } }
 /* a link into another book (a scripture peek → the Bible): the back arrow becomes "‹ <book you came from>", like the
    iPhone's own "◀ Safari" after a jump between apps. With the controls hidden the same link sits at the top left
    of the page. It lasts until you leave that book or ten minutes pass; tap it to go back (Mick, Nov 25). */
@@ -2528,7 +2541,7 @@ async function jumpDoc(id, pos){
   const from= R.meta? {id:R.meta.id, pos:R.pos} : null;
   if(!R.meta || id!==R.meta.id){ if(await openDoc(id)===false) return false; if(from) R.returnTo=R.returnTo||'library'; }
   await goTo(typeof pos==='function'? pos() : pos, true);
-  if(from && from.id!==R.meta.id){ R.backPos=null; Drop.ghost(null); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnLink(); }
+  if(from && from.id!==R.meta.id){ clearBack(); RT.back=from; RT.inId=R.meta.id; RT.t=Date.now(); showReturnLink(); }
   return true;
 }
 /* Endnotes: the number in front of each note leads back to where it was cited.
@@ -2773,7 +2786,7 @@ async function openDoc(id){
       if(!m.has(bi)) m.set(bi,[]); m.get(bi).push(idx);
     });
   }
-  buildSections(); R.sIdx=null; R.backPos=null; Drop.ghost(null); goalRing(); diffCache={s:-1,e:-1,f:1};
+  buildSections(); R.sIdx=null; clearBack(); R.flash=null; goalRing(); diffCache={s:-1,e:-1,f:1};
   R.pos=clamp(meta.finished?0:meta.pos,0,R.n-1); if(meta.finished) meta.finished=false;
   R.tear=LS.get('tear.'+meta.id,null); if(R.tear!=null && !(R.tear>0 && R.tear<R.n)) R.tear=null;
   R.tearCenter= R.tear!=null && Math.abs(R.tear-R.pos)<400; R.tearShow=false;
@@ -2810,7 +2823,7 @@ function closeReader(quiet){
   creditLastPage(); if(TTS.mode) ttsModeOff(true); stopActivity(); noteProgress(); saveProgress(true); selClear();
   const m=R.meta;
   if(R.mode) MODES[R.mode].leave(); R.mode=null; R.meta=null; /* nothing may save a closed book's record again */
-  Drop.ghost(null); R.backPos=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
+  clearBack(); R.flash=null; endReturnLink(true); LS.set('resume',null);   /* back in the library: next launch opens the library */
   const back=R.returnTo||'library'; R.returnTo=null;
   showView(back); applyLook();
   if(quiet || !m) return;
@@ -3254,7 +3267,7 @@ async function peekRef(r){
   if(!at){ openSheet(name, `<p class="note">${esc(name)} isn’t in this Bible.</p>`, {}, 'short'); return; }
   const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e, at.vs)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
   openSheet(name+' · '+bibleAbbr(m), body+`<button class="btn primary block" type="button" data-act="ctx">Read it in context</button>`, {
-    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); return v? v.i : at.i; }); }   /* found again once open: opening can renumber words */
+    ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); R.flash= v&&v.s>=0? {s:v.s, e:v.e} : null; return v? v.i : at.i; }).then(()=>redecorate()); }   /* found again once open: opening can renumber words */
   }, 'short');
 }
 function openFootnote(i){
@@ -4580,11 +4593,11 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.16 preview';
+const APP_VERSION='2026.11.25.17 preview';
 const WHATSNEW=[
   ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (For red letters in a Bible you added before, add it again.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
-  ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
+  ['Back to where you were','After any jump within a book, “‹ Back to …” appears at the top (below the controls when they’re showing). Tap it to go back, or swipe it away; if it tucks itself away after a few minutes, showing the controls brings it back. The verses a reference took you to stay tinted until you go back. When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
   ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate; tap the circle after that to see it again.'],
   ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],
   ['Exact quotes','Copied and shared quotes from the Bible now say “John 3:16–18 (KJV)”; from other books they name the part and chapter.'],
@@ -5899,20 +5912,29 @@ function closeSheet(){ $('#sheet').hidden=true; $('#backdrop').hidden=true; shee
 $('#sheet').addEventListener('click',e=>{ if(ghost()){ e.preventDefault(); return; } const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='__close'){ closeSheet(); return; } const fn=sheetActs[a]; if(fn) fn(b,e); });
 $('#backdrop').onclick=()=>{ if(!ghost()) closeSheet(); };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!$('#sheet').hidden) closeSheet(); else if($('#imgOverlay')) $('#imgOverlay').remove(); } });
+/* toasts sit at the top of the screen; in a book with the controls showing they sit just below them */
+function placeToast(){ const t=$('#toast'); let y=null;
+  const v=$('#v-reader'); if(v && !v.hidden && !v.classList.contains('chrome-off')){ for(const id of ['rTop','rCrumb']){ const e=document.getElementById(id); if(e && !e.hidden){ const r=e.getBoundingClientRect(); if(r.height) y=Math.max(y||0, r.bottom); } } }
+  t.style.top= y!=null? (y+8)+'px' : ''; }
 function toast(msg, action, ms, progress){
   $('#toastMsg').textContent=msg; const a=$('#toastAct'); const prog=$('#toastProg'); const bar=$('#toastBar');
   if(action){ a.hidden=false; a.textContent=action.label; a.onclick=()=>{ action.fn(); $('#toast').hidden=true; }; } else a.hidden=true;
   if(progress!=null){ prog.hidden=false; bar.style.width=Math.max(0,Math.min(100,progress))+'%'; } else { prog.hidden=true; }
-  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT);
+  const tw=$('#toast'); delete tw.dataset.back; $('#toastMsg').hidden=!msg; placeToast(); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT);
  if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
 }
 /* flick a toast away: up, or sideways; let go short of that and it springs back and stays a little longer */
 (()=>{ const t=$('#toast'); let p=null; const rest=()=>{ t.style.transform=''; t.style.opacity=''; };
-  t.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; p={x:e.clientX,y:e.clientY,dx:0,dy:0}; try{ t.setPointerCapture(e.pointerId); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; });
-  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2; p.dx=dx; p.dy=dy;
+  /* a swipe can start anywhere, even on the toast's button; only once the finger really moves does the toast take it
+     over (so a plain tap still presses the button) */
+  t.addEventListener('pointerdown',e=>{ p={x:e.clientX,y:e.clientY,dx:0,dy:0,id:e.pointerId,on:false}; });
+  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2;
+    if(!p.on){ if(Math.hypot(dx,raw)<8) return; p.on=true; try{ t.setPointerCapture(p.id); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; }
+    p.dx=dx; p.dy=dy;
     t.style.transform=`translate(calc(-50% + ${dx}px), ${dy}px)`; t.style.opacity=String(Math.max(.2,1-(Math.abs(dx)+Math.max(0,-dy))/240)); });
-  const up=()=>{ if(!p) return; const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+  const up=()=>{ if(!p) return; if(!p.on){ p=null; return; } const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
     if(dy<-26 || Math.abs(dx)>64){ t.style.transform= Math.abs(dx)>64? `translate(calc(-50% + ${Math.sign(dx)*480}px), ${dy}px)` : 'translate(-50%, calc(-100% - 40px))'; t.style.opacity='0';
+      if(t.dataset.back && typeof R!=='undefined'){ R.backGone=true; R.backPos=null; delete t.dataset.back; }   /* swiped away: the way back is gone */
       setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; },230); }
     else { rest(); setTimeout(()=>{ t.style.animation=''; },240); if(!t.dataset.sticky) toastT=setTimeout(()=>{ t.hidden=true; },2600); } };
   t.addEventListener('pointerup',up); t.addEventListener('pointercancel',up);
@@ -5932,7 +5954,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=26;
+const SAMPLE_V=27;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -5965,7 +5987,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
-<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there, with the verses tinted until you go back. Whenever you jump somewhere in a book, “‹ Back to …” appears at the top: tap it to go back, or swipe it away. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>

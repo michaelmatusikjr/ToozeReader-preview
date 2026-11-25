@@ -28,7 +28,10 @@ whole.**
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
 | Where you were (ghost drop, same book); return link (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnLink`, `endReturnLink`, `returnBack`, `#rCrumb`, `.crumbing` |
 | A book's own preference switches (Crossway ESV) | `c_js1.js` import → `text.marks` {woc,xr,fn,vn: word ranges}, `text.acts` [[s,e,'crossrefs.hide']]; `e_reader.js` `loadMarks`, `R.mk`, `R.acts`, `tapBookPref`, per-book `meta.bp`; older copies repaired on open by `oldPrefs` (switches found by wording, marks from flags; no red letters); CSS `#v-reader.bp-no*` | 
-| Scroll mode keeps a jump's word on screen while things settle | `e_reader.js` `scSettle` (called from `scShow`) |
+| Scroll mode keeps a jump's word on screen while things settle | `e_reader.js` `scSettle` (called from `scShow`); lands below the back toast (`scGap`) |
+| Where you were: "‹ Back to …" toast (replaced the hollow drop) | `e_reader.js` `setBack`, `showBackToast`, `clearBack`, `ghostBack`; re-shown in `setChrome`; swipe → `R.backGone` (`f_js3.js` toast swipe) |
+| Verses tinted after Read it in context | `R.flash` {s,e} set in the peek's ctx handler, drawn in `decorate`, cleared by `clearFlash`/`openDoc`/closing |
+| Toast placement (below the reader's controls) | `f_js3.js` `placeToast` |
 | Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` (→ `bibleBookSpan`, `textChapters`, `textVerses` when the contents don't list chapters; cached in `R.bibleCache`); `refsIn` finds references in any word range; note cards show only the tapped entry (`R.noteT`), take the book from the tapped verse (`bookAt`) so "ch. 3:28"/"ver. 33"/"Rev. 1:4, 8" work; import reads stylesheet-raised classes (`cssClasses` → `ctx.supCls`) as superscripts; note cards (`openFootnote`) make them tappable (`.nref` → `peekRef`) |
 | Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
 | Daily goal circle in the reader; goal celebration | `e_reader.js`, `f_js3.js`, `k_blob.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs`, `Drop.celebrate`, `.drop-buddy` |

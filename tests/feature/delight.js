@@ -12,21 +12,29 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto('http://localhost:8750/'); await sleep(1200);
-  const ghost=()=>pg.evaluate(()=>{ const g=$('#dropGhost'); if(!g||g.hidden) return null; const r=g.getBoundingClientRect(); return {x:Math.round(r.left), w:Math.round(r.width), away:g.classList.contains('away')}; });
+  const ghost=()=>pg.evaluate(()=>{ const g=$('#dropGhost'); return g&&!g.hidden? 1 : null; });
+  const backT=()=>pg.evaluate(()=>{ const t=$('#toast'); return !t.hidden && t.dataset.back? {txt:$('#toastAct').textContent, top:Math.round(t.getBoundingClientRect().top)} : null; });
 
-  // ---- where you were ----
+  // ---- where you were: a "‹ Back to …" toast at the top (Mick, Nov 25: replaces the hollow drop) ----
   await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(900);
-  ok('no ghost before any jump, and the old back pill is gone', !(await ghost()) && await pg.evaluate(()=>!document.getElementById('backPill')));
+  ok('nothing before any jump', !(await backT()) && !(await ghost()));
   const from=await pg.evaluate(()=>R.pos);
-  await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='VI'); goTo(c.i,true); }); await sleep(700);
-  let g=await ghost(); ok('a jump leaves a hollow drop at the spot you left', g && !g.away, g);
-  await pg.screenshot({path:__E.SCRATCH+'ghost_up.png'});
-  await pg.click('#dropGhost'); await sleep(800);
-  ok('tapping it flows back', await pg.evaluate(f=>Math.abs(R.pos-f)<5, from), await pg.evaluate(()=>R.pos));
-  g=await ghost(); ok('…and it now waits at chapter VI, to go forth again', g && await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='VI'); return Math.abs(R.backPos-c.i)<5; }));
+  await pg.evaluate(()=>{ setChrome(true); const c=R.meta.chapters.find(c=>c.t==='VI'); goTo(c.i,true); }); await sleep(700);
+  let bt=await backT(); ok('a jump shows "‹ Back to …" at the top, no hollow drop', bt && /^‹ Back to /.test(bt.txt) && !(await ghost()), bt);
+  ok('with the controls showing it sits just below them', bt && await pg.evaluate(y=>y>=$('#rTop').getBoundingClientRect().bottom, bt.top), bt);
   await pg.evaluate(()=>setChrome(false)); await sleep(400);
-  const gb=await ghost(); ok('with the controls hidden it rides the bottom line', gb && await pg.evaluate(()=>{ const r=$('#dropGhost').getBoundingClientRect(); return r.top>innerHeight-40; }));
-  await pg.screenshot({path:__E.SCRATCH+'ghost_base.png'});
+  bt=await backT(); ok('controls hidden: it moves up to the top of the screen', bt && await pg.evaluate(y=>y<$('#rTop').getBoundingClientRect().bottom+2 || $('#rTop').getBoundingClientRect().height===0, bt.top) && bt.top<60, bt);
+  await pg.screenshot({path:__E.SCRATCH+'back_toast.png'});
+  ok('it stays (no timeout before 3 minutes)', await pg.evaluate(async()=>{ await new Promise(r=>setTimeout(r,6000)); return !$('#toast').hidden; }));
+  await pg.evaluate(()=>{ $('#toast').hidden=true; }); await pg.evaluate(()=>setChrome(true)); await sleep(300);
+  ok('after it tucks away, showing the controls brings it back', !!(await backT()));
+  await pg.click('#toastAct'); await sleep(800);
+  ok('tapping it goes back, and it goes away', await pg.evaluate(f=>Math.abs(R.pos-f)<5, from) && !(await backT()), await pg.evaluate(()=>R.pos));
+  await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='VI'); goTo(c.i,true); }); await sleep(700);
+  const tb=await pg.evaluate(()=>{ const r=$('#toast').getBoundingClientRect(); return {x:r.left+20, y:r.top+r.height/2}; });
+  await pg.mouse.move(tb.x+40, tb.y); await pg.mouse.down(); await pg.mouse.move(tb.x+40, tb.y-60, {steps:6}); await pg.mouse.up(); await sleep(500);
+  await pg.evaluate(()=>{ setChrome(false); setChrome(true); }); await sleep(300);
+  ok('swiped away, it stays gone (even with the controls)', !(await backT()) && await pg.evaluate(()=>R.backPos==null));
 
   // ---- today's reading: a small circle in the reader, only with a goal (Mick, Nov 25) ----
   await pg.evaluate(()=>{ const st={}; st[dayKey()]={ms:5*60000, words:1000}; LS.set('stats',st); S.goalMins=0; updateToday(); setChrome(false); });
@@ -81,7 +89,8 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await pg.screenshot({path:__E.SCRATCH+'peek.png'});
   await pg.click('#sheet [data-act=ctx]'); await sleep(2000);
   ok('Read it in context opens the Bible at that verse', await pg.evaluate(()=>R.meta.id==='shelf-kjv' && currentChapter(R.pos).t==='Psalm 63' && R.words[R.pos]==='8'), await pg.evaluate(()=>[R.meta.id, currentChapter(R.pos).t, R.words[R.pos]]));
-  ok('no hollow drop for another book…', !(await ghost()));
+  ok('no back toast for another book…', !(await backT()));
+  ok('the verse it took you to is tinted', await pg.evaluate(()=>R.flash && R.words[R.flash.s]==='8' && !!document.querySelector('#v-reader w.flash')));
   const crumb=()=>pg.evaluate(()=>{ const c=$('#rCrumb'); return c.hidden? null : c.textContent; });
   const geo=()=>pg.evaluate(()=>{ const c=$('#rCrumb').getBoundingClientRect(), h=$('#rTop').getBoundingClientRect(), txt=(R.mode==='pages'? $('#pgClip') : $('#scrollView')).getBoundingClientRect();
     return {cTop:Math.round(c.top), cBot:Math.round(c.bottom), hBot:Math.round(h.bottom), textTop:Math.round(txt.top), vis:getComputedStyle($('#rCrumb')).opacity}; });
@@ -100,6 +109,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('it lasts', !!(await crumb()));
   await pg.click('#rCrumb'); await sleep(2000);
   ok('tapping it takes you back', await pg.evaluate(k=>R.meta.id==='shelf-pursuit' && Math.abs(R.pos-k)<30, k), await pg.evaluate(()=>[R.meta.id,R.pos]));
+  ok('…and the tint is gone', await pg.evaluate(()=>!R.flash && !document.querySelector('#v-reader w.flash')));
   ok('…and back here the line is gone and the text moves back up', !(await crumb()) && await pg.evaluate(()=>!$('#v-reader').classList.contains('crumbing')));
   // scroll mode too
   await pg.evaluate(async()=>{ S.mode='scroll'; saveSettings(); await switchMode('scroll'); }); await sleep(800);

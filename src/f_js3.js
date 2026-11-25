@@ -1046,20 +1046,29 @@ function closeSheet(){ $('#sheet').hidden=true; $('#backdrop').hidden=true; shee
 $('#sheet').addEventListener('click',e=>{ if(ghost()){ e.preventDefault(); return; } const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='__close'){ closeSheet(); return; } const fn=sheetActs[a]; if(fn) fn(b,e); });
 $('#backdrop').onclick=()=>{ if(!ghost()) closeSheet(); };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!$('#sheet').hidden) closeSheet(); else if($('#imgOverlay')) $('#imgOverlay').remove(); } });
+/* toasts sit at the top of the screen; in a book with the controls showing they sit just below them */
+function placeToast(){ const t=$('#toast'); let y=null;
+  const v=$('#v-reader'); if(v && !v.hidden && !v.classList.contains('chrome-off')){ for(const id of ['rTop','rCrumb']){ const e=document.getElementById(id); if(e && !e.hidden){ const r=e.getBoundingClientRect(); if(r.height) y=Math.max(y||0, r.bottom); } } }
+  t.style.top= y!=null? (y+8)+'px' : ''; }
 function toast(msg, action, ms, progress){
   $('#toastMsg').textContent=msg; const a=$('#toastAct'); const prog=$('#toastProg'); const bar=$('#toastBar');
   if(action){ a.hidden=false; a.textContent=action.label; a.onclick=()=>{ action.fn(); $('#toast').hidden=true; }; } else a.hidden=true;
   if(progress!=null){ prog.hidden=false; bar.style.width=Math.max(0,Math.min(100,progress))+'%'; } else { prog.hidden=true; }
-  const tw=$('#toast'); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT);
+  const tw=$('#toast'); delete tw.dataset.back; $('#toastMsg').hidden=!msg; placeToast(); tw.style.transform=''; tw.style.opacity=''; tw.style.transition=''; tw.dataset.sticky= ms===0?'1':''; tw.hidden=false; clearTimeout(toastT);
  if(ms!==0) toastT=setTimeout(()=>{ $('#toast').hidden=true; }, ms||(action?5000:3200));
 }
 /* flick a toast away: up, or sideways; let go short of that and it springs back and stays a little longer */
 (()=>{ const t=$('#toast'); let p=null; const rest=()=>{ t.style.transform=''; t.style.opacity=''; };
-  t.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; p={x:e.clientX,y:e.clientY,dx:0,dy:0}; try{ t.setPointerCapture(e.pointerId); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; });
-  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2; p.dx=dx; p.dy=dy;
+  /* a swipe can start anywhere, even on the toast's button; only once the finger really moves does the toast take it
+     over (so a plain tap still presses the button) */
+  t.addEventListener('pointerdown',e=>{ p={x:e.clientX,y:e.clientY,dx:0,dy:0,id:e.pointerId,on:false}; });
+  t.addEventListener('pointermove',e=>{ if(!p) return; const dx=e.clientX-p.x, raw=e.clientY-p.y, dy= raw<0? raw : raw*.2;
+    if(!p.on){ if(Math.hypot(dx,raw)<8) return; p.on=true; try{ t.setPointerCapture(p.id); }catch(_){} clearTimeout(toastT); t.style.transition='none'; t.style.animation='none'; }
+    p.dx=dx; p.dy=dy;
     t.style.transform=`translate(calc(-50% + ${dx}px), ${dy}px)`; t.style.opacity=String(Math.max(.2,1-(Math.abs(dx)+Math.max(0,-dy))/240)); });
-  const up=()=>{ if(!p) return; const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+  const up=()=>{ if(!p) return; if(!p.on){ p=null; return; } const {dx,dy}=p; p=null; t.style.transition='transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
     if(dy<-26 || Math.abs(dx)>64){ t.style.transform= Math.abs(dx)>64? `translate(calc(-50% + ${Math.sign(dx)*480}px), ${dy}px)` : 'translate(-50%, calc(-100% - 40px))'; t.style.opacity='0';
+      if(t.dataset.back && typeof R!=='undefined'){ R.backGone=true; R.backPos=null; delete t.dataset.back; }   /* swiped away: the way back is gone */
       setTimeout(()=>{ t.hidden=true; t.style.transition='none'; rest(); t.style.animation=''; },230); }
     else { rest(); setTimeout(()=>{ t.style.animation=''; },240); if(!t.dataset.sticky) toastT=setTimeout(()=>{ t.hidden=true; },2600); } };
   t.addEventListener('pointerup',up); t.addEventListener('pointercancel',up);
@@ -1079,7 +1088,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=26;
+const SAMPLE_V=27;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1112,7 +1121,7 @@ const SAMPLE_HTML=`
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
-<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there. Whenever you jump somewhere in a book, a hollow drop waits on the progress line at the spot you left: tap it to go back. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
+<p>Bible references like Rom. 8:28 have a faint dotted line under them. Tap one and the verse appears from the Bible in your library; Read it in context takes you there, with the verses tinted until you go back. Whenever you jump somewhere in a book, “‹ Back to …” appears at the top: tap it to go back, or swipe it away. From the Bible, a line under the header names the book you came from: tap it to go back.</p>
 <hr>
 <p>A row of stars like the one above marks a break in the story. Books you import keep their breaks, headings, <em>italics</em>, quotations and lists.</p>
 <h2>Getting around</h2>

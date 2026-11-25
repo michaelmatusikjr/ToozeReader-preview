@@ -136,6 +136,9 @@ details.yr{margin-top:10px}
 .tdet summary span{opacity:.75}
 #tagSet .tdet{margin-top:0}#tagSet .tdet summary{font-size:.95rem;color:var(--ink);font-weight:600;padding:2px 0}
 #tagSet .tdet .list{margin-top:10px}
+.book w.flash,.book wd.flash{background:color-mix(in srgb,var(--page-link) 16%,transparent);animation:flashIn .9s ease-out}
+@keyframes flashIn{from{background:color-mix(in srgb,var(--page-link) 42%,transparent)}}
+@media (prefers-reduced-motion:reduce){.book w.flash{animation:none}}
 .book w.woc{color:color-mix(in srgb,#c62828 78%,var(--page-ink))}
 #v-reader.bp-nowoc .book w.woc{color:inherit}
 #v-reader.bp-noxr .book w.xr,#v-reader.bp-nofn .book w.fnm,#v-reader.bp-novn .book w.vn{display:none}
@@ -522,7 +525,7 @@ h3.subh{margin:16px 0 8px}
 .goalbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 
 /* toasts: at the top, in the theme's colours; they drop in from the top and flick away up or sideways */
-#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);transition:top .28s cubic-bezier(.2,.8,.2,1);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
 #toast:not([hidden]){animation:toastIn .34s cubic-bezier(.2,.9,.25,1.15)}
 @keyframes toastIn{from{transform:translate(-50%,calc(-100% - 20px));opacity:0}}
 @media (prefers-reduced-motion:reduce){#toast:not([hidden]){animation:none}}
