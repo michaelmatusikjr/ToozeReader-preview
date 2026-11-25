@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — ESV cross references "can't tap the references".** Tapping a cross-reference letter showed the note as
+  plain text. Now (2026.11.25.10) every reference in a note card is tappable and opens the verse card (Read it in
+  context works within the same Bible). Also: a bare "1:2" only continues the previous book after ";", ",", "and",
+  "cf.", so a note's own verse number ("b 1:2 Jer. 4:23") isn't misread. Test: `bibles.js`.
 - **Mick — bug: his ESV Reference Bible EPUB said it "didn't have" passages a book linked to.** Cause: the lookup
   only worked when the Bible's contents named every chapter ("Genesis 1") and verse numbers were real superscripts
   (true of the shelf KJV/WEB, not of commercial EPUBs). Fixed (2026.11.25.9): find the book in the contents or a

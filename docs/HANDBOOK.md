@@ -27,7 +27,7 @@ whole.**
 | Natural voices (Piper), live playback | `h_voice.js` | `PIP_VOICES`, `natSpeakFrom`, `natChunkAt`, `natPauseFor` |
 | Listen offline | `j_audiobook.js` | `AB`, `abStart`, `abPlayFrom`, `abShareSheet` |
 | Where you were (ghost drop, same book); return link (other book) | `e_reader.js`, `k_blob.js` | `setBack`, `showGhost`, `Drop.ghost`, `#dropGhost`; `jumpDoc`, `RT`, `showReturnLink`, `endReturnLink`, `returnBack`, `#rCrumb`, `.crumbing` |
-| Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` (→ `bibleBookSpan`, `textChapters`, `textVerses` when the contents don't list chapters; cached in `R.bibleCache`) |
+| Scripture peek (tap a reference) | `e_reader.js` | `scanRefs`, `R.refMap`, `w.sref`, `openRefPeek`, `pickBible`, `findVerses` (→ `bibleBookSpan`, `textChapters`, `textVerses` when the contents don't list chapters; cached in `R.bibleCache`); `refsIn` finds references in any word range; note cards (`openFootnote`) make them tappable (`.nref` → `peekRef`) |
 | Exact citations | `e_reader.js` | `citation`, `verseRef`, `placeCite` |
 | Daily goal circle in the reader; goal celebration | `e_reader.js`, `f_js3.js`, `k_blob.js` | `goalRing`, `#goalRing`, `.goalpop`, `updateToday`, `todayMs`, `Drop.celebrate`, `.drop-buddy` |
 | Reopen the book you were in | `e_reader.js`, `f_js3.js` | `LS 'resume'` (set in `openDoc`, cleared in `closeReader`, read in `boot`) |

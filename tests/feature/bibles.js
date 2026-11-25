@@ -20,9 +20,9 @@ const fid=b=>b.replace(/\s/g,'').toLowerCase();
 
 // style A: Crossway-like — "2:1" bold chapter markers, bold verse numbers with a no-break space, cross-reference letters
 function styleA(book){ let h=`<h1>${book}</h1><h2>A Section Heading</h2>`;
-  for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<p><b class="chapter-num" id="c${c}">${c}:1&#160;</b>${vs[0]}<sup class="crossref"><a href="notes.xhtml#cr${c}">a</a></sup>`;
+  for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<p><b class="chapter-num" id="c${c}">${c}:1&#160;</b>${vs[0]}<sup class="crossref"><a href="#cr-${fid(book)}-${c}">a</a></sup>`;
     vs.slice(1).forEach((v,k)=>{ h+=` <b class="verse-num">${k+2}&#160;</b>${v}`; if(k===1) h+='</p><p>'; }); h+='</p>'; }
-  return h+`<div class="footnotes"><p>1:1 Job 38:4–7; Ps. 33:6</p></div>`; }
+  return h+`<div class="crossrefs">${CHS[book].map(c=>`<p id="cr-${fid(book)}-${c}"><a href="#c${c}">a</a> ${c}:1 Job 38:4–7; Gen. 2:2; John 1:1–3; 3:16; 1 Cor. 13:4 b ${c}:2 Ps. 33:6</p>`).join('')}</div>`; }
 // style B: big drop-cap chapter number, no verse 1, verse numbers in plain spans stuck to the next word
 function styleB(book){ let h=`<h1>${book}</h1>`;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<h3>Heading ${c}</h3><p><span class="chapter-num">${c}</span> ${vs[0]}`;
@@ -75,6 +75,19 @@ async function epub(title, style, chapterNav){
     ok(title+': a chapter it doesn’t have is still "not in this Bible"', res.miss===null, res.miss);
     await pg.evaluate(async()=>{ for(const m of LIB.filter(m=>!/^shelf-/.test(m.id))) m.lastRead=0; });
   }
+  // cross references (Mick, Nov 25: "can't tap the references"): the note card's references can be tapped for the verses
+  const xr=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Reference Bible'); m.lastRead=Date.now()+2e6; await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
+    const c=R.meta.chapters.find(c=>/Genesis/.test(c.t)); const n=[...R.notes.keys()].filter(i=>i>=c.i).sort((a,b)=>a-b)[0]; openFootnote(n); await new Promise(r=>setTimeout(r,500));
+    const bs=[...document.querySelectorAll('#sheet .nref')].map(b=>b.textContent);
+    const marked=scanRefs().map(i=>R.words[i]);
+    return {bs, marked}; });
+  ok('note card: each reference can be tapped', JSON.stringify(xr.bs)===JSON.stringify(['Job 38:4–7','Gen. 2:2','John 1:1–3','3:16','1 Cor. 13:4','Ps. 33:6']), xr.bs);
+  ok('the note’s own verse numbers ("b 1:2") aren’t taken for a reference', !xr.marked.includes('1:2'), xr.marked);
+  await pg.click('#sheet .nref:nth-of-type(4)'); await sleep(900);
+  const pk=await pg.evaluate(()=>({t:$('#sheetTitle')? $('#sheetTitle').textContent : (document.querySelector('#sheet h2,#sheet .sheet-title')||{}).textContent, p:(document.querySelector('#sheet .peek')||{}).textContent}));
+  ok('tapping one shows the verses ("3:16" after John means John 3:16)', pk.p && /For God so loved/.test(pk.p), pk);
+  await pg.click('#sheet [data-act=ctx]'); await sleep(1200);
+  ok('Read it in context goes there in the same Bible', await pg.evaluate(()=>{ const v=findVerses(R.meta,R.text,{book:'John',ord:'',c:3,v:16,x:0,y:0}); return v && Math.abs(R.pos-v.i)<3; }), await pg.evaluate(()=>[R.pos, R.words[R.pos]]));
   ok('ESV is shown as "ESV"', await pg.evaluate(()=>bibleAbbr({title:'ESV Reference Bible'})==='ESV'));
   // the shelf KJV keeps working the old way
   const kjv=await pg.evaluate(async()=>{ for(const m of LIB) if(!/^shelf-/.test(m.id)) m.lastRead=0; const m=LIB.find(m=>m.id==='shelf-kjv'); if(m.pending){ const ok=await fetchShelfBook(m); if(!ok) return 'no-net'; }

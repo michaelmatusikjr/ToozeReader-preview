@@ -1082,19 +1082,26 @@ function openHlMenu(h, focusNote){
    faint dotted underline; tap one and a card shows the verses from your Bible. "Read it in context" opens the Bible
    there, and the hollow drop brings you back. ---------- */
 const ORD_DIGIT={First:'1',Second:'2',Third:'3'};
+/* references in words[a..b): "Ps. 33:6; 136:5" → both. A bare "12:1" only counts as a follow-on right after a ";" or
+   "," or "and"/"cf.", so a cross-reference note's own verse ("b 1:2 Jer. 4:23") isn't taken for the book before it. */
+const FOLLOW=/[;,]$/, FOLLOW_W=/^(and|or|also|cf\.?|see)$/i;
+function refsIn(W, a, b, out){
+  let book=null, ord='', at=-99;
+  const parse=w=>{ const m=REF_RE.exec(coreOf(w)); return m? {c:+m[1], v:+m[2], x:m[3]?+m[3]:0, y:m[4]?+m[4]:0} : null; };
+  for(let k=a;k<b;k++){
+    const w=W[k]; if(!w) continue;
+    const bk=BIBLE_BOOKS[bookKey(w)];
+    if(bk && k+1<b && isRef(W[k+1])){ const o=BOOK_ORD[bookKey(W[k-1]||'')]; book=bk; ord=o?ORD_DIGIT[o]:'';
+      const r=Object.assign({book, ord}, parse(W[k+1])); if(o && k-1>=a) out.set(k-1,r); out.set(k,r); out.set(k+1,r); at=k+1; k++; continue; }
+    if(book && k-at<=6 && isRef(w) && (FOLLOW.test(W[k-1]||'') || FOLLOW_W.test(W[k-1]||''))){ out.set(k, Object.assign({book, ord}, parse(w))); at=k; }
+  }
+  return out;
+}
 function scanRefs(){
   if(R.refFor===R.meta.id) return R.refIdx;
   R.refFor=R.meta.id; R.refMap=new Map(); R.refIdx=[];
   if(hasVerses()) return R.refIdx;
-  let book=null, ord='', at=-99;
-  const parse=w=>{ const m=REF_RE.exec(coreOf(w)); return m? {c:+m[1], v:+m[2], x:m[3]?+m[3]:0, y:m[4]?+m[4]:0} : null; };
-  for(let k=0;k<R.n;k++){
-    const w=R.words[k]; if(!w) continue;
-    const bk=BIBLE_BOOKS[bookKey(w)];
-    if(bk && isRef(R.words[k+1])){ const o=BOOK_ORD[bookKey(R.words[k-1]||'')]; book=bk; ord=o?ORD_DIGIT[o]:'';
-      const r=Object.assign({book, ord}, parse(R.words[k+1])); if(o) R.refMap.set(k-1,r); R.refMap.set(k,r); R.refMap.set(k+1,r); at=k+1; k++; continue; }
-    if(book && k-at<=6 && isRef(w)){ R.refMap.set(k, Object.assign({book, ord}, parse(w))); at=k; }
-  }
+  refsIn(R.words, 0, R.n, R.refMap);
   R.refIdx=[...R.refMap.keys()].sort((a,b)=>a-b);
   return R.refIdx;
 }
@@ -1196,8 +1203,8 @@ function versesHTML(t, s, e, vs){
     h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : m? `${sp}<sup>${esc(m[1].replace(/^\d+:/,''))}</sup>${m[2]?(/^[.,:\])]$/.test(m[2])?'':' ')+esc(m[2].replace(/^[.,:\])]$/,'')):''}` : sp+w; }
   return h;
 }
-async function openRefPeek(i){
-  scanRefs(); const r=R.refMap.get(i); if(!r) return;
+async function openRefPeek(i){ scanRefs(); const r=R.refMap.get(i); if(r) return peekRef(r); }
+async function peekRef(r){
   const m=pickBible(); const name=refName(r);
   if(!m){ openSheet(name, '<p class="note">Add a Bible to your library to see verses here.</p>', {}, 'short'); return; }
   const t=await bibleText(m); if(!t){ toast('Couldn’t get the Bible right now.'); return; }
@@ -1213,8 +1220,17 @@ function openFootnote(i){
   const t=R.notes.get(i); if(t==null) return;
   const B=R.blocks; let bi=blockAt(t); let s=B[bi].s, e=B[bi].e-1;
   if(e-s<4 && bi+1<B.length) e=B[bi+1].e-1;
-  const txt=textOf(s, Math.min(e, s+200));
-  openSheet('Note', `<div class="quote">${esc(txt)}${e>s+200?'…':''}</div><button class="btn block" type="button" data-act="go">Go to this note in the book</button>`, { go:()=>{ closeSheet(); goTo(t,true); } });
+  const z=Math.min(e, s+200);
+  /* scripture references in the note (cross references in a study Bible) can be tapped for the verses */
+  const refs=refsIn(R.words, s, z+1, new Map()); let h='', open=null;
+  for(let k=s;k<=z;k++){ const r=refs.get(k), sp=k>s && !glued(k) ? ' ' : '';
+    if(open && r!==open){ h+='</button>'; open=null; }
+    if(r && !open){ h+=sp+`<button type="button" class="nref" data-act="ref" data-k="${k}">`; open=r; } else h+=sp;
+    if(open && refs.get(k+1)!==open){ const m=/^(.*?)([;,.]*)$/.exec(R.words[k]); h+=esc(m[1])+'</button>'+esc(m[2]); open=null; }
+    else h+=esc(R.words[k]); }
+  openSheet('Note', `<div class="quote">${h}${e>s+200?'…':''}</div><button class="btn block" type="button" data-act="go">Go to this note in the book</button>`, {
+    go:()=>{ closeSheet(); goTo(t,true); },
+    ref:(b)=>{ const r=refs.get(+b.dataset.k); if(r) peekRef(r); } });
 }
 
 /* ---------- contents, bookmarks, highlights ---------- */
