@@ -58,3 +58,11 @@ fragment ids found; group headings without a link kept; trailing picture-only ch
 - **Small caps and drop caps** look: not reproduced. Not worth doing (matches "minimum on screen").
 - **Scroll mode opening at word 0** hides a cover picture above the first word (Pages shows it). Reached by scrolling up;
   left as is.
+
+## Follow-up (done)
+- **Ordered lists**: each `<ol>` item gets its number as a real first word ("1.", honours `start`, `value`, `type` a/A/i/I).
+  List items get a nesting level (block field `d`, 1 to 3) shown as a left margin; `<ol>` blocks carry `o:1` (no bullet).
+- **MathML**: read as text in the sentence ("x = 2"); `annotation` duplicates skipped; no rendering.
+- **Poetry**: lines split by `<br>` get `v:1` (no first-line indent, left aligned); inline `margin-left`/`padding-left`, class `i1`..`i3`
+  and (on spans) `indent`/`indentN` give `d`. Classes only indent from the book's own stylesheet are not read.
+- Block fields `d`, `o`, `v` are import-time only; rendered in `blockHTML` (`e_reader.js`), CSS next to `.bli` in `a_head.html`.
