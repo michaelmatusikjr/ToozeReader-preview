@@ -13,7 +13,7 @@ function recordStats(ms, words){
   if(goal && before<goal && d.ms>=goal){ toast('You’ve reached your reading goal of '+S.goalMins+' minute'+(S.goalMins===1?'':'s')+'.', null, 7000); try{ Drop.celebrate(); }catch(e){} }
   updateToday();
 }
-function renderStats(){
+function renderStats(again){
   const st=LS.get('stats',{}); const days=Object.keys(st);
   let tw=0,tms=0; for(const k of days){ tw+=st[k].words; tms+=st[k].ms; }
   const today=st[dayKey()]||{ms:0,words:0};
@@ -29,7 +29,7 @@ function renderStats(){
   $('#statsBody').innerHTML=`
     <div class="chart">
       <div class="topbar" style="padding:0"><h2>Daily reading goal</h2><span class="val" style="font-family:var(--f-mono);color:var(--accent)">${S.goalMins?S.goalMins+' min':'Off'}</span></div>
-      ${S.goalMins?`<p class="note" style="margin:6px 0 0">${todayMin} of ${S.goalMins} minutes today${pct>=100?' · goal reached':''}</p><div class="goalbar"><i style="width:${pct}%"></i></div>`:'<p class="note" style="margin:6px 0 0">Pick a daily target. Time counts in every reading mode.</p>'}
+      ${S.goalMins?`<p class="note" style="margin:6px 0 0">${todayMin} of ${S.goalMins} minutes today${pct>=100?' · goal reached':''}</p><div class="goalbar"><i data-k="g" data-to="${pct}" style="width:${pct}%"></i></div>`:'<p class="note" style="margin:6px 0 0">Pick a daily target. Time counts in every reading mode.</p>'}
       <div class="chips" id="goalChips" style="margin-top:10px">${[0,10,15,20,30,45,60].map(v=>`<button class="chip" type="button" data-goal="${v}" aria-pressed="${(S.goalMins||0)===v}">${v?v+' min':'Off'}</button>`).join('')}</div>
     </div>
     <div class="tiles">
@@ -42,12 +42,43 @@ function renderStats(){
     </div>
     ${yearHTML(st, met)}
     <div class="chart"><h2>Minutes per day</h2><p class="note" style="margin:2px 0 0">Last 7 days${goal?' · green bars met your goal':''}</p>
-      <div class="bars">${week.map(w=>`<div class="b"><em>${w.m||''}</em><i class="${w.m?(w.met?'met':''):'zero'}" style="height:${Math.round(100*w.m/max)}%"></i></div>`).join('')}</div>
+      <div class="bars">${week.map((w,n)=>`<div class="b"><em>${w.m||''}</em><i class="${w.m?(w.met?'met':''):'zero'}" data-k="b${n}" data-to="${Math.round(100*w.m/max)}" style="height:${Math.round(100*w.m/max)}%"></i></div>`).join('')}</div>
       <div class="bars-x">${week.map(w=>`<span>${w.lbl}</span>`).join('')}</div>
     </div>
     <p class="note">Time counts while you turn pages, scroll, speed read or listen. Time stops when you switch apps or lock the phone. If you don’t touch the screen for ${S.idleMins||5} minutes (change this in Settings), that stretch counts only as long as the text usually takes you.</p>`;
-  $('#yearChips').addEventListener('click',e=>{ const b=e.target.closest('[data-ygoal]'); if(!b) return; S.yearGoal=+b.dataset.ygoal; saveSettings(); renderStats(); });
-  $('#goalChips').addEventListener('click',e=>{ const b=e.target.closest('[data-goal]'); if(!b) return; S.goalMins=+b.dataset.goal; saveSettings(); renderStats(); });
+  $('#yearChips').addEventListener('click',e=>{ const b=e.target.closest('[data-ygoal]'); if(!b) return; S.yearGoal=+b.dataset.ygoal; saveSettings(); renderStats(true); });
+  $('#goalChips').addEventListener('click',e=>{ const b=e.target.closest('[data-goal]'); if(!b) return; S.goalMins=+b.dataset.goal; saveSettings(); renderStats(true); });
+  statsGrow(again, !!goal && today.ms>=goal);
+}
+/* Bars and fills grow in when the chart scrolls into view (the week, the daily goal, the year goal), staggered left to
+   right. Re-rendering after a goal chip (again=true) grows from the old size to the new one instead of from zero. */
+const reducedMotion=()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+let STATS_PREV={}, STATS_IO=null;
+function statsGrow(again, goalMet){
+  if(STATS_IO){ STATS_IO.disconnect(); STATS_IO=null; }
+  const root=$('#statsBody'), els=[...root.querySelectorAll('[data-to]')];
+  const prev=STATS_PREV; STATS_PREV={}; els.forEach(e=>{ STATS_PREV[e.dataset.k]=e.dataset.to; });
+  if(reducedMotion()) return;                                     /* straight to the final size */
+  const prop=e=>e.closest('.bars')?'height':'width';
+  const grow=(list,stagger)=>{ list.forEach((e,n)=>{ e.style.transition=`${prop(e)} .5s cubic-bezier(.2,.8,.2,1) ${stagger?n*40:0}ms`; e.style[prop(e)]=e.dataset.to+'%'; }); };
+  if(again){
+    els.forEach(e=>{ e.style[prop(e)]=(prev[e.dataset.k]!=null?prev[e.dataset.k]:0)+'%'; }); void root.offsetHeight;
+    grow(els,false); return;
+  }
+  els.forEach(e=>{ e.style[prop(e)]='0'; });
+  const bars=root.querySelector('.bars'); if(bars) bars.classList.add('pre');
+  const glow=()=>{ if(!goalMet || LS.get('goalGlow','')===dayKey()) return; LS.set('goalGlow',dayKey());
+    setTimeout(()=>{ const g=root.querySelector('.goalbar'); if(g){ g.classList.add('glow'); setTimeout(()=>g.classList.remove('glow'),1000); } },520); };
+  const go=box=>{
+    const list=[...box.querySelectorAll('[data-to]')];
+    void box.offsetHeight; grow(list,true);
+    if(box.matches('.bars')){ box.classList.remove('pre'); box.querySelectorAll('.b em').forEach((m,n)=>{ m.style.transitionDelay=(n*40+380)+'ms'; }); }
+    else if(box.querySelector('[data-k="g"]')) glow();
+  };
+  const boxes=[...root.querySelectorAll('.bars,.goalbar')];
+  if(!window.IntersectionObserver){ boxes.forEach(go); return; }
+  STATS_IO=new IntersectionObserver(es=>{ for(const e of es) if(e.isIntersecting){ STATS_IO.unobserve(e.target); go(e.target); } },{threshold:.4});
+  boxes.forEach(b=>STATS_IO.observe(b));
 }
 
 /* ---------- app settings (the Aa panel has mode, theme and text; the other reading options are here) ---------- */
@@ -498,7 +529,7 @@ function docOptions(id, keep){
     archive:()=>archiveFlow(id),
     askdel:()=>{ revealEnd('#delZone'); $('#delZone').innerHTML=`<p class="note">Delete “${esc(d.title)}” and its highlights and bookmarks? Your saved words stay in Notes.</p><div class="row"><button class="btn" type="button" data-act="nodel">Keep it</button><button class="btn primary" style="background:var(--danger);border-color:var(--danger)" type="button" data-act="del">Delete</button></div>`; },
     nodel:()=>docOptions(id, draft),
-    del:async()=>{ await removeBook(id); renderLibrary(); closeSheet(); toast('Deleted'); }
+    del:async()=>{ closeSheet(); await removeBook(id); await leaveCard(id); renderLibrary(); toast('Deleted'); }
   });
   const ti=$('#edTag');
   if(ti){
@@ -531,6 +562,15 @@ function nearFinishCheck(){
 /* bring a confirmation that just appeared at the bottom of a sheet into view */
 function revealEnd(sel){ setTimeout(()=>{ const el=$(sel); if(el) el.scrollIntoView({block:'end', behavior:'smooth'}); }, 60); }
 function startOver(d){ d.pos=0; d.finished=false; d.lastRead=0; d.keepFinished=false; d.finishedAt=null; d.nearAsked=null; LS.set('pos.'+d.id,{pos:0,t:0,fin:false}); touch(d); }
+/* the card collapses (fade + shrink) before the list redraws, so you see where it went */
+async function leaveCard(id){
+  const c=$('#docList')&&$('#docList').querySelector(`.doc[data-open="${CSS.escape(id)}"]`);
+  if(!c || reducedMotion() || !c.offsetHeight) return;
+  const h=c.offsetHeight; c.style.height=h+'px'; c.style.overflow='hidden'; void c.offsetHeight;
+  c.style.transition='height .25s ease-out,opacity .2s ease-out,margin .25s ease-out,padding .25s ease-out,border-width .25s ease-out';
+  c.style.height='0'; c.style.opacity='0'; c.style.marginTop='0'; c.style.marginBottom='0'; c.style.paddingTop='0'; c.style.paddingBottom='0'; c.style.borderWidth='0';
+  await new Promise(r=>setTimeout(r,270));
+}
 async function removeBook(id){
   if(R.meta&&R.meta.id===id){ if(R.mode) closeReader(true); R.meta=null; }
   try{ localStorage.removeItem('rf.pos.'+id); }catch(e){}
@@ -725,7 +765,7 @@ async function archiveBook(d, finished, st){
       bookmarks: k.bookmarks? (d.bookmarks||[]).map(b=>({i:b.i, name:b.name||'', at:b.at, q:snip(d,b.i,b.i+11)})) : [],
       highlights: (d.highlights||[]).filter(h=>k.highlights || (k.notes && h.note)).map(h=>({s:h.s, e:h.e, c:h.c, at:h.at, note:k.notes?(h.note||''):'', q:full(h.s,h.e), noteOnly:!k.highlights})) } };
   ARCH.list().unshift(rec); ARCH.save();
-  await removeBook(d.id); renderLibrary(); if(!$('#v-settings').hidden) renderSettings();
+  await removeBook(d.id); await leaveCard(d.id); renderLibrary(); if(!$('#v-settings').hidden) renderSettings();
   toast('Archived “'+d.title+'”', null, 3500);
 }
 const starsTxt=n=>n?'★'.repeat(n)+'☆'.repeat(5-n):'';
@@ -808,13 +848,13 @@ function finishPrompt(id, step){
     keep:()=>{ d.keepFinished=true; touch(d); closeSheet(); },
     arch:()=>archiveSheet(id,true),
     ask:()=>{ finishPrompt(id,'del'); revealEnd('#finDel'); }, back:()=>finishPrompt(id),
-    del:async()=>{ await removeBook(id); closeSheet(); renderLibrary(); toast('Deleted'); }
+    del:async()=>{ closeSheet(); await removeBook(id); await leaveCard(id); renderLibrary(); toast('Deleted'); }
   });
 }
 
 /* ---------- the tutorial book ---------- */
 const keepTutorial=()=>!!window.__toozKeepSample;
-async function removeTutorial(id){ await removeBook(id); renderLibrary(); }
+async function removeTutorial(id){ await removeBook(id); await leaveCard(id); renderLibrary(); }
 /* leaving the tutorial (or reopening the app after closing it there) asks where it should live */
 function tutorialPrompt(id){
   if(!LIB.some(m=>m.id===id)) return;

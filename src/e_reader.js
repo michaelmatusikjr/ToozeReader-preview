@@ -709,6 +709,9 @@ $('#rMark').onclick=()=>{
   if(ex){ bm.splice(bm.indexOf(ex),1); toast('Bookmark removed'); }
   else { const ch=currentChapter(R.pos); bm.push({i:R.pos, name:ch?ch.t:'', at:Date.now()}); bm.sort((a,b)=>a.i-b.i); toast('Bookmarked', {label:'See all', fn:()=>openToc('marks')}); }
   touch(R.meta); updateChrome();
+  const ic=$('#rMark svg'); if(ic && ic.animate && !reducedMotion()){   /* drops in when added, dips when removed */
+    if(ex) ic.animate([{transform:'scale(1)'},{transform:'scale(.78)',offset:.4},{transform:'scale(1)'}],{duration:200,easing:'ease-out'});
+    else ic.animate([{transform:'translateY(-6px)'},{transform:'translateY(1.5px)',offset:.65},{transform:'translateY(0)'}],{duration:260,easing:'ease-out'}); }
 };
 
 /* ---------- open / close a book ---------- */

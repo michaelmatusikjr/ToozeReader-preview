@@ -205,7 +205,8 @@ input,textarea,[contenteditable],#pagesView,#scFlow,.lookup,#sheet .quote{-webki
 #rScrub::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:30px;margin-top:-12px;opacity:0} /* the drop is the thumb (k_blob.js) */
 #rScrub::-moz-range-track{height:6px;border-radius:3px;background:var(--page-line)}
 #rScrub::-moz-range-thumb{width:36px;height:30px;border:0;opacity:0}
-#rMark.on svg path{fill:currentColor}
+#rMark svg path{fill:currentColor;fill-opacity:0;transition:fill-opacity .2s}
+#rMark.on svg path{fill-opacity:1}
 #rMark.on{color:var(--page-link)}
 #rTts.on{color:var(--page-link)}
 .run{position:absolute;left:0;right:0;z-index:4;text-align:center;font-size:.72rem;color:var(--page-muted);opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 56px;font-variant-numeric:tabular-nums}
@@ -523,6 +524,10 @@ h3.subh{margin:16px 0 8px}
 .timerow input{width:auto;padding:6px 8px}
 .goalbar{height:10px;border-radius:5px;background:var(--raise);overflow:hidden;margin-top:6px}
 .goalbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.goalbar.glow{overflow:visible}
+.goalbar.glow i{animation:goalGlow 1s ease-out}   /* the goal was met: one soft pulse of the bar, like the drop's celebration but small */
+@keyframes goalGlow{0%,100%{box-shadow:0 0 0 0 transparent}40%{box-shadow:0 0 12px 3px var(--accent)}}
+@media (prefers-reduced-motion:reduce){.goalbar.glow i{animation:none}}
 
 /* toasts: at the top, in the theme's colours; they drop in from the top and flick away up or sideways */
 #toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);transition:top .28s cubic-bezier(.2,.8,.2,1);z-index:30;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:.92rem;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 28px rgba(0,0,0,.18);flex-wrap:wrap;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -556,7 +561,9 @@ body:has(#v-reader:not([hidden])) #toast button{color:var(--page-link)}
 .bars .b i{display:block;width:100%;max-width:28px;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
 .bars .b i.zero{background:var(--line)}
 .bars .b i.met{background:#2E9E5B}
-.bars .b em{font-style:normal;font-family:var(--f-mono);font-size:.66rem;color:var(--muted)}
+.bars .b em{font-style:normal;font-family:var(--f-mono);font-size:.66rem;color:var(--muted);transition:opacity .25s ease-out}
+.bars.pre .b em{opacity:0}                    /* labels fade in as each bar finishes growing (statsGrow) */
+.bars.pre .b i{min-height:0}
 .bars-x{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:6px;text-align:center;font-size:.72rem;color:var(--muted)}
 
 /* Settings rows */
