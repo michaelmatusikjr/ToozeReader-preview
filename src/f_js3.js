@@ -1158,7 +1158,7 @@ $('#wpmDown').innerHTML=ICON.minus; $('#wpmUp').innerHTML=ICON.plus; $('#asDown'
 $('#defineBtn').innerHTML=ICON.define+'Define'; $('#markBtn').innerHTML=ICON.mark+'Bookmarks';
 
 /* ---------- sample book ---------- */
-const SAMPLE_V=27;
+const SAMPLE_V=28;
 const SAMPLE_HTML=`
 <h2>Welcome to Tooz eReader</h2>
 <p>This short book is a tour of Tooz. It opens by itself the first time you use the app. When you close it, Tooz asks whether to keep it in your library or tuck it away in <strong>Settings → Tutorial</strong>, where you can open it again any time.</p>
@@ -1179,7 +1179,7 @@ const SAMPLE_HTML=`
 <p>Tap <strong>Aa</strong> to change how the page looks. At the top are the things you change most: the mode (Pages, Scroll or Speed), text size, theme and a few fonts.</p>
 <p>Underneath, tap a heading to open more:</p>
 <ul><li><strong>More text options</strong>: every font (including the dyslexia-friendly Lexend and OpenDyslexic), line spacing, margins, paragraphs, justified text and more. If a book comes with its own font, a <strong>Book’s font</strong> choice appears too.</li><li><strong>Pages</strong> or <strong>Scrolling</strong>: how pages turn, where you tap, and whether the controls hide while you read.</li></ul>
-<p>Options for read aloud, auto-scroll and speed reading are on their own controls, right where you use them. <strong>Settings</strong> holds the things for the whole app: <strong>Light</strong> (dim and warmth for reading in the dark, and a night theme that can switch on by itself), reading stats, backups, storage, tags and help.</p>
+<p>Options for read aloud, auto-scroll and speed reading are on their own controls, right where you use them. <strong>Settings</strong> holds the things for the whole app: <strong>Themes</strong> (up to five, each with its own page, text and accent colours; tap the pencil on one to change it, or <strong>+</strong> to make your own; the whole app takes on your theme, and a night theme can switch on by itself), <strong>Light</strong> (dim and warmth for reading in the dark), reading stats, backups, storage, tags and help.</p>
 <p>Change any of these, or turn your phone sideways, and the page keeps the word you were reading in view.</p>
 <p>Change the text size now and watch the page count at the bottom update to match.</p>
 <h2>Highlights, notes and words</h2>
@@ -1187,7 +1187,7 @@ const SAMPLE_HTML=`
 <p><strong>Copy</strong> adds where the words came from: the author, the book and the chapter. <strong>Share</strong> turns the words into a picture, in light, sepia or dark, ready to send or save to Photos.</p>
 <p>The phone’s own menu stays hidden while you select. <strong>Define</strong> looks up the word you selected, and from there you can still reach the phone’s dictionary.</p>
 <blockquote><p>Try it on this sentence: highlight it, then add a note saying what you think of it.</p></blockquote>
-<p>Every word you define is saved in the <strong>Notes</strong> tab under Words, along with the sentence you found it in. The Notes tab also gathers the highlights, notes and bookmarks from every book, so you can find them without opening each one. To delete a bookmark there, swipe it to the left and tap <strong>Delete</strong>.</p>
+<p>Every word you define is saved in the <strong>Notes</strong> tab under Words, along with the sentence you found it in. The Notes tab also gathers the highlights, notes and bookmarks from every book, folded into one row per book; tap a book to open it up, or search them all at once. Tap a bookmark’s icon (there or in the contents) to put a letter, number or emoji inside it and give it a colour. To delete a bookmark there, swipe it to the left and tap <strong>Delete</strong>.</p>
 <p>To keep them somewhere else, tap <strong>Export</strong> beside a book in the Notes tab, or <strong>Export highlights and notes</strong> in the book’s three dots. You get one document with every highlight, note and bookmark, grouped by chapter, to print, save as a PDF or paste into another app.</p>
 <h2>Footnotes</h2>
 <p>Books often tuck extra detail into footnotes.<a href="#note1"><sup>1</sup></a> Tap the small number and the note opens without losing your place.</p>
@@ -1203,7 +1203,7 @@ const SAMPLE_HTML=`
 <p>Tap the <strong>voice</strong> button on the audio controls to choose a voice. There are two kinds. <strong>Natural</strong> voices sound like a person reading and run on your phone; each one downloads once (about 60 MB) and then works offline. <strong>Lessac</strong> is a good place to start; tap <strong>Hear this voice</strong> to try others. <strong>iPhone</strong> voices start instantly but sound more robotic. To free up space, Settings → Storage has <strong>Remove all downloaded voices</strong>.</p>
 <p>To listen with the screen locked, open the voice settings and tap <strong>Download this book’s audio</strong> under <strong>Listen offline</strong>. Tooz makes the audio while the app is open and saves it on your phone, then plays it from the saved copy with the screen locked, with play, pause and skip on the lock screen. <strong>Save as audio files</strong> exports one MP3 per chapter, so you can play the book in the Files app or another audio app even with Tooz closed.</p>
 <h2>Helpful extras</h2>
-<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. Once you’ve set one, a small circle at the bottom right of the page fills as you read; tap it for your minutes today.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
+<ul><li><strong>Word-start emphasis</strong> bolds the first part of each word, which helps some readers move faster.</li><li><strong>Adaptive pacing</strong> slows Speed and Auto-scroll a little on long sentences and long words, and speeds up on easy stretches.</li><li><strong>Daily reading goal</strong> lives on the Stats tab. Pick a number of minutes and watch your streak grow. Once you’ve set one, a small circle at the bottom right of the page fills as you read, and only closes when you reach your goal; tap it for your minutes today.</li><li><strong>Your year in books</strong>, also on Stats, lists the books you finished each year, your longest streak, and a goal for how many books to finish this year.</li></ul>
 <h2>How reading time is counted</h2>
 <p>Tooz counts time while you turn pages, scroll, speed read or listen. Touching the page, highlighting, defining a word and writing a note all count as reading too.</p>
 <ul><li>The clock stops when you switch to another app, lock the phone or close the book, and the page you were on when you closed it still counts.</li><li>If you don’t touch the screen for 5 minutes, Tooz assumes you may have stepped away and counts only as long as that stretch usually takes you. Change the limit to 3 or 10 minutes in Settings.</li><li>Auto-scroll and Speed pause after 10 minutes without a touch and ask <em>Still reading?</em></li></ul>
@@ -1222,7 +1222,7 @@ const SAMPLE_HTML=`
 <p>You can also archive a book from its three dots at any time. Unless you have reached the very end, Tooz asks whether you finished it; if not, it is kept as <em>Did not finish</em>. Archived books live in <strong>Settings → Archived books</strong>, where you can read your notes, add a book back to your library with everything you kept, or delete it for good.</p>
 <p><strong>Start over from the beginning</strong>, also in the three dots, puts a book back to <em>Not started</em>.</p>
 <h2>Keeping your library safe</h2>
-<p>In Settings, <strong>Save backup</strong> keeps everything in one file, including your archive and your settings. <strong>Storage</strong> shows how much space Tooz uses and which books take the most. If you ever want a clean slate, <strong>Erase all data</strong> removes every book, note and setting from this device.</p>
+<p>In Settings, <strong>Save backup</strong> keeps everything in one file, including your archive and your settings. <strong>Storage</strong> lists everything Tooz keeps on your phone, biggest first: books, saved audio and voices. Swipe one to the left to delete it (Undo brings it back). If you ever want a clean slate, <strong>Erase all data</strong> removes every book, note and setting from this device.</p>
 <p>When Tooz is updated, a short <em>What’s new</em> note appears the next time you open it. You can read it again, and see the version number, in <strong>Settings → About</strong>.</p>
 <p>That’s the tour. Close this book with the back arrow whenever you’re ready.</p>
 <h2>Notes</h2>

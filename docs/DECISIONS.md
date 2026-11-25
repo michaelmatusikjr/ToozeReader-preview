@@ -5,6 +5,10 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — the goal circle looked closed in the last couple of minutes.** Cause: its rounded ends add ~5.5% of the
+  circle, so a 94% ring looked shut. Mick proposed a curve (5% as soon as there's progress, matches the goal, then slows
+  over the last 20% so 99% ≈ 95%, closed only at 100%). Built that in what you *see* (`ringFill`, `RING_CAP` in
+  `e_reader.js`), with 99% → ~93% after Claude checked the 95% gap was too faint at 18 px. Test: `delight.js`.
 - **Mick — backlog choices (all six items started).** Storage: **one list, biggest first, swipe left to delete**
   (books, each book's saved audio, each voice; Undo). Themes: **theme cards in Settings** (up to 5, edit page/text/
   accent with live preview, + while under 5, delete; Aa keeps a quick switch; night switch picks from his themes).

@@ -1,6 +1,13 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.17';
+const APP_VERSION='2026.11.25.18';
 const WHATSNEW=[
+  ['Your own themes','Settings → Themes holds up to five themes. Tap one to use it, tap its pencil to change its page, text and accent colours (you see it change as you pick), or tap + to make a new one. Any theme can be changed or deleted. The whole app, not just the page, now takes on your theme. “Switch theme at night” is here too and picks from your themes.'],
+  ['See and clear what’s stored','Settings → Storage lists everything Tooz keeps on your phone, biggest first: each book, each book’s saved audio and each voice. Swipe one to the left to delete it; Undo brings it back. A starter-shelf book keeps your notes and place and simply downloads again when you open it.'],
+  ['A tidier Notes tab','Each book is now one row showing how many highlights and notes it has and the latest one. Tap a book to open it up. Once you have a few, a search at the top finds any highlight, note or bookmark across all your books.'],
+  ['Mark your bookmarks','Tap a bookmark’s icon (in a book’s contents or in Notes) to put one letter, number or emoji inside it and give it a colour. “Bookmarked” now offers Mark to do it straight away.'],
+  ['A goal circle you can trust','The small goal circle in a book only closes when you’ve actually reached your goal; before that a gap always shows.'],
+  ['Small touches','Stats bars grow in when you see them, a book you delete or archive shrinks away from the library, and the bookmark button drops in when you tap it.'],
+  ['Better EPUB import','Numbered lists keep their numbers, nested lists and indented poetry lines are indented, maths keeps its text, and printed page numbers, “↩” links and hidden hyphens no longer end up in the text. (For books you add from now on.)'],
   ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (For red letters in a Bible you added before, add it again.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
   ['Back to where you were','After any jump within a book, “‹ Back to …” appears at the top (below the controls when they’re showing). Tap it to go back, or swipe it away; if it tucks itself away after a few minutes, showing the controls brings it back. The verses a reference took you to stay tinted until you go back. When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
