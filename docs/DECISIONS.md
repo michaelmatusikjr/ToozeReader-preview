@@ -9,7 +9,8 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
   for "Match phone", six themes with a "Wild and crazy" default, keyboard never covers a field, Contents sheet as
   three on/off pills (Contents, Bookmarks, Notes) with fixed search and a search-only filter, and remove the contents
   wheels entirely. Then item 6: bookmarks in line with the text (draggable word by word, tap to edit, several per
-  place), the bookmark button becomes a plain "add bookmark", and a custom colour picker for bookmarks.
+  place), the bookmark button becomes a plain "add bookmark", and a custom colour picker for bookmarks. Item 7: custom daily and yearly goal numbers, and past days keep
+  the goal they had. Item 8: toggle switches animate their accent colour like the rest of the app.
 - **Claude — preview 2026.11.25.18: the whole Nov 24 backlog.** Themes, Storage, Notes tab, bookmark marks, motion,
   ePub import fixes and the goal ring, built by five parallel builders in worktrees, merged and reviewed. Reviewer
   findings fixed: contents-page lists (in `<nav>` / list-style none) get no numbers; a list number can't leak; a

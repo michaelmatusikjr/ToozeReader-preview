@@ -39,6 +39,16 @@ and move items out of **Pending changes** once they're built.
      (Today: bookmarks are word positions `b.i` shown in Contents/Notes and on `#rMark`; `bmIcon`, `bmEdit` in
      `e_reader.js`. In-line drawing would go through `decorate` / Pages + Scroll layout; dragging must respect the
      reader's own selection and swipe handling.)
+  7. **Goals: custom numbers, and past days keep their own goal.**
+     - Daily reading goal: allow typing a custom number of minutes (today only chips 0/10/15/20/30/45/60).
+     - Changing the daily goal never changes past days: e.g. goal 15 yesterday and read 17 → yesterday is "goal met",
+       even after today's goal becomes 20. Today every day is judged against the *current* goal (`met` in
+       `renderStats`, `f_js3.js`; streaks, green bars and the year view use it), so each day needs its goal stored
+       with its stats (e.g. `stats[day].goal`); older days without one keep the goal in force when this ships.
+     - "<year> in books" goal: also allow a custom number (today chips 0/6/12/24/36/52; `yearHTML` in `g_extra.js`).
+  8. **Toggle switches animate their accent colour.** Wherever the accent colour appears it animates into place,
+     except on toggle switches (e.g. Settings on/off switches, `pToggle`), which just jump. Give them the same
+     animation.
 - **ePub gaps found by the Nov 25 check (need a decision; details in `docs/briefs/epub-check-findings.md`).** Tables
   (each cell becomes its own line; real layout medium–large, " | " joined rows small), right-to-left languages
   (medium–large), small pictures inside a sentence (medium), non-linear spine items shown inline (small; hide unless
