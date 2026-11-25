@@ -86,7 +86,9 @@ and move items out of **Pending changes** once they're built.
   his ESV Reference Bible): contents listing only the books, chapters marked by "3:1" or a big number, verse numbers
   that are styled rather than superscript, verse 1 unnumbered. References inside a note card (a study Bible's
   cross references) are tappable too, and inside a Bible, references are marked in paragraphs without verse numbers
-  (its notes and cross-reference sections), never in the verse text. A bare "12:1" counts as a follow-on reference only after ";", ",", "and", "cf.".
+  (its notes and cross-reference sections), never in the verse text. In a study Bible's cross-reference card: only the
+  tapped letter's entry, titled with its verse ("John 1:6"); "ch. 3:28" = same book, "ver. 33" = same chapter,
+  "Rev. 1:4, 8" = Rev. 1:8 too. A bare "12:1" counts as a follow-on reference only after ";", ",", "and", "cf.".
 - **Exact citations:** in a Bible, copy/share/quote cards cite "John 3:16–18 (KJV)" (across chapters
   "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII". "Copy all highlights" adds each one's place.
 - **Daily goal circle:** a small progress circle at the bottom right of the page, only with the controls hidden and

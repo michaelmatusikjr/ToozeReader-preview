@@ -35,6 +35,18 @@ function styleE(book){ let h=`<h1>${book}</h1>`;
     vs.slice(1).forEach((v,k)=>{ h+=` <span class="vn">${k+2}</span>${v}`; if(k===1) h+='</p><p>'; }); h+='</p>';
     XR+=`<p id="x-${id}"><a class="cf" href="${fid(book)}.xhtml">h</a> ${c}:1 Job 38:4–7; John 3:16; 1 Cor. 13:4–5</p>`; }
   return h; }
+// style R (built like Mick's real Crossway ESV, checked against his file Nov 25): each book opens with a grid of chapter
+// numbers; a chapter's first paragraph starts with its section title, the book name and chapter number, all bold;
+// verse 1 unnumbered; verse numbers and cross-reference letters raised by the stylesheet; every cross-reference
+// entry is a span (several per paragraph), all stored at the very end of the Bible
+const R_CSS='span.verse-num{font-weight:bold;font-size:75%;vertical-align:super} span.crossref{font-size:75%;vertical-align:super;font-style:italic} b{font-weight:bold}';
+let XRR='';
+function styleR(book){ let h=`<h1>${book}</h1><p>${CHS[book].join(' ')}</p>`;
+  for(const c of CHS[book]){ const vs=VERSES[book][c]; const id=`${fid(book)}-${c}`;
+    h+=`<p class="normal"><b>Heading ${c}</b> <b>${book.toUpperCase()}</b> <b>${c}</b> <span class="crossref"><a class="pop-link" href="crossrefs.xhtml#rr-${id}.a">a</a></span>${vs[0]} <span class="crossref"><a class="pop-link" href="crossrefs.xhtml#rr-${id}.b">b</a></span>`;
+    vs.slice(1).forEach((v,k)=>{ h+=` <span class="verse-num"><a class="pop-link">${k+2}</a></span>${v}`; if(k===1) h+='</p><p class="normal">'; }); h+='</p>';
+    XRR+=`<p class="crossref"><span id="rr-${id}.a"><a href="${fid(book)}.xhtml">${c}:1</a> <a href="${fid(book)}.xhtml">a</a> <a href="x">ver. 2</a>; [ch. <a href="x">3:16</a>; Rev. 1:4, 8; 1 Cor. 13:4–5]</span> <span id="rr-${id}.b"><a href="${fid(book)}.xhtml">${c}:1</a> b Gen. 1:1</span></p>`; }
+  return h; }
 // style B: big drop-cap chapter number, no verse 1, verse numbers in plain spans stuck to the next word
 function styleB(book){ let h=`<h1>${book}</h1>`;
   for(const c of CHS[book]){ const vs=VERSES[book][c]; h+=`<h3>Heading ${c}</h3><p><span class="chapter-num">${c}</span> ${vs[0]}`;
@@ -69,10 +81,11 @@ async function epub(title, style, chapterNav, extra){
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
   await pg.goto('http://localhost:8750/'); await sleep(1200);
-  const cases=[['ESV Bible', styleE, false, true], ['ESV Reference Bible', styleA, false], ['ESV Sup Bible', styleS, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
+  const cases=[['ESV Bible R', styleR, false, 'R'], ['ESV Bible', styleE, false, true], ['ESV Reference Bible', styleA, false], ['ESV Sup Bible', styleS, false], ['English Standard Version', styleB, false], ['The Holy Bible C', styleC, true]];
   for(const [title, style, nav, ex] of cases){
-    if(ex){ XR=''; for(const b in CHS) styleE(b); }
-    const bytes=await epub(title, style, nav, ex? {css:E_CSS, xr:XR} : null);
+    if(ex===true){ XR=''; for(const b in CHS) styleE(b); }
+    if(ex==='R'){ XRR=''; for(const b in CHS) styleR(b); }
+    const bytes=await epub(title, style, nav, ex==='R'? {css:R_CSS, xr:XRR} : ex? {css:E_CSS, xr:XR} : null);
     const res=await pg.evaluate(async({bytes,title})=>{
       const d=await parseFile(new File([new Uint8Array(bytes)], title+'.epub')); const m=await addDoc(d); m.lastRead=Date.now()+1e6;
       const pick=pickBible(); const t=await Store.get('texts',m.id); R.bible=null; R.bibleCache=null;
@@ -110,6 +123,19 @@ async function epub(title, style, chapterNav, extra){
     const ix=scanRefs(); return {bible:hasVerses(), words:ix.map(i=>R.words[i]).slice(0,6), inVerse:ix.some(i=>versesIn(blockOf(i).s,blockOf(i).e).length)};
     function blockOf(i){ return R.blocks.find(b=>i>=b.s&&i<b.e); } });
   ok('superscript Bible: treated as a Bible, cross-reference section still tappable', sup.bible && sup.words.includes('Job') && !sup.inVerse, sup);
+  // style R: the cross-reference card for John 1:1 "a" shows only that entry, titled with the verse; same-book and
+  // same-chapter references and "Rev. 1:4, 8" are tappable; they open John's verses even though the notes sit at the end
+  const rr=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible R'); m.lastRead=Date.now()+3e6; await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
+    const c=R.meta.chapters.find(c=>c.t==='John'); const n=[...R.notes.keys()].filter(i=>i>=c.i).sort((a,b)=>a-b)[0]; openFootnote(n); await new Promise(r=>setTimeout(r,500));
+    return {title:(document.querySelector('#sheet h2')||{}).textContent, card:$('#sheet .quote').innerText, bs:[...document.querySelectorAll('#sheet .nref')].map(b=>b.textContent)}; });
+  ok('ESV-like: card shows one entry, titled with the verse', rr.title==='John 1:1' && !/Gen\. 1:1/.test(rr.card), rr);
+  ok('ESV-like: "ver. 2", "ch. 3:16", "Rev. 1:4, 8", "1 Cor. 13:4–5" all tappable', JSON.stringify(rr.bs)===JSON.stringify(['ver. 2','ch. 3:16','Rev. 1:4','8','1 Cor. 13:4–5']), rr.bs);
+  const tapR=async t=>{ await pg.evaluate(t=>[...document.querySelectorAll('#sheet .nref')].find(b=>b.textContent===t).click(), t); await sleep(800);
+    const o=await pg.evaluate(()=>({h:(document.querySelector('#sheet h2')||{}).textContent, p:(document.querySelector('#sheet .peek')||{}).textContent||''})); await pg.evaluate(()=>closeSheet()); return o; };
+  const reopen=async()=>{ await sleep(600); await pg.evaluate(async()=>{ const c=R.meta.chapters.find(c=>c.t==='John'); const n=[...R.notes.keys()].filter(i=>i>=c.i).sort((a,b)=>a-b)[0]; openFootnote(n); await new Promise(r=>setTimeout(r,700)); }); };
+  let o=await tapR('ver. 2'); ok('ver. 2 → John 1:2', /^John 1:2/.test(o.h) && /He was in the beginning/.test(o.p), o);
+  await reopen(); o=await tapR('ch. 3:16'); ok('ch. 3:16 → John 3:16', /^John 3:16/.test(o.h) && /For God so loved/.test(o.p), o);
+  await reopen(); o=await tapR('8'); ok('"8" after Rev. 1:4 → Revelation 1:8', /^Revelation 1:8/.test(o.h), o);
   // style E: the letter in the verse is a cross-reference link; its note's references can be tapped
   const ex=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible'); await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
     const k=R.words.findIndex((w,i)=>w==='17'); const raised=k>=0 && !!(R.wf[k]&F_P) && /^For\b/.test(R.words[k+1]||'');

@@ -5,6 +5,12 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick sent his ESV EPUB (Crossway "ESV Classic Reference Bible").** Checked against the real file (not committed):
+  chapter starts are mid-paragraph bold "Section Title JOHN 3", books open with chapter-number grids, cross-reference
+  entries are spans several to a paragraph, stored after all books, using "ch." and "ver." for the same book/chapter.
+  Fixed (2026.11.25.13): chapter detection (bold number followed by words; verses restart at 2), the card shows just
+  the tapped entry titled by verse, same-book/same-chapter and "Rev. 1:4, 8" references are tappable, brackets stay
+  outside the links. Verified end to end on his file; `bibles.js` style R mirrors it. Still needs re-adding the ESV.
 - **Mick — screenshot of his ESV (Crossway, has a Preferences page): cross-reference letters show as plain "h",
   verse numbers stuck to words ("17And").** Real cause: the ESV raises verse numbers and cross-reference letters with
   its stylesheet (vertical-align), not <sup>, so import saw plain text and the letters weren't links. Now

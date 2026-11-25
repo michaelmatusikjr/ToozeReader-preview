@@ -3032,17 +3032,33 @@ const ORD_DIGIT={First:'1',Second:'2',Third:'3'};
 /* references in words[a..b): "Ps. 33:6; 136:5" → both. A bare "12:1" only counts as a follow-on right after a ";" or
    "," or "and"/"cf.", so a cross-reference note's own verse ("b 1:2 Jer. 4:23") isn't taken for the book before it. */
 const FOLLOW=/[;,]$/, FOLLOW_W=/^(and|or|also|cf\.?|see)$/i;
-function refsIn(W, a, b, out){
-  let book=null, ord='', at=-99;
+function refsIn(W, a, b, out, home){
+  let book=null, ord='', c=0, at=-99;
   const parse=w=>{ const m=REF_RE.exec(coreOf(w)); return m? {c:+m[1], v:+m[2], x:m[3]?+m[3]:0, y:m[4]?+m[4]:0} : null; };
+  const bare=w=>{ const m=/^(\d{1,3})(?:[–—-](\d{1,3}))?$/.exec(coreOf(w)); return m? {v:+m[1], x:m[2]?+m[2]:0} : null; };
+  const set=(ks,r)=>{ for(const q of ks) if(q>=a) out.set(q,r); };
   for(let k=a;k<b;k++){
     const w=W[k]; if(!w) continue;
     const bk=BIBLE_BOOKS[bookKey(w)];
     if(bk && k+1<b && isRef(W[k+1])){ const o=BOOK_ORD[bookKey(W[k-1]||'')]; book=bk; ord=o?ORD_DIGIT[o]:'';
-      const r=Object.assign({book, ord}, parse(W[k+1])); if(o && k-1>=a) out.set(k-1,r); out.set(k,r); out.set(k+1,r); at=k+1; k++; continue; }
-    if(book && k-at<=6 && isRef(w) && (FOLLOW.test(W[k-1]||'') || FOLLOW_W.test(W[k-1]||''))){ out.set(k, Object.assign({book, ord}, parse(w))); at=k; }
+      const r=Object.assign({book, ord}, parse(W[k+1])); c=r.c; set(o?[k-1,k,k+1]:[k,k+1], r); at=k+1; k++; continue; }
+    /* in a study Bible's notes: "ch. 3:28" is this book, "ver. 33" / "vv. 4–7" this chapter */
+    if(home && /^[\[(]?(ch|chs|chap|chapter)\.?$/i.test(w) && k+1<b && isRef(W[k+1])){ book=home.book; ord=home.ord;
+      const r=Object.assign({book, ord}, parse(W[k+1])); c=r.c; set([k,k+1], r); at=k+1; k++; continue; }
+    if(home && home.c && /^[\[(]?(ver|vv|vs|verse|verses)\.?$/i.test(w) && k+1<b && bare(W[k+1])){ book=home.book; ord=home.ord; c=home.c;
+      const bv=bare(W[k+1]), r={book, ord, c, v:bv.v, x:bv.x, y:0}; set([k,k+1], r); at=k+1; k++; continue; }
+    const prev=W[k-1]||'';
+    if(book && k-at<=6 && isRef(w) && (FOLLOW.test(prev) || FOLLOW_W.test(prev))){ const r=Object.assign({book, ord}, parse(w)); c=r.c; out.set(k, r); at=k; continue; }
+    /* "Rev. 1:4, 8, 17": verses of the same chapter after a comma */
+    if(book && c && k-at===1 && /,$/.test(prev) && bare(w)){ const bv=bare(w); out.set(k, {book, ord, c, v:bv.v, x:bv.x, y:0}); at=k; }
   }
   return out;
+}
+/* the Bible book a place in a Bible belongs to, from its contents ("1 John" → {book:'John', ord:'1'}) */
+function bookAt(i){
+  const ch=R.meta.chapters||[]; let hit=null;
+  for(const x of ch){ if(x.i>i) break; const m=/^([1-3])?\s*(.+?)(?:\s+\d+)?$/.exec((x.t||'').trim()); const bk=m&&BIBLE_BOOKS[m[2].toLowerCase()]; if(bk) hit={book:bk, ord:m[1]||''}; }
+  return hit;
 }
 function scanRefs(){
   if(R.refFor===R.meta.id) return R.refIdx;
@@ -3091,22 +3107,30 @@ function bibleBookSpan(m, t, names){
 function textChapters(t, a, b){
   const starts=new Set(), inHead=new Set(), out=[{c:1,i:a}]; let next=1;
   for(const bl of t.blocks||[]){ if(bl.e<=a||bl.s>=b) continue; starts.add(bl.s); if(/^h/.test(bl.t)) for(let k=bl.s;k<bl.e;k++) inHead.add(k); }
-  const nextNum=k=>{ for(let q=k+1;q<Math.min(b,k+400);q++){ if(inHead.has(q) || (t.wf && (t.wf[q]&F_N))) continue; const v=vNum(t.words[q]); if(v) return v.b? -1 : v.a; } return 0; };   /* a "3:1" marker next means this number was a verse */
+  const F=k=>(t.wf && t.wf[k])||0, isV=k=>(F(k)&F_P) && /^\d{1,3}$/.test(t.words[k]);
+  let np=0; for(let k=a;k<Math.min(b,a+30000)&&np<3;k++) if(isV(k)) np++;
+  const raised=np>=3;   /* the verse numbers are superscripts, so only they count as verses */
+  const nextNum=k=>{ for(let q=k+1;q<Math.min(b,k+400);q++){ if(inHead.has(q) || (F(q)&F_N)) continue;
+      if(raised){ if(isV(q)) return +t.words[q]; continue; }
+      const v=vNum(t.words[q]); if(v) return v.b? -1 : v.a; } return 0; };   /* a "3:1" marker next means this number was a verse */
+  /* a chapter number opens a paragraph or is bold (some Bibles put the section title and "JOHN 3" in bold at the start of
+     the chapter's first paragraph), and is followed by words, not more numbers (that's a list of chapters) */
+  const mark=k=>{ if(F(k)&(F_P|F_N)) return false; if(!starts.has(k) && !(F(k)&F_B)) return false;
+    const nx=t.words[k+1]; return !!nx && !vNum(nx) && /[A-Za-z“‘"(]/.test(nx); };
   for(let k=a;k<b;k++){
-    if(inHead.has(k) || (t.wf && (t.wf[k]&F_N))) continue; const v=vNum(t.words[k]); if(!v) continue;
-    if(v.b===1 && v.a>=next && v.a<=next+1){ if(v.a===1) out[0].i=k; else out.push({c:v.a,i:k}); next=v.a+1; continue; }
-    if(!v.b && starts.has(k) && (v.a===next || v.a===next+1)){
-      if(v.a===1){ out[0].i=k; next=2; continue; }
+    if(inHead.has(k) || (F(k)&F_N)) continue; const v=vNum(t.words[k]); if(!v || v.g) continue;
+    if(v.b===1 && v.a>=next && v.a<=next+1 && !(F(k+1)&F_N)){ if(v.a===1) out[0].i=k; else out.push({c:v.a,i:k}); next=v.a+1; continue; }
+    if(!v.b && mark(k) && (v.a===next || v.a===next+1)){
+      if(v.a===1){ if(nextNum(k)===2){ out[0].i=k; next=2; } continue; }
       if(nextNum(k)===2){ out.push({c:v.a,i:k}); next=v.a+1; }
     }
   }
-  if(next===1) next=2;
   return out;
 }
 /* verse starts inside a chapter: superscripts if the Bible has them, else numbers counting up */
 function textVerses(t, a, b, c){
   const vs=[]; for(let k=a;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
-  if(vs.length>=2){ if(vs[0].n===2){ let i=a; for(let k=a;k<vs[0].i;k++){ const v=vNum(t.words[k]); if(v && v.a===c && (v.b===1||!v.b)){ i=k; break; } } vs.unshift({n:1,i}); }   /* verse 1 unnumbered */
+  if(vs.length>=2){ if(vs[0].n===2){ let i=a; for(let k=vs[0].i-1;k>=a;k--){ const f=(t.wf&&t.wf[k])||0; if(f&(F_P|F_N)) continue; const v=vNum(t.words[k]); if(v && !v.g && v.a===c && (v.b===1||!v.b)){ i=k; break; } } vs.unshift({n:1,i}); }   /* verse 1 unnumbered */
     return vs; }
   const out=[]; let exp=1;
   for(let k=a;k<b;k++){
@@ -3145,11 +3169,11 @@ function findVerses(m, t, r){
   return {i:vs[vi].i, s:vs[vi].i, e: vs[lastCap+1]? vs[lastCap+1].i : b, more:lastCap<last, vs};
 }
 function versesHTML(t, s, e, vs){
-  const at=new Set((vs||[]).map(v=>v.i));
+  const at=new Map((vs||[]).map(v=>[v.i,v.n]));
   let h=''; for(let k=s;k<e;k++){ const f=t.wf? t.wf[k]:0; if(f&F_N) continue; const w=esc(t.words[k]);
     const sp= k>s && !(f&F_GLUE) ? ' ' : '';
     const m= at.has(k) && !(f&F_P) && /^(\d{1,3}(?::\d{1,3})?)(.*)$/.exec(t.words[k]);   /* plain-styled verse numbers shown raised too */
-    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : m? `${sp}<sup>${esc(m[1].replace(/^\d+:/,''))}</sup>${m[2]?(/^[.,:\])]$/.test(m[2])?'':' ')+esc(m[2].replace(/^[.,:\])]$/,'')):''}` : sp+w; }
+    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : m? `${sp}<sup>${at.get(k)}</sup>${m[2]?(/^[.,:\])]$/.test(m[2])?'':' ')+esc(m[2].replace(/^[.,:\])]$/,'')):''}` : sp+w; }
   return h;
 }
 async function openRefPeek(i){ scanRefs(); const r=R.refMap.get(i); if(r) return peekRef(r); }
@@ -3169,15 +3193,21 @@ function openFootnote(i){
   const t=R.notes.get(i); if(t==null) return;
   const B=R.blocks; let bi=blockAt(t); let s=B[bi].s, e=B[bi].e-1;
   if(e-s<4 && bi+1<B.length) e=B[bi+1].e-1;
+  /* several notes can share a paragraph (a study Bible's cross references): show only this one */
+  if(!R.noteT || R.noteT.id!==R.meta.id){ R.noteT={id:R.meta.id, a:[...new Set(R.notes.values())].sort((x,y)=>x-y)}; }
+  { const A=R.noteT.a; let lo=0, hi=A.length; while(lo<hi){ const m=(lo+hi)>>1; if(A[m]<=t) lo=m+1; else hi=m; } if(lo<A.length && A[lo]>t && A[lo]<=e) e=A[lo]-1; if(t>s && t<=e) s=t; }
   const z=Math.min(e, s+200);
   /* scripture references in the note (cross references in a study Bible) can be tapped for the verses */
-  const refs=refsIn(R.words, s, z+1, new Map()); let h='', open=null;
+  let home=null; if(hasVerses()){ const b=bookAt(i)||bookAt(t), v=/^(\d{1,3}):\d{1,3}$/.exec(coreOf(R.words[s])||''); if(b) home=Object.assign(b, {c: v? +v[1] : 0}); }
+  const refs=refsIn(R.words, s, z+1, new Map(), home); let h='', open=null;
   for(let k=s;k<=z;k++){ const r=refs.get(k), sp=k>s && !glued(k) ? ' ' : '';
     if(open && r!==open){ h+='</button>'; open=null; }
-    if(r && !open){ h+=sp+`<button type="button" class="nref" data-act="ref" data-k="${k}">`; open=r; } else h+=sp;
-    if(open && refs.get(k+1)!==open){ const m=/^(.*?)([;,.]*)$/.exec(R.words[k]); h+=esc(m[1])+'</button>'+esc(m[2]); open=null; }
-    else h+=esc(R.words[k]); }
-  openSheet('Note', `<div class="quote">${h}${e>s+200?'…':''}</div><button class="btn block" type="button" data-act="go">Go to this note in the book</button>`, {
+    let w=R.words[k];
+    if(r && !open){ const lb=/^[\[(]*/.exec(w)[0]; h+=sp+esc(lb)+`<button type="button" class="nref" data-act="ref" data-k="${k}">`; w=w.slice(lb.length); open=r; } else h+=sp;
+    if(open && refs.get(k+1)!==open){ const m=/^(.*?)([;,.\])]*)$/.exec(w); h+=esc(m[1])+'</button>'+esc(m[2]); open=null; }   /* brackets and punctuation stay outside */
+    else h+=esc(w); }
+  const ttl= home && home.c? refName({book:home.book, ord:home.ord, c:home.c, v:+(/:(\d+)/.exec(R.words[s])||[0,0])[1], x:0, y:0}) : 'Note';
+  openSheet(ttl, `<div class="quote">${h}${e>s+200?'…':''}</div><button class="btn block" type="button" data-act="go">Go to this note in the book</button>`, {
     go:()=>{ closeSheet(); goTo(t,true); },
     ref:(b)=>{ const r=refs.get(+b.dataset.k); if(r) peekRef(r); } });
 }
@@ -4481,7 +4511,7 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.12 preview';
+const APP_VERSION='2026.11.25.13 preview';
 const WHATSNEW=[
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],
   ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
