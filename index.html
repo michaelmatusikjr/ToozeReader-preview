@@ -508,10 +508,36 @@ details.aadet[open]>summary::after{transform:rotate(-135deg)}
 h3.subh{margin:16px 0 8px}
 #rAs.on{color:var(--page-link)}
 .panel-sec>h3{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-ui);font-weight:700}
-.themes{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.themes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .themes button{aspect-ratio:1;max-width:100%;border-radius:12px;border:1px solid var(--line);cursor:pointer;font-family:Georgia,serif;font-weight:700;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0}
 .themes button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent);border-color:transparent}
-.themes .lbl{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:.66rem;color:var(--muted);text-align:center;margin-top:-4px}
+.themes .lbl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.themes .lbl{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;font-size:.66rem;color:var(--muted);text-align:center;margin-top:-4px}
+/* Settings → Themes: the user's theme cards and the colour editor */
+.tcards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tcard{position:relative;aspect-ratio:1.15;border:1px solid var(--line);border-radius:14px;overflow:hidden;padding:0;transition:transform .12s}
+.tcard:active{transform:scale(.97)}
+.tcard .tpick{position:absolute;inset:0;width:100%;height:100%;border:0;background:none;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:10px 12px;text-align:left;border-radius:14px}
+.tcard .tpick[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--accent)}
+.tcard .taa{font:700 1.7rem/1 Georgia,serif}
+.tcard .tname{font-size:.78rem;font-weight:700;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcard .tdotc{position:absolute;top:12px;right:12px;width:14px;height:14px;border-radius:50%;pointer-events:none}
+.tcard .tedit{position:absolute;right:0;bottom:0;width:44px;height:44px;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.75}
+.tcard .tedit svg{width:18px;height:18px}
+.tcard.tadd{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);background:none;color:var(--muted);font-size:2rem;cursor:pointer}
+.tname-in{width:100%;margin-bottom:10px}
+.trow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.tlbl{flex:none;width:52px;font-size:.82rem;font-weight:700;color:var(--muted)}
+.tdots{display:flex;flex-wrap:wrap;gap:6px;flex:1}
+.tdot{position:relative;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer;flex:none;display:block}
+.tdot[aria-pressed="true"],.tcustom.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.tcustom{background:conic-gradient(#e0303f,#e39b12,#2e9b4f,#139e9a,#3478f6,#8e5bde,#e0479e,#e0303f);overflow:hidden}
+.tcustom.on{background:var(--cur)}
+.tcustom input{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);opacity:0;cursor:pointer}
+.tprev{margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;font:1.02rem/1.5 Georgia,serif}
+.tprev p{margin:0 0 10px}
+.tprevbtn{display:inline-block;padding:6px 14px;border-radius:999px;font:700 .85rem var(--f-ui)}
+@media (prefers-reduced-motion:reduce){.tcard{transition:none}}
 .stepper{display:flex;align-items:center;gap:8px}
 .stepper button{width:48px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--raise);cursor:pointer;font-family:Georgia,serif;font-weight:700;color:var(--ink)}
 .stepper .v{flex:1;text-align:center;font-family:var(--f-mono);font-size:.9rem;color:var(--accent)}
@@ -758,6 +784,7 @@ const ICON = {
   minus: I('<path d="M5 12h14"/>'),
   plus: I('<path d="M12 5v14M5 12h14"/>'),
   define: I('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
+  pencil: I('<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/>'),
   trash: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
   search: I('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
   toc: I('<path d="M4 6h16M4 12h10M4 18h13"/>'),
@@ -802,10 +829,53 @@ const Store = {
   async del(s,id){ if(!this.db){ this.mem[s].delete(id); return; } return this.tx(s,'readwrite',os=>os.delete(id)); }
 };
 
+/* reading themes. The shipped ones keep their exact page colours until edited; the user's list is S.themes
+   (up to 5 of {id,label,bg,ink,accent}); everything else (dark, muted, line, link, app chrome) is derived from those. */
+const SHIPPED = {
+  white:{label:'White', bg:'#FFFFFF', ink:'#1B1B1B', muted:'#6E6E73', line:'#E3E3E6', link:'#2456C7', accent:'#2244B5'},
+  paper:{label:'Paper', bg:'#F8F5EE', ink:'#262320', muted:'#77716A', line:'#E6E0D3', link:'#2F5BB8', accent:'#2244B5'},
+  sepia:{label:'Sepia', bg:'#F1E4C9', ink:'#3D2E1E', muted:'#7C6851', line:'#DECDAA', link:'#8A4B12', accent:'#2244B5'},
+  gray:{label:'Gray', bg:'#4B4C50', ink:'#EDEDED', muted:'#B9B9BE', line:'#606166', link:'#A8C2FF', accent:'#8AA4FF'},
+  dark:{label:'Dark', bg:'#16181C', ink:'#D8DBE0', muted:'#8C929C', line:'#2A2E35', link:'#8AA4FF', accent:'#8AA4FF'},
+  black:{label:'Black', bg:'#000000', ink:'#C8C8C8', muted:'#7D7D7D', line:'#1E1E1E', link:'#7C97F2', accent:'#8AA4FF'}
+};
+const MAX_THEMES=5, HEX6=/^#[0-9a-f]{6}$/i;
+function defaultThemes(gray){ return ['white',gray?'gray':'paper','sepia','dark','black'].map(id=>{ const t=SHIPPED[id]; return {id, label:t.label, bg:t.bg, ink:t.ink, accent:t.accent}; }); }
+function normThemes(){
+  let a=Array.isArray(S.themes)?S.themes.filter(t=>t&&typeof t.id==='string'&&t.id&&typeof t.label==='string'&&HEX6.test(t.bg)&&HEX6.test(t.ink)&&HEX6.test(t.accent)).map(t=>({id:t.id,label:t.label,bg:t.bg,ink:t.ink,accent:t.accent})):[];
+  a=a.filter((t,i)=>a.findIndex(u=>u.id===t.id)===i).slice(0,MAX_THEMES);
+  S.themes=a.length?a:defaultThemes(false);
+  const has=id=>S.themes.some(t=>t.id===id);
+  if(S.theme!=='auto' && !has(S.theme)) S.theme=S.themes[0].id;
+  if(!has(S.nightTheme)) S.nightTheme=S.themes[0].id;
+}
+const hexRGB=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const rgbHex=c=>'#'+c.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase();
+const mixHex=(a,b,p)=>{ const x=hexRGB(a), y=hexRGB(b); return rgbHex(x.map((v,i)=>v+(y[i]-v)*p)); };
+function lumHex(h){ const c=hexRGB(h).map(v=>{ v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4); }); return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; }
+const contrastHex=(a,b)=>{ const x=lumHex(a), y=lumHex(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); };
+const isDarkHex=h=>lumHex(h)<0.18;
+/* a theme item → everything the app paints with */
+function resolveTheme(t){
+  const sh=SHIPPED[t.id], same=!!sh && sh.bg.toLowerCase()===t.bg.toLowerCase() && sh.ink.toLowerCase()===t.ink.toLowerCase();
+  const dark=isDarkHex(t.bg);
+  return {id:t.id, label:t.label, bg:t.bg, ink:t.ink, accent:t.accent, dark,
+    muted: same?sh.muted:mixHex(t.ink,t.bg,.42), line: same?sh.line:mixHex(t.bg,t.ink,.14),
+    link: same&&sh.accent.toLowerCase()===t.accent.toLowerCase()?sh.link:t.accent};
+}
+function themeById(id){ const t=S.themes.find(x=>x.id===id); return t?resolveTheme(t):null; }
+/* app chrome tokens from a resolved theme */
+function chromeTokens(T){
+  const surface=T.bg, paper=T.dark?mixHex(T.bg,'#000000',.3):mixHex(T.bg,T.ink,.07), raise=T.dark?mixHex(T.bg,T.ink,.06):mixHex(T.bg,T.ink,.035);
+  return {'--surface':surface,'--paper':paper,'--raise':raise,'--ink':T.ink,'--muted':T.muted,'--line':mixHex(T.bg,T.ink,T.dark?.18:.15),
+    '--accent':T.accent,'--accent-soft':mixHex(surface,T.accent,T.dark?.26:.14),
+    '--accent-ink':contrastHex(T.accent,'#FFFFFF')>=contrastHex(T.accent,'#0E1217')?'#FFFFFF':'#0E1217'};
+}
+
 /* ---------- settings (one set, used everywhere) ---------- */
 const DEFAULTS = {
   v:2, mode:'pages',
-  theme:'auto', nightAuto:false, nightFrom:'21:00', nightTo:'07:00', nightTheme:'dark', dim:0, warmth:0,
+  theme:'auto', themes:null, nightAuto:false, nightFrom:'21:00', nightTo:'07:00', nightTheme:'dark', dim:0, warmth:0,
   font:'original', size:19, lineH:1.55, margin:'normal', para:'indent', justify:true, hyphen:true, boldText:false, wordStart:false,
   turn:'slide', tapZones:'edges', twoCol:true, focus:true,
   autoScroll:false, scrollWpm:220, asRamp:true, asPauses:true,
@@ -821,8 +891,11 @@ const S = (()=>{
     saved.theme = saved.theme==='light'?'white' : saved.theme==='dark'?'dark' : 'auto';
     saved.v=2;
   }
+  /* the user's theme list (first run: the five shipped ones; a saved Gray or night-Gray keeps Gray in Paper's place) */
+  if(!Array.isArray(saved.themes)){ const g=saved.theme==='gray'||saved.nightTheme==='gray'; saved.themes=defaultThemes(g); }
   return Object.assign({}, DEFAULTS, saved);
 })();
+normThemes();
 const saveSettings=()=>LS.set('settings',S);
 const FONTS = {
   original:{label:'Original', css:null, note:'Book’s own'},
@@ -838,15 +911,6 @@ const FONTS = {
   opendyslexic:{label:'OpenDyslexic', css:'"OpenDyslexic","Lexend",-apple-system,system-ui,sans-serif', note:'Dyslexia font'}
 };
 const COLORS = [['Red','#E0303F'],['Amber','#E39B12'],['Teal','#139E9A'],['Blue','#3478F6'],['Violet','#8E5BE8'],['Pink','#E0479E']];
-/* reading themes: page colours; dark ones also switch the app chrome to dark */
-const THEMES = {
-  white:{label:'White', bg:'#FFFFFF', ink:'#1B1B1B', muted:'#6E6E73', line:'#E3E3E6', link:'#2456C7', dark:false},
-  paper:{label:'Paper', bg:'#F8F5EE', ink:'#262320', muted:'#77716A', line:'#E6E0D3', link:'#2F5BB8', dark:false},
-  sepia:{label:'Sepia', bg:'#F1E4C9', ink:'#3D2E1E', muted:'#7C6851', line:'#DECDAA', link:'#8A4B12', dark:false},
-  gray:{label:'Gray', bg:'#4B4C50', ink:'#EDEDED', muted:'#B9B9BE', line:'#606166', link:'#A8C2FF', dark:true},
-  dark:{label:'Dark', bg:'#16181C', ink:'#D8DBE0', muted:'#8C929C', line:'#2A2E35', link:'#8AA4FF', dark:true},
-  black:{label:'Black', bg:'#000000', ink:'#C8C8C8', muted:'#7D7D7D', line:'#1E1E1E', link:'#7C97F2', dark:true}
-};
 const HL_LIGHT=['#FFE58A','#C4EDB5','#C5E1FF','#FFC9DF'], HL_DARK=['rgba(255,214,64,.42)','rgba(110,200,90,.38)','rgba(90,160,255,.40)','rgba(255,110,170,.40)'];
 /* margins grow with the screen: [smallest in px, share of the reading width] */
 const MARGINS={narrow:[12,0.03], normal:[22,0.065], wide:[44,0.13]};
@@ -858,8 +922,8 @@ function isNightNow(){
 }
 function effectiveTheme(){
   let t=S.theme; if(S.nightAuto && isNightNow()) t=S.nightTheme;
-  if(t==='auto'){ let dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){} t=dark?'dark':'white'; }
-  return THEMES[t]?t:'white';
+  if(t==='auto'){ let dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){} const f=S.themes.find(x=>isDarkHex(x.bg)===dark); t=(f||S.themes[0]).id; }
+  return S.themes.some(x=>x.id===t)?t:S.themes[0].id;
 }
 function fontCSS(){
   const f=FONTS[S.font]||FONTS.original;
@@ -867,8 +931,9 @@ function fontCSS(){
   return (typeof R!=='undefined' && R.bookFamily ? `"${R.bookFamily}",` : '')+'"Literata",Georgia,serif';
 }
 function applyLook(){
-  const r=document.documentElement, st=r.style, T=THEMES[effectiveTheme()];
+  const r=document.documentElement, st=r.style, T=themeById(effectiveTheme());
   r.setAttribute('data-theme', T.dark?'dark':'light');
+  const ch=chromeTokens(T); for(const k in ch) st.setProperty(k,ch[k]);
   st.setProperty('--page-bg',T.bg); st.setProperty('--page-ink',T.ink); st.setProperty('--page-muted',T.muted); st.setProperty('--page-line',T.line); st.setProperty('--page-link',T.link);
   (T.dark?HL_DARK:HL_LIGHT).forEach((c,k)=>st.setProperty('--hl'+(k+1),c));
   st.setProperty('--hl-ink', T.dark?'#F4F4F4':'#1B1B1B');
@@ -883,7 +948,7 @@ function applyLook(){
   st.setProperty('--bw', S.boldText?'600':'400'); st.setProperty('--bwb', S.boldText?'800':'700');
   const sh=$('#shade'); const d=S.dim/100*0.65, w=S.warmth/100*0.32;
   if(sh){ sh.style.display=(d>0||w>0)?'block':'none'; sh.style.background=`linear-gradient(rgba(0,0,0,${d}),rgba(0,0,0,${d})),rgba(255,140,40,${w})`; sh.style.mixBlendMode='multiply'; }
-  const tc=$('#themeColor'); if(tc) tc.setAttribute('content', (typeof R!=='undefined'&&R.meta&&!$('#v-reader').hidden)?T.bg:(T.dark?'#0E1217':'#E9EDF2'));
+  const tc=$('#themeColor'); if(tc) tc.setAttribute('content', (typeof R!=='undefined'&&R.meta&&!$('#v-reader').hidden)?T.bg:ch['--paper']);
 }
 
 /* ---------- text model ----------
@@ -3730,15 +3795,15 @@ function quickFonts(key){
 }
 function panelHTML(){
   const m=S.mode;
-  const themeKeys=['auto',...Object.keys(THEMES)];
-  const swatch=(k)=>{ const T=THEMES[k]; return T?`background:${T.bg};color:${T.ink}`:'background:linear-gradient(135deg,#fff 50%,#16181C 50%);color:#888'; };
+  const themeKeys=['auto',...S.themes.map(t=>t.id)], thName=k=>k==='auto'?'Phone':esc((S.themes.find(t=>t.id===k)||{}).label||'');
+  const swatch=(k)=>{ const T=themeById(k); return T?`background:${T.bg};color:${T.ink}`:'background:linear-gradient(135deg,#fff 50%,#16181C 50%);color:#888'; };
   const sizeKey=m==='speed'?'speedSize':'size';
   const sizeRow=`<div class="aarow"><span class="aalbl">${m==='speed'?'Word size':'Text size'}</span><div class="stepper"><button type="button" data-step="${sizeKey}" data-d="${m==='speed'?-2:-1}" data-min="${m==='speed'?24:12}" data-max="${m==='speed'?72:40}" aria-label="Smaller" style="font-size:.85rem">A</button><span class="v" data-val="${sizeKey}">${S[sizeKey]} px</span><button type="button" data-step="${sizeKey}" data-d="${m==='speed'?2:1}" data-min="${m==='speed'?24:12}" data-max="${m==='speed'?72:40}" aria-label="Larger" style="font-size:1.25rem">A</button></div></div>`;
   let h=`<div class="panel-sec">${pSeg('mode',[['pages','Pages'],['scroll','Scroll'],['speed','Speed']])}</div>
   <div class="panel-sec aaquick">
     ${sizeRow}
-    <div class="themes" data-set="theme" data-type="seg">${themeKeys.map(k=>`<button type="button" data-v="${k}" aria-pressed="${S.theme===k}" style="${swatch(k)}" aria-label="${k==='auto'?'Match phone':THEMES[k].label}">Aa</button>`).join('')}
-      <div class="lbl">${themeKeys.map(k=>`<span>${k==='auto'?'Phone':THEMES[k].label}</span>`).join('')}</div></div>
+    <div class="themes" data-set="theme" data-type="seg">${themeKeys.map(k=>`<button type="button" data-v="${k}" aria-pressed="${S.theme===k}" style="${swatch(k)}" aria-label="${k==='auto'?'Match phone':thName(k)}">Aa</button>`).join('')}
+      <div class="lbl">${themeKeys.map(k=>`<span>${thName(k)}</span>`).join('')}</div></div>
     ${quickFonts(m==='speed'?'speedFont':'font')}
   </div>`;
   if(m!=='speed'){
@@ -3777,9 +3842,63 @@ function panelHTML(){
 /* light settings live on the Settings page (they apply everywhere) */
 function lightHTML(){ return `<div class="group">
       ${pRange('dim','Dim',0,80,5,'Darkens the page beyond the phone’s lowest brightness.')}${pRange('warmth','Warmth',0,100,5,'Adds a warm tint for night reading.')}
-      ${pToggle('nightAuto','Switch theme at night')}
-      ${S.nightAuto?`<div class="set"><div class="timerow">From <input class="input" type="time" data-set="nightFrom" data-type="text" value="${esc(S.nightFrom)}"> to <input class="input" type="time" data-set="nightTo" data-type="text" value="${esc(S.nightTo)}"></div>${pSeg('nightTheme',[['sepia','Sepia'],['gray','Gray'],['dark','Dark'],['black','Black']],'Night theme')}</div>`:''}
     </div>`; }
+/* themes: cards for the user's themes (Settings → Themes), the night switch, and the colour editor sheet */
+const TH_DOTS={
+  bg:['#FFFFFF','#F8F5EE','#F1E4C9','#E4EEDF','#4B4C50','#16181C','#0B1020','#000000'],
+  ink:['#1B1B1B','#262320','#3D2E1E','#2B3A33','#EDEDED','#D8DBE0','#C8C8C8','#F4E9D0'],
+  accent:['#2244B5','#8AA4FF','#E0303F','#E39B12','#139E9A','#8E5BE8','#E0479E','#2E9B4F']
+};
+function themesHTML(){
+  const cur=effectiveTheme();
+  const cards=S.themes.map(t=>{ const T=resolveTheme(t); return `<div class="tcard" style="background:${T.bg};color:${T.ink};border-color:${T.line}"><button type="button" class="tpick" data-tpick="${esc(t.id)}" aria-pressed="${t.id===cur}" aria-label="${esc(t.label)}"><span class="taa">Aa</span><span class="tname">${esc(t.label)}</span></button><i class="tdotc" style="background:${T.accent}"></i><button type="button" class="tedit" data-tedit="${esc(t.id)}" aria-label="Edit ${esc(t.label)}" style="color:${T.ink}">${ICON.pencil}</button></div>`; }).join('');
+  const add=S.themes.length<MAX_THEMES?`<button type="button" class="tcard tadd" data-tadd="1" aria-label="New theme">+</button>`:'';
+  return `<div class="tcards">${cards}${add}</div><div class="group" style="margin-top:12px">
+      ${pToggle('nightAuto','Switch theme at night')}
+      ${S.nightAuto?`<div class="set"><div class="timerow">From <input class="input" type="time" data-set="nightFrom" data-type="text" value="${esc(S.nightFrom)}"> to <input class="input" type="time" data-set="nightTo" data-type="text" value="${esc(S.nightTo)}"></div>${pSeg('nightTheme',S.themes.map(t=>[t.id,esc(t.label)]),'Night theme')}</div>`:''}
+    </div>`;
+}
+function themesRefresh(){ const el=$('#themeSet'); if(el && el.offsetParent!==null) el.innerHTML=themesHTML(); }
+function themesChanged(){ saveSettings(); applyLook(); themesRefresh(); if(!$('#v-reader').hidden) relayoutSoon(); }
+function bindThemes(){
+  const el=$('#themeSet'); if(!el) return; bindPanel(el);
+  el.addEventListener('click',e=>{
+    const p=e.target.closest('[data-tpick]'), ed=e.target.closest('[data-tedit]'), ad=e.target.closest('[data-tadd]');
+    if(p){ S.theme=p.dataset.tpick; saveSettings(); applyLook(); themesRefresh(); }
+    else if(ed) openThemeEditor(ed.dataset.tedit);
+    else if(ad && S.themes.length<MAX_THEMES){
+      const c=S.themes.find(t=>t.id===effectiveTheme())||S.themes[0], id='t'+Date.now().toString(36);
+      S.themes.push({id, label:'New theme', bg:c.bg, ink:c.ink, accent:c.accent}); S.theme=id; themesChanged(); openThemeEditor(id);
+    }
+  });
+}
+function openThemeEditor(id){
+  const t=S.themes.find(x=>x.id===id); if(!t) return;
+  const row=(k,name)=>`<div class="trow" data-k="${k}"><span class="tlbl">${name}</span><div class="tdots">${TH_DOTS[k].map(c=>`<button type="button" class="tdot" data-act="dot" data-k="${k}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<label class="tdot tcustom" aria-label="Custom ${name}"><input type="color" data-tcolor="${k}" value="${t[k].toLowerCase()}"></label></div></div>`;
+  const body=`<input class="input tname-in" type="text" maxlength="16" value="${esc(t.label)}" aria-label="Name" data-tname="1">
+    ${row('bg','Page')}${row('ink','Text')}${row('accent','Accent')}
+    <div class="tprev" id="tPrev"><p>The quiet hours of reading are the ones we keep. A <b>single page</b> can hold a whole afternoon.</p><span class="tprevbtn">Highlight</span></div>
+    ${S.themes.length>1?`<button type="button" class="btn danger block" data-act="del" style="margin-top:14px">Delete theme</button>`:''}`;
+  const paint=()=>{
+    const pv=$('#tPrev'); if(!pv) return; const T=resolveTheme(t);
+    pv.style.cssText=`background:${T.bg};color:${T.ink};border-color:${T.line}`; pv.querySelector('b').style.color=T.accent; const b=pv.querySelector('.tprevbtn'); b.style.cssText=`background:${T.accent};color:${chromeTokens(T)['--accent-ink']}`;
+    for(const k of ['bg','ink','accent']){ const r=$(`#sheet .trow[data-k="${k}"]`); if(!r) continue; let hit=false;
+      r.querySelectorAll('.tdot[data-v]').forEach(d=>{ const on=d.dataset.v.toLowerCase()===t[k].toLowerCase(); d.setAttribute('aria-pressed',on); if(on) hit=true; });
+      const cu=r.querySelector('.tcustom'); cu.classList.toggle('on',!hit); cu.style.setProperty('--cur',t[k]); const inp=cu.querySelector('input'); if(inp.value.toLowerCase()!==t[k].toLowerCase()) inp.value=t[k].toLowerCase(); }
+  };
+  const set=(k,v)=>{ t[k]=v.toUpperCase(); paint(); themesChanged(); };
+  openSheet('Edit theme', body, {
+    dot:b=>set(b.dataset.k,b.dataset.v),
+    del:()=>{
+      if(S.themes.length<2) return; S.themes=S.themes.filter(x=>x.id!==id);
+      const f=S.themes[0].id; if(S.theme===id) S.theme=f; if(S.nightTheme===id) S.nightTheme=f;
+      closeSheet(); themesChanged();
+    }
+  });
+  const sb=$('#sheet .sheet-body');
+  sb.addEventListener('input',e=>{ const x=e.target; if(x.dataset.tcolor) set(x.dataset.tcolor,x.value); else if(x.dataset.tname){ t.label=x.value.trim().slice(0,16)||t.label; themesChanged(); } });
+  paint();
+}
 /* Speed controls → ⚙︎ */
 function speedOptsHTML(){
   return `<div class="group">
@@ -3826,6 +3945,7 @@ function openPanel(){
 /* re-draw whichever reading controls are on screen (the Aa menu, the Settings page section) */
 function refreshPanel(){
   const ls=$('#lightSet'); if(ls && ls.offsetParent!==null) ls.innerHTML=lightHTML();
+  themesRefresh();
   const body=$('#sheet .sheet-body'); if(!body || $('#sheet').hidden) return;
   const html= body.dataset.aa? panelHTML() : body.dataset.sheet==='speed'? speedOptsHTML() : body.dataset.sheet==='as'? asOptsHTML() : body.dataset.sheet==='voice'? voiceSheetHTML() : null;
   if(html==null) return;
@@ -3842,8 +3962,8 @@ function backToBook(){
   holdPlace(); applyLook(); relayoutSoon(); updateChrome();
 }
 function resetReading(){
-  const keep={linkService:S.linkService, goalMins:S.goalMins, measuredWpm:S.measuredWpm, info:S.info};
-  Object.assign(S, DEFAULTS, keep, {mode:S.mode}); saveSettings(); applyLook(); setWpm(S.wpm); asUI(); relayoutSoon();
+  const keep={themes:S.themes, linkService:S.linkService, goalMins:S.goalMins, measuredWpm:S.measuredWpm, info:S.info};
+  Object.assign(S, DEFAULTS, keep, {mode:S.mode}); normThemes(); saveSettings(); applyLook(); setWpm(S.wpm); asUI(); relayoutSoon();
 }
 function afterSet(key){
   saveSettings();
@@ -4921,7 +5041,7 @@ function renderSettings(){
   $('#settingsBody').innerHTML=`
     ${R.inSet?`<button class="btn" type="button" id="backToBook" style="margin-bottom:10px">‹ Back to the book</button>`:''}
     <div class="topbar"><div><div class="eyebrow">Tooz eReader</div><h1>Settings</h1></div></div>
-    <p class="note" style="margin:-6px 0 14px">Text size, theme and fonts are in <b>Aa</b> inside any book. Read-aloud, auto-scroll and speed-reading options are on their own controls.</p>
+    <p class="note" style="margin:-6px 0 14px">Text size and fonts are in <b>Aa</b> inside any book. Read-aloud, auto-scroll and speed-reading options are on their own controls.</p>
     <h2>Reading</h2>
     <div class="group"><div class="set">
       <div class="hd"><b>Count idle time for up to</b></div>
@@ -4935,6 +5055,8 @@ function renderSettings(){
     </div>
     <div class="set"><button class="btn" type="button" id="resetBtn">Reset reading options</button>
       <div class="desc">Puts the look, page, auto-scroll, speed and voice options back to how they started.</div></div></div>
+    <h2>Themes</h2>
+    <div id="themeSet">${themesHTML()}</div>
     <h2>Light</h2>
     <div id="lightSet">${lightHTML()}</div>
     <h2>Backup and restore</h2>
@@ -5024,7 +5146,7 @@ function renderSettings(){
   if($('#bkRemind')) $('#bkRemind').onclick=e=>{ const b=e.target.closest('button[data-v]'); if(!b) return; S.bkRemind=+b.dataset.v; saveSettings(); $('#bkRemind').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); };
   $('#restoreBtn').onclick=()=>{ $('#restoreIn').value=''; $('#restoreIn').click(); };
   $('#resetBtn').onclick=()=>{ resetReading(); toast('Reading options reset'); };
-  bindPanel($('#lightSet'));
+  bindPanel($('#lightSet')); bindThemes();
   $('#infoSeg').onclick=e=>{ const b=e.target.closest('button[data-v]'); if(!b) return; S.info=+b.dataset.v; saveSettings(); $('#infoSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); if(R.meta) updateChrome(); };
   if($('#backToBook')) $('#backToBook').onclick=backToBook;
 }
@@ -5089,7 +5211,7 @@ $('#restoreIn').addEventListener('change',async e=>{
         if(Array.isArray(b.archive)){ const have=new Set(ARCH.list().map(a=>a.id+'|'+a.archivedAt)); for(const a of b.archive) if(!have.has(a.id+'|'+a.archivedAt)) ARCH.list().push(a); ARCH.list().sort((x,y)=>y.archivedAt-x.archivedAt); ARCH.save(); }
         migrateTags();
         const st=LS.get('stats',{}); for(const k in b.stats){ if(!st[k]||(st[k].ms||0)<(b.stats[k].ms||0)) st[k]=b.stats[k]; } LS.set('stats',st);
-        if(withSettings){ for(const k in b.settings){ if(k in DEFAULTS && typeof b.settings[k]===typeof DEFAULTS[k]) S[k]=b.settings[k]; } saveSettings(); applyLook();
+        if(withSettings){ for(const k in b.settings){ if(k in DEFAULTS && typeof b.settings[k]===typeof DEFAULTS[k]) S[k]=b.settings[k]; } normThemes(); saveSettings(); applyLook();
           const pf=b.prefs||{}; for(const k of ['libSort','qstyle','notesSeg']) if(pf[k]!=null) LS.set(k,pf[k]); }
         renderLibrary(); renderWords(); if(!$('#v-settings').hidden) renderSettings(); toast('Backup restored');
       }catch(err){ console.error(err); toast('The backup couldn’t be fully restored'+(err&&err.name==='QuotaExceededError'?' because the phone’s storage for Tooz is full':'')+'.', null, 8000); try{ LIB=await Store.all('meta'); renderLibrary(); }catch(_){} }

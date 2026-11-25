@@ -55,7 +55,7 @@ function renderSettings(){
   $('#settingsBody').innerHTML=`
     ${R.inSet?`<button class="btn" type="button" id="backToBook" style="margin-bottom:10px">‹ Back to the book</button>`:''}
     <div class="topbar"><div><div class="eyebrow">Tooz eReader</div><h1>Settings</h1></div></div>
-    <p class="note" style="margin:-6px 0 14px">Text size, theme and fonts are in <b>Aa</b> inside any book. Read-aloud, auto-scroll and speed-reading options are on their own controls.</p>
+    <p class="note" style="margin:-6px 0 14px">Text size and fonts are in <b>Aa</b> inside any book. Read-aloud, auto-scroll and speed-reading options are on their own controls.</p>
     <h2>Reading</h2>
     <div class="group"><div class="set">
       <div class="hd"><b>Count idle time for up to</b></div>
@@ -69,6 +69,8 @@ function renderSettings(){
     </div>
     <div class="set"><button class="btn" type="button" id="resetBtn">Reset reading options</button>
       <div class="desc">Puts the look, page, auto-scroll, speed and voice options back to how they started.</div></div></div>
+    <h2>Themes</h2>
+    <div id="themeSet">${themesHTML()}</div>
     <h2>Light</h2>
     <div id="lightSet">${lightHTML()}</div>
     <h2>Backup and restore</h2>
@@ -158,7 +160,7 @@ function renderSettings(){
   if($('#bkRemind')) $('#bkRemind').onclick=e=>{ const b=e.target.closest('button[data-v]'); if(!b) return; S.bkRemind=+b.dataset.v; saveSettings(); $('#bkRemind').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); };
   $('#restoreBtn').onclick=()=>{ $('#restoreIn').value=''; $('#restoreIn').click(); };
   $('#resetBtn').onclick=()=>{ resetReading(); toast('Reading options reset'); };
-  bindPanel($('#lightSet'));
+  bindPanel($('#lightSet')); bindThemes();
   $('#infoSeg').onclick=e=>{ const b=e.target.closest('button[data-v]'); if(!b) return; S.info=+b.dataset.v; saveSettings(); $('#infoSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); if(R.meta) updateChrome(); };
   if($('#backToBook')) $('#backToBook').onclick=backToBook;
 }
@@ -223,7 +225,7 @@ $('#restoreIn').addEventListener('change',async e=>{
         if(Array.isArray(b.archive)){ const have=new Set(ARCH.list().map(a=>a.id+'|'+a.archivedAt)); for(const a of b.archive) if(!have.has(a.id+'|'+a.archivedAt)) ARCH.list().push(a); ARCH.list().sort((x,y)=>y.archivedAt-x.archivedAt); ARCH.save(); }
         migrateTags();
         const st=LS.get('stats',{}); for(const k in b.stats){ if(!st[k]||(st[k].ms||0)<(b.stats[k].ms||0)) st[k]=b.stats[k]; } LS.set('stats',st);
-        if(withSettings){ for(const k in b.settings){ if(k in DEFAULTS && typeof b.settings[k]===typeof DEFAULTS[k]) S[k]=b.settings[k]; } saveSettings(); applyLook();
+        if(withSettings){ for(const k in b.settings){ if(k in DEFAULTS && typeof b.settings[k]===typeof DEFAULTS[k]) S[k]=b.settings[k]; } normThemes(); saveSettings(); applyLook();
           const pf=b.prefs||{}; for(const k of ['libSort','qstyle','notesSeg']) if(pf[k]!=null) LS.set(k,pf[k]); }
         renderLibrary(); renderWords(); if(!$('#v-settings').hidden) renderSettings(); toast('Backup restored');
       }catch(err){ console.error(err); toast('The backup couldn’t be fully restored'+(err&&err.name==='QuotaExceededError'?' because the phone’s storage for Tooz is full':'')+'.', null, 8000); try{ LIB=await Store.all('meta'); renderLibrary(); }catch(_){} }

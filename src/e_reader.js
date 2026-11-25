@@ -1766,15 +1766,15 @@ function quickFonts(key){
 }
 function panelHTML(){
   const m=S.mode;
-  const themeKeys=['auto',...Object.keys(THEMES)];
-  const swatch=(k)=>{ const T=THEMES[k]; return T?`background:${T.bg};color:${T.ink}`:'background:linear-gradient(135deg,#fff 50%,#16181C 50%);color:#888'; };
+  const themeKeys=['auto',...S.themes.map(t=>t.id)], thName=k=>k==='auto'?'Phone':esc((S.themes.find(t=>t.id===k)||{}).label||'');
+  const swatch=(k)=>{ const T=themeById(k); return T?`background:${T.bg};color:${T.ink}`:'background:linear-gradient(135deg,#fff 50%,#16181C 50%);color:#888'; };
   const sizeKey=m==='speed'?'speedSize':'size';
   const sizeRow=`<div class="aarow"><span class="aalbl">${m==='speed'?'Word size':'Text size'}</span><div class="stepper"><button type="button" data-step="${sizeKey}" data-d="${m==='speed'?-2:-1}" data-min="${m==='speed'?24:12}" data-max="${m==='speed'?72:40}" aria-label="Smaller" style="font-size:.85rem">A</button><span class="v" data-val="${sizeKey}">${S[sizeKey]} px</span><button type="button" data-step="${sizeKey}" data-d="${m==='speed'?2:1}" data-min="${m==='speed'?24:12}" data-max="${m==='speed'?72:40}" aria-label="Larger" style="font-size:1.25rem">A</button></div></div>`;
   let h=`<div class="panel-sec">${pSeg('mode',[['pages','Pages'],['scroll','Scroll'],['speed','Speed']])}</div>
   <div class="panel-sec aaquick">
     ${sizeRow}
-    <div class="themes" data-set="theme" data-type="seg">${themeKeys.map(k=>`<button type="button" data-v="${k}" aria-pressed="${S.theme===k}" style="${swatch(k)}" aria-label="${k==='auto'?'Match phone':THEMES[k].label}">Aa</button>`).join('')}
-      <div class="lbl">${themeKeys.map(k=>`<span>${k==='auto'?'Phone':THEMES[k].label}</span>`).join('')}</div></div>
+    <div class="themes" data-set="theme" data-type="seg">${themeKeys.map(k=>`<button type="button" data-v="${k}" aria-pressed="${S.theme===k}" style="${swatch(k)}" aria-label="${k==='auto'?'Match phone':thName(k)}">Aa</button>`).join('')}
+      <div class="lbl">${themeKeys.map(k=>`<span>${thName(k)}</span>`).join('')}</div></div>
     ${quickFonts(m==='speed'?'speedFont':'font')}
   </div>`;
   if(m!=='speed'){
@@ -1813,9 +1813,63 @@ function panelHTML(){
 /* light settings live on the Settings page (they apply everywhere) */
 function lightHTML(){ return `<div class="group">
       ${pRange('dim','Dim',0,80,5,'Darkens the page beyond the phone’s lowest brightness.')}${pRange('warmth','Warmth',0,100,5,'Adds a warm tint for night reading.')}
-      ${pToggle('nightAuto','Switch theme at night')}
-      ${S.nightAuto?`<div class="set"><div class="timerow">From <input class="input" type="time" data-set="nightFrom" data-type="text" value="${esc(S.nightFrom)}"> to <input class="input" type="time" data-set="nightTo" data-type="text" value="${esc(S.nightTo)}"></div>${pSeg('nightTheme',[['sepia','Sepia'],['gray','Gray'],['dark','Dark'],['black','Black']],'Night theme')}</div>`:''}
     </div>`; }
+/* themes: cards for the user's themes (Settings → Themes), the night switch, and the colour editor sheet */
+const TH_DOTS={
+  bg:['#FFFFFF','#F8F5EE','#F1E4C9','#E4EEDF','#4B4C50','#16181C','#0B1020','#000000'],
+  ink:['#1B1B1B','#262320','#3D2E1E','#2B3A33','#EDEDED','#D8DBE0','#C8C8C8','#F4E9D0'],
+  accent:['#2244B5','#8AA4FF','#E0303F','#E39B12','#139E9A','#8E5BE8','#E0479E','#2E9B4F']
+};
+function themesHTML(){
+  const cur=effectiveTheme();
+  const cards=S.themes.map(t=>{ const T=resolveTheme(t); return `<div class="tcard" style="background:${T.bg};color:${T.ink};border-color:${T.line}"><button type="button" class="tpick" data-tpick="${esc(t.id)}" aria-pressed="${t.id===cur}" aria-label="${esc(t.label)}"><span class="taa">Aa</span><span class="tname">${esc(t.label)}</span></button><i class="tdotc" style="background:${T.accent}"></i><button type="button" class="tedit" data-tedit="${esc(t.id)}" aria-label="Edit ${esc(t.label)}" style="color:${T.ink}">${ICON.pencil}</button></div>`; }).join('');
+  const add=S.themes.length<MAX_THEMES?`<button type="button" class="tcard tadd" data-tadd="1" aria-label="New theme">+</button>`:'';
+  return `<div class="tcards">${cards}${add}</div><div class="group" style="margin-top:12px">
+      ${pToggle('nightAuto','Switch theme at night')}
+      ${S.nightAuto?`<div class="set"><div class="timerow">From <input class="input" type="time" data-set="nightFrom" data-type="text" value="${esc(S.nightFrom)}"> to <input class="input" type="time" data-set="nightTo" data-type="text" value="${esc(S.nightTo)}"></div>${pSeg('nightTheme',S.themes.map(t=>[t.id,esc(t.label)]),'Night theme')}</div>`:''}
+    </div>`;
+}
+function themesRefresh(){ const el=$('#themeSet'); if(el && el.offsetParent!==null) el.innerHTML=themesHTML(); }
+function themesChanged(){ saveSettings(); applyLook(); themesRefresh(); if(!$('#v-reader').hidden) relayoutSoon(); }
+function bindThemes(){
+  const el=$('#themeSet'); if(!el) return; bindPanel(el);
+  el.addEventListener('click',e=>{
+    const p=e.target.closest('[data-tpick]'), ed=e.target.closest('[data-tedit]'), ad=e.target.closest('[data-tadd]');
+    if(p){ S.theme=p.dataset.tpick; saveSettings(); applyLook(); themesRefresh(); }
+    else if(ed) openThemeEditor(ed.dataset.tedit);
+    else if(ad && S.themes.length<MAX_THEMES){
+      const c=S.themes.find(t=>t.id===effectiveTheme())||S.themes[0], id='t'+Date.now().toString(36);
+      S.themes.push({id, label:'New theme', bg:c.bg, ink:c.ink, accent:c.accent}); S.theme=id; themesChanged(); openThemeEditor(id);
+    }
+  });
+}
+function openThemeEditor(id){
+  const t=S.themes.find(x=>x.id===id); if(!t) return;
+  const row=(k,name)=>`<div class="trow" data-k="${k}"><span class="tlbl">${name}</span><div class="tdots">${TH_DOTS[k].map(c=>`<button type="button" class="tdot" data-act="dot" data-k="${k}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<label class="tdot tcustom" aria-label="Custom ${name}"><input type="color" data-tcolor="${k}" value="${t[k].toLowerCase()}"></label></div></div>`;
+  const body=`<input class="input tname-in" type="text" maxlength="16" value="${esc(t.label)}" aria-label="Name" data-tname="1">
+    ${row('bg','Page')}${row('ink','Text')}${row('accent','Accent')}
+    <div class="tprev" id="tPrev"><p>The quiet hours of reading are the ones we keep. A <b>single page</b> can hold a whole afternoon.</p><span class="tprevbtn">Highlight</span></div>
+    ${S.themes.length>1?`<button type="button" class="btn danger block" data-act="del" style="margin-top:14px">Delete theme</button>`:''}`;
+  const paint=()=>{
+    const pv=$('#tPrev'); if(!pv) return; const T=resolveTheme(t);
+    pv.style.cssText=`background:${T.bg};color:${T.ink};border-color:${T.line}`; pv.querySelector('b').style.color=T.accent; const b=pv.querySelector('.tprevbtn'); b.style.cssText=`background:${T.accent};color:${chromeTokens(T)['--accent-ink']}`;
+    for(const k of ['bg','ink','accent']){ const r=$(`#sheet .trow[data-k="${k}"]`); if(!r) continue; let hit=false;
+      r.querySelectorAll('.tdot[data-v]').forEach(d=>{ const on=d.dataset.v.toLowerCase()===t[k].toLowerCase(); d.setAttribute('aria-pressed',on); if(on) hit=true; });
+      const cu=r.querySelector('.tcustom'); cu.classList.toggle('on',!hit); cu.style.setProperty('--cur',t[k]); const inp=cu.querySelector('input'); if(inp.value.toLowerCase()!==t[k].toLowerCase()) inp.value=t[k].toLowerCase(); }
+  };
+  const set=(k,v)=>{ t[k]=v.toUpperCase(); paint(); themesChanged(); };
+  openSheet('Edit theme', body, {
+    dot:b=>set(b.dataset.k,b.dataset.v),
+    del:()=>{
+      if(S.themes.length<2) return; S.themes=S.themes.filter(x=>x.id!==id);
+      const f=S.themes[0].id; if(S.theme===id) S.theme=f; if(S.nightTheme===id) S.nightTheme=f;
+      closeSheet(); themesChanged();
+    }
+  });
+  const sb=$('#sheet .sheet-body');
+  sb.addEventListener('input',e=>{ const x=e.target; if(x.dataset.tcolor) set(x.dataset.tcolor,x.value); else if(x.dataset.tname){ t.label=x.value.trim().slice(0,16)||t.label; themesChanged(); } });
+  paint();
+}
 /* Speed controls → ⚙︎ */
 function speedOptsHTML(){
   return `<div class="group">
@@ -1862,6 +1916,7 @@ function openPanel(){
 /* re-draw whichever reading controls are on screen (the Aa menu, the Settings page section) */
 function refreshPanel(){
   const ls=$('#lightSet'); if(ls && ls.offsetParent!==null) ls.innerHTML=lightHTML();
+  themesRefresh();
   const body=$('#sheet .sheet-body'); if(!body || $('#sheet').hidden) return;
   const html= body.dataset.aa? panelHTML() : body.dataset.sheet==='speed'? speedOptsHTML() : body.dataset.sheet==='as'? asOptsHTML() : body.dataset.sheet==='voice'? voiceSheetHTML() : null;
   if(html==null) return;
@@ -1878,8 +1933,8 @@ function backToBook(){
   holdPlace(); applyLook(); relayoutSoon(); updateChrome();
 }
 function resetReading(){
-  const keep={linkService:S.linkService, goalMins:S.goalMins, measuredWpm:S.measuredWpm, info:S.info};
-  Object.assign(S, DEFAULTS, keep, {mode:S.mode}); saveSettings(); applyLook(); setWpm(S.wpm); asUI(); relayoutSoon();
+  const keep={themes:S.themes, linkService:S.linkService, goalMins:S.goalMins, measuredWpm:S.measuredWpm, info:S.info};
+  Object.assign(S, DEFAULTS, keep, {mode:S.mode}); normThemes(); saveSettings(); applyLook(); setWpm(S.wpm); asUI(); relayoutSoon();
 }
 function afterSet(key){
   saveSettings();

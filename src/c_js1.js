@@ -2,6 +2,7 @@
 'use strict';
 /* ---------- icons ---------- */
 /*@@OLD:313-334@@*/
+  pencil: I('<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/>'),
   trash: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
   search: I('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
   toc: I('<path d="M4 6h16M4 12h10M4 18h13"/>'),
@@ -20,10 +21,53 @@
 /* ---------- utilities ---------- */
 /*@@OLD:338-364@@*/
 
+/* reading themes. The shipped ones keep their exact page colours until edited; the user's list is S.themes
+   (up to 5 of {id,label,bg,ink,accent}); everything else (dark, muted, line, link, app chrome) is derived from those. */
+const SHIPPED = {
+  white:{label:'White', bg:'#FFFFFF', ink:'#1B1B1B', muted:'#6E6E73', line:'#E3E3E6', link:'#2456C7', accent:'#2244B5'},
+  paper:{label:'Paper', bg:'#F8F5EE', ink:'#262320', muted:'#77716A', line:'#E6E0D3', link:'#2F5BB8', accent:'#2244B5'},
+  sepia:{label:'Sepia', bg:'#F1E4C9', ink:'#3D2E1E', muted:'#7C6851', line:'#DECDAA', link:'#8A4B12', accent:'#2244B5'},
+  gray:{label:'Gray', bg:'#4B4C50', ink:'#EDEDED', muted:'#B9B9BE', line:'#606166', link:'#A8C2FF', accent:'#8AA4FF'},
+  dark:{label:'Dark', bg:'#16181C', ink:'#D8DBE0', muted:'#8C929C', line:'#2A2E35', link:'#8AA4FF', accent:'#8AA4FF'},
+  black:{label:'Black', bg:'#000000', ink:'#C8C8C8', muted:'#7D7D7D', line:'#1E1E1E', link:'#7C97F2', accent:'#8AA4FF'}
+};
+const MAX_THEMES=5, HEX6=/^#[0-9a-f]{6}$/i;
+function defaultThemes(gray){ return ['white',gray?'gray':'paper','sepia','dark','black'].map(id=>{ const t=SHIPPED[id]; return {id, label:t.label, bg:t.bg, ink:t.ink, accent:t.accent}; }); }
+function normThemes(){
+  let a=Array.isArray(S.themes)?S.themes.filter(t=>t&&typeof t.id==='string'&&t.id&&typeof t.label==='string'&&HEX6.test(t.bg)&&HEX6.test(t.ink)&&HEX6.test(t.accent)).map(t=>({id:t.id,label:t.label,bg:t.bg,ink:t.ink,accent:t.accent})):[];
+  a=a.filter((t,i)=>a.findIndex(u=>u.id===t.id)===i).slice(0,MAX_THEMES);
+  S.themes=a.length?a:defaultThemes(false);
+  const has=id=>S.themes.some(t=>t.id===id);
+  if(S.theme!=='auto' && !has(S.theme)) S.theme=S.themes[0].id;
+  if(!has(S.nightTheme)) S.nightTheme=S.themes[0].id;
+}
+const hexRGB=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const rgbHex=c=>'#'+c.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase();
+const mixHex=(a,b,p)=>{ const x=hexRGB(a), y=hexRGB(b); return rgbHex(x.map((v,i)=>v+(y[i]-v)*p)); };
+function lumHex(h){ const c=hexRGB(h).map(v=>{ v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4); }); return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; }
+const contrastHex=(a,b)=>{ const x=lumHex(a), y=lumHex(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); };
+const isDarkHex=h=>lumHex(h)<0.18;
+/* a theme item → everything the app paints with */
+function resolveTheme(t){
+  const sh=SHIPPED[t.id], same=!!sh && sh.bg.toLowerCase()===t.bg.toLowerCase() && sh.ink.toLowerCase()===t.ink.toLowerCase();
+  const dark=isDarkHex(t.bg);
+  return {id:t.id, label:t.label, bg:t.bg, ink:t.ink, accent:t.accent, dark,
+    muted: same?sh.muted:mixHex(t.ink,t.bg,.42), line: same?sh.line:mixHex(t.bg,t.ink,.14),
+    link: same&&sh.accent.toLowerCase()===t.accent.toLowerCase()?sh.link:t.accent};
+}
+function themeById(id){ const t=S.themes.find(x=>x.id===id); return t?resolveTheme(t):null; }
+/* app chrome tokens from a resolved theme */
+function chromeTokens(T){
+  const surface=T.bg, paper=T.dark?mixHex(T.bg,'#000000',.3):mixHex(T.bg,T.ink,.07), raise=T.dark?mixHex(T.bg,T.ink,.06):mixHex(T.bg,T.ink,.035);
+  return {'--surface':surface,'--paper':paper,'--raise':raise,'--ink':T.ink,'--muted':T.muted,'--line':mixHex(T.bg,T.ink,T.dark?.18:.15),
+    '--accent':T.accent,'--accent-soft':mixHex(surface,T.accent,T.dark?.26:.14),
+    '--accent-ink':contrastHex(T.accent,'#FFFFFF')>=contrastHex(T.accent,'#0E1217')?'#FFFFFF':'#0E1217'};
+}
+
 /* ---------- settings (one set, used everywhere) ---------- */
 const DEFAULTS = {
   v:2, mode:'pages',
-  theme:'auto', nightAuto:false, nightFrom:'21:00', nightTo:'07:00', nightTheme:'dark', dim:0, warmth:0,
+  theme:'auto', themes:null, nightAuto:false, nightFrom:'21:00', nightTo:'07:00', nightTheme:'dark', dim:0, warmth:0,
   font:'original', size:19, lineH:1.55, margin:'normal', para:'indent', justify:true, hyphen:true, boldText:false, wordStart:false,
   turn:'slide', tapZones:'edges', twoCol:true, focus:true,
   autoScroll:false, scrollWpm:220, asRamp:true, asPauses:true,
@@ -39,8 +83,11 @@ const S = (()=>{
     saved.theme = saved.theme==='light'?'white' : saved.theme==='dark'?'dark' : 'auto';
     saved.v=2;
   }
+  /* the user's theme list (first run: the five shipped ones; a saved Gray or night-Gray keeps Gray in Paper's place) */
+  if(!Array.isArray(saved.themes)){ const g=saved.theme==='gray'||saved.nightTheme==='gray'; saved.themes=defaultThemes(g); }
   return Object.assign({}, DEFAULTS, saved);
 })();
+normThemes();
 const saveSettings=()=>LS.set('settings',S);
 const FONTS = {
   original:{label:'Original', css:null, note:'Book’s own'},
@@ -56,15 +103,6 @@ const FONTS = {
   opendyslexic:{label:'OpenDyslexic', css:'"OpenDyslexic","Lexend",-apple-system,system-ui,sans-serif', note:'Dyslexia font'}
 };
 const COLORS = [['Red','#E0303F'],['Amber','#E39B12'],['Teal','#139E9A'],['Blue','#3478F6'],['Violet','#8E5BE8'],['Pink','#E0479E']];
-/* reading themes: page colours; dark ones also switch the app chrome to dark */
-const THEMES = {
-  white:{label:'White', bg:'#FFFFFF', ink:'#1B1B1B', muted:'#6E6E73', line:'#E3E3E6', link:'#2456C7', dark:false},
-  paper:{label:'Paper', bg:'#F8F5EE', ink:'#262320', muted:'#77716A', line:'#E6E0D3', link:'#2F5BB8', dark:false},
-  sepia:{label:'Sepia', bg:'#F1E4C9', ink:'#3D2E1E', muted:'#7C6851', line:'#DECDAA', link:'#8A4B12', dark:false},
-  gray:{label:'Gray', bg:'#4B4C50', ink:'#EDEDED', muted:'#B9B9BE', line:'#606166', link:'#A8C2FF', dark:true},
-  dark:{label:'Dark', bg:'#16181C', ink:'#D8DBE0', muted:'#8C929C', line:'#2A2E35', link:'#8AA4FF', dark:true},
-  black:{label:'Black', bg:'#000000', ink:'#C8C8C8', muted:'#7D7D7D', line:'#1E1E1E', link:'#7C97F2', dark:true}
-};
 const HL_LIGHT=['#FFE58A','#C4EDB5','#C5E1FF','#FFC9DF'], HL_DARK=['rgba(255,214,64,.42)','rgba(110,200,90,.38)','rgba(90,160,255,.40)','rgba(255,110,170,.40)'];
 /* margins grow with the screen: [smallest in px, share of the reading width] */
 const MARGINS={narrow:[12,0.03], normal:[22,0.065], wide:[44,0.13]};
@@ -76,8 +114,8 @@ function isNightNow(){
 }
 function effectiveTheme(){
   let t=S.theme; if(S.nightAuto && isNightNow()) t=S.nightTheme;
-  if(t==='auto'){ let dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){} t=dark?'dark':'white'; }
-  return THEMES[t]?t:'white';
+  if(t==='auto'){ let dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){} const f=S.themes.find(x=>isDarkHex(x.bg)===dark); t=(f||S.themes[0]).id; }
+  return S.themes.some(x=>x.id===t)?t:S.themes[0].id;
 }
 function fontCSS(){
   const f=FONTS[S.font]||FONTS.original;
@@ -85,8 +123,9 @@ function fontCSS(){
   return (typeof R!=='undefined' && R.bookFamily ? `"${R.bookFamily}",` : '')+'"Literata",Georgia,serif';
 }
 function applyLook(){
-  const r=document.documentElement, st=r.style, T=THEMES[effectiveTheme()];
+  const r=document.documentElement, st=r.style, T=themeById(effectiveTheme());
   r.setAttribute('data-theme', T.dark?'dark':'light');
+  const ch=chromeTokens(T); for(const k in ch) st.setProperty(k,ch[k]);
   st.setProperty('--page-bg',T.bg); st.setProperty('--page-ink',T.ink); st.setProperty('--page-muted',T.muted); st.setProperty('--page-line',T.line); st.setProperty('--page-link',T.link);
   (T.dark?HL_DARK:HL_LIGHT).forEach((c,k)=>st.setProperty('--hl'+(k+1),c));
   st.setProperty('--hl-ink', T.dark?'#F4F4F4':'#1B1B1B');
@@ -101,7 +140,7 @@ function applyLook(){
   st.setProperty('--bw', S.boldText?'600':'400'); st.setProperty('--bwb', S.boldText?'800':'700');
   const sh=$('#shade'); const d=S.dim/100*0.65, w=S.warmth/100*0.32;
   if(sh){ sh.style.display=(d>0||w>0)?'block':'none'; sh.style.background=`linear-gradient(rgba(0,0,0,${d}),rgba(0,0,0,${d})),rgba(255,140,40,${w})`; sh.style.mixBlendMode='multiply'; }
-  const tc=$('#themeColor'); if(tc) tc.setAttribute('content', (typeof R!=='undefined'&&R.meta&&!$('#v-reader').hidden)?T.bg:(T.dark?'#0E1217':'#E9EDF2'));
+  const tc=$('#themeColor'); if(tc) tc.setAttribute('content', (typeof R!=='undefined'&&R.meta&&!$('#v-reader').hidden)?T.bg:ch['--paper']);
 }
 
 /* ---------- text model ----------
