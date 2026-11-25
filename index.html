@@ -3040,9 +3040,9 @@ function scanRefs(){
   return R.refIdx;
 }
 function refName(r){ const b=(r.ord?r.ord+' ':'')+r.book; return `${b} ${r.c}:${r.v}`+(r.y? `–${r.x}:${r.y}` : r.x? `–${r.x}` : ''); }
-function bibleAbbr(m){ const t=(m.title||'')+' '+(m.author||''); return /king james/i.test(t)?'KJV' : /world english/i.test(t)?'WEB' : (m.title||'Bible'); }
+function bibleAbbr(m){ const t=(m.title||'')+' '+(m.author||''); return /king james/i.test(t)?'KJV' : /world english/i.test(t)?'WEB' : /english standard|\besv\b/i.test(t)?'ESV' : (m.title||'Bible'); }
 function pickBible(){
-  const isBible=m=>/bible/i.test(m.title||'') || /^shelf-(kjv|web)$/.test(m.id);
+  const isBible=m=>/bible|english standard version|\besv\b|new international version|\bniv\b|\bnasb\b|\bcsb\b|\bnkjv\b/i.test(m.title||'') || /^shelf-(kjv|web)$/.test(m.id);
   return LIB.filter(isBible).sort((a,b)=>(!a.pending-!b.pending)*-1 || (b.lastRead||0)-(a.lastRead||0) || (a.id==='shelf-kjv'?-1:1))[0] || null;
 }
 async function bibleText(m){
@@ -3051,21 +3051,90 @@ async function bibleText(m){
   const t=await Store.get('texts',m.id).catch(()=>null); if(t) R.bible={id:m.id, t}; return t;
 }
 /* where a reference is in a Bible: the chapter, then the verses (raised numbers) inside it */
+/* Bibles are built many ways. The contents may list every chapter ("Genesis 1"), only the books, or nothing useful;
+   verse numbers may be real superscripts or just styled numbers; a chapter may start with "11:1", a big "11", or a
+   heading. So: find the book (contents, else a heading), then the chapter (contents, else the numbers in the text),
+   then the verses (superscripts, else the numbers that count up 1, 2, 3… inside the chapter). */
+const BK_KEY=s=>(s||'').toLowerCase().replace(/^(?:the\s+)?(?:book|gospel|letter|epistle|first letter|second letter|third letter|(?:first|second|third)\s+(?:book|letter|epistle))\s+(?:of|according to)\s+(?:(?:paul|the apostle paul|saint|st\.?)\s+(?:to\s+the\s+)?)?/,'')
+  .replace(/^(first|second|third)\b/,w=>({first:'1',second:'2',third:'3'})[w]).replace(/^(i{1,3})\s+(?=[a-z])/,w=>String(w.trim().length)).replace(/[^a-z0-9]/g,'');
+const vNum=w=>{ const m=/^[\[(]?(\d{1,3})(?::(\d{1,3}))?[\])]?[.:,]?$/.exec(w||''); if(m) return {a:+m[1], b:m[2]?+m[2]:0};
+  const g=/^(\d{1,3})(?::(\d{1,3}))?(?!st\b|nd\b|rd\b|th\b|s\b)[^\d\s:,.%\-–—]/i.exec(w||''); return g? {a:+g[1], b:g[2]?+g[2]:0, g:1} : null; };   /* "2The": a styled verse number stuck to its first word */
+function bibleBookSpan(m, t, names){
+  const ch=m.chapters||[], n=t.words.length;
+  const hit=k=>{ const x=BK_KEY(ch[k].t); return names.includes(x); };
+  let j=ch.findIndex((c,k)=>hit(k));
+  if(j>=0){ const d=ch[j].d||0; let b=n; for(let q=j+1;q<ch.length;q++){ const dq=ch[q].d||0;
+      if(dq<d || (dq===d && !names.some(nm=>BK_KEY(ch[q].t).startsWith(nm)))){ b=ch[q].i; break; } }
+    return {a:ch[j].i, b, j}; }
+  /* not in the contents: a heading in the text with the book's name, up to the next heading of the same level */
+  const B=t.blocks||[]; const kt=bl=>BK_KEY(t.words.slice(bl.s,bl.e).join(' '));
+  const h=B.findIndex(bl=>/^h/.test(bl.t) && bl.e-bl.s<=8 && names.includes(kt(bl))); if(h<0) return null;
+  for(let q=h+1;q<B.length;q++) if(B[q].t===B[h].t && B[q].e-B[q].s<=8 && BIBLE_BOOKS[BK_KEY(t.words.slice(B[q].s,B[q].e).join(' ')).replace(/^\d/,'')]) return {a:B[h].s, b:B[q].s, j:-1};
+  return {a:B[h].s, b:n, j:-1};
+}
+/* chapter starts inside a book, read from the text: "3:1" markers, or a number opening a paragraph after which the
+   verses restart at 2 (a verse number opening a paragraph is followed by the next verse instead) */
+function textChapters(t, a, b){
+  const starts=new Set(), inHead=new Set(), out=[{c:1,i:a}]; let next=1;
+  for(const bl of t.blocks||[]){ if(bl.e<=a||bl.s>=b) continue; starts.add(bl.s); if(/^h/.test(bl.t)) for(let k=bl.s;k<bl.e;k++) inHead.add(k); }
+  const nextNum=k=>{ for(let q=k+1;q<Math.min(b,k+400);q++){ if(inHead.has(q) || (t.wf && (t.wf[q]&F_N))) continue; const v=vNum(t.words[q]); if(v) return v.b? -1 : v.a; } return 0; };   /* a "3:1" marker next means this number was a verse */
+  for(let k=a;k<b;k++){
+    if(inHead.has(k) || (t.wf && (t.wf[k]&F_N))) continue; const v=vNum(t.words[k]); if(!v) continue;
+    if(v.b===1 && v.a>=next && v.a<=next+1){ if(v.a===1) out[0].i=k; else out.push({c:v.a,i:k}); next=v.a+1; continue; }
+    if(!v.b && starts.has(k) && (v.a===next || v.a===next+1)){
+      if(v.a===1){ out[0].i=k; next=2; continue; }
+      if(nextNum(k)===2){ out.push({c:v.a,i:k}); next=v.a+1; }
+    }
+  }
+  if(next===1) next=2;
+  return out;
+}
+/* verse starts inside a chapter: superscripts if the Bible has them, else numbers counting up */
+function textVerses(t, a, b, c){
+  const vs=[]; for(let k=a;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
+  if(vs.length>=2) return vs;
+  const out=[]; let exp=1;
+  for(let k=a;k<b;k++){
+    if(t.wf && (t.wf[k]&F_N)) continue; const v=vNum(t.words[k]); if(!v) continue;
+    if(v.b){ if(v.a===c && v.b>=exp){ out.push({n:v.b,i:k}); exp=v.b+1; } continue; }
+    if(!out.length && k-a<4 && v.a===c){ out.push({n:1,i:k}); exp=2; continue; }   /* a big chapter number standing in for verse 1 */
+    if(v.a===exp){ out.push({n:exp,i:k}); exp++; }
+    else if(exp===1 && v.a===2){ out.push({n:1,i:a},{n:2,i:k}); exp=3; }   /* verse 1 unnumbered at the chapter's start */
+  }
+  return out.length? out : vs;
+}
 function findVerses(m, t, r){
   const ch=m.chapters||[], key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const names=[(r.ord||'')+r.book]; if(r.book==='Psalm') names.push('psalms'); if(/^Song of/.test(r.book)) names.push('songofsolomon','songofsongs');
-  const j=ch.findIndex(c=>names.some(n=>key(c.t)===key(n)+r.c)); if(j<0) return null;
-  let b=t.words.length; for(let q=j+1;q<ch.length;q++) if((ch[q].d||0)<=(ch[j].d||0)){ b=ch[q].i; break; }
-  const vs=[]; for(let k=ch[j].i;k<b;k++) if(t.wf && (t.wf[k]&F_P) && /^\d{1,3}$/.test(t.words[k])) vs.push({n:+t.words[k], i:k});
-  const vi=vs.findIndex(v=>v.n===r.v); if(vi<0) return {i:ch[j].i, s:-1, e:-1};
+  const names=[(r.ord||'')+r.book]; if(r.book==='Psalm') names.push('psalms'); if(/^Song of/.test(r.book)) names.push('songofsolomon','songofsongs','canticles');
+  const nk=names.map(key);
+  let a=-1, b=t.words.length;
+  /* the contents lists the chapter itself ("Genesis 1", "Psalm 23") */
+  const j=ch.findIndex(c=>nk.some(n=>key(c.t)===n+r.c));
+  if(j>=0){ a=ch[j].i; for(let q=j+1;q<ch.length;q++) if((ch[q].d||0)<=(ch[j].d||0)){ b=ch[q].i; break; } }
+  else{
+    R.bibleCache=R.bibleCache&&R.bibleCache.id===m.id&&R.bibleCache.n===t.words.length? R.bibleCache : {id:m.id, n:t.words.length};
+    const ck=nk[0]; let bk=R.bibleCache[ck];
+    if(bk===undefined){ const sp=bibleBookSpan(m, t, nk);
+      if(sp){ /* chapters under the book in the contents ("1", "Chapter 1", "Genesis 1"), else read from the text */
+        let kids=[]; if(sp.j>=0){ const d=ch[sp.j].d||0; for(let q=sp.j+1;q<ch.length&&ch[q].i<sp.b;q++){ const mm=/(\d{1,3})\s*$/.exec(ch[q].t); if(mm && (ch[q].d||0)>d) kids.push({c:+mm[1], i:ch[q].i}); } }
+        sp.chs= kids.length? kids : textChapters(t, sp.a, sp.b); }
+      bk=R.bibleCache[ck]=sp; }
+    if(!bk) return null;
+    const ci=bk.chs.findIndex(x=>x.c===r.c); if(ci<0) return null;
+    a=bk.chs[ci].i; b= ci+1<bk.chs.length? bk.chs[ci+1].i : bk.b;
+  }
+  const vs=textVerses(t, a, b, r.c);
+  const vi=vs.findIndex(v=>v.n===r.v); if(vi<0) return {i:a, s:-1, e:-1};
   const last= r.y? vs.length-1 : r.x? Math.max(vi, vs.findIndex(v=>v.n===r.x)) : vi;
   const lastCap=Math.min(last, vi+7);
-  return {i:vs[vi].i, s:vs[vi].i, e: vs[lastCap+1]? vs[lastCap+1].i : b, more:lastCap<last};
+  return {i:vs[vi].i, s:vs[vi].i, e: vs[lastCap+1]? vs[lastCap+1].i : b, more:lastCap<last, vs};
 }
-function versesHTML(t, s, e){
+function versesHTML(t, s, e, vs){
+  const at=new Set((vs||[]).map(v=>v.i));
   let h=''; for(let k=s;k<e;k++){ const f=t.wf? t.wf[k]:0; if(f&F_N) continue; const w=esc(t.words[k]);
     const sp= k>s && !(f&F_GLUE) ? ' ' : '';
-    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : sp+w; }
+    const m= at.has(k) && !(f&F_P) && /^(\d{1,3}(?::\d{1,3})?)(.*)$/.exec(t.words[k]);   /* plain-styled verse numbers shown raised too */
+    h+= (f&F_P) && /^\d{1,3}$/.test(t.words[k]) ? `${sp}<sup>${w}</sup>` : m? `${sp}<sup>${esc(m[1].replace(/^\d+:/,''))}</sup>${m[2]?(/^[.,:\])]$/.test(m[2])?'':' ')+esc(m[2].replace(/^[.,:\])]$/,'')):''}` : sp+w; }
   return h;
 }
 async function openRefPeek(i){
@@ -3075,7 +3144,7 @@ async function openRefPeek(i){
   const t=await bibleText(m); if(!t){ toast('Couldn’t get the Bible right now.'); return; }
   const at=findVerses(m, t, r);
   if(!at){ openSheet(name, `<p class="note">${esc(name)} isn’t in this Bible.</p>`, {}, 'short'); return; }
-  const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
+  const body= at.s>=0? `<div class="peek">${versesHTML(t, at.s, at.e, at.vs)}${at.more?' …':''}</div>` : `<p class="note">That verse isn’t in this chapter; you can open the chapter.</p>`;
   openSheet(name+' · '+bibleAbbr(m), body+`<button class="btn primary block" type="button" data-act="ctx">Read it in context</button>`, {
     ctx:()=>{ closeSheet(); jumpDoc(m.id, ()=>{ const v=findVerses(R.meta, R.text, r); return v? v.i : at.i; }); }   /* found again once open: opening can renumber words */
   }, 'short');
@@ -4388,9 +4457,9 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.8 preview';
+const APP_VERSION='2026.11.25.9 preview';
 const WHATSNEW=[
-  ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse.'],
+  ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB.'],
   ['Back to where you were','After any jump within a book, a hollow drop waits on the progress line at the spot you left. Tap it to flow back (and again to go forth). When a reference takes you into the Bible, a line under the header says “‹ <the book you came from>”; tap it to go back.'],
   ['Today’s goal','If you’ve set a daily reading goal, a small circle at the bottom right of the page fills as you read (with the controls hidden). Tap it to see your minutes today and your goal. When you reach the goal, the drop swells into a soft blob at the bottom of the page and stretches out to celebrate; tap the circle after that to see it again.'],
   ['Opens where you left off','If you leave Tooz from inside a book, it opens straight back into that book next time. Leave from the library and it opens the library.'],

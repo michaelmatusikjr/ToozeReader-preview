@@ -5,6 +5,13 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — bug: his ESV Reference Bible EPUB said it "didn't have" passages a book linked to.** Cause: the lookup
+  only worked when the Bible's contents named every chapter ("Genesis 1") and verse numbers were real superscripts
+  (true of the shelf KJV/WEB, not of commercial EPUBs). Fixed (2026.11.25.9): find the book in the contents or a
+  heading, then read chapters ("3:1" markers, or a number opening a paragraph after which verses restart at 2) and
+  verses (numbers counting up, also when stuck to the next word, verse 1 unnumbered) from the text. Also: a book
+  titled "English Standard Version"/ESV/NIV etc. counts as a Bible, and cards say "· ESV". Couldn't test with his
+  actual file (it's on his phone); `tests/feature/bibles.js` builds three Bibles the ways real ones are made.
 - **Mick — subagents must use the cheapest fitting model; very minor edits need no QA.** Added agent types in
   `.claude/agents/` (`mechanic`, `tester` on Haiku; `builder`, `reviewer` on Sonnet) so the model is fixed by the
   type, not remembered per call. Delegation now applies to any main session ("below its own tier"), not only Opus.

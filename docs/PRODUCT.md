@@ -82,7 +82,9 @@ and move items out of **Pending changes** once they're built.
 - **Scripture peek:** references in any book that isn't itself a Bible (book name/abbreviation + ch:v, ranges,
   "1 Cor.", follow-on refs like "; 12:1") get a faint dotted underline; tap → a card with up to 8 verses from the
   Bible in the library (most recently read; downloaded first; the KJV by default; a not-yet-downloaded shelf Bible
-  is fetched), titled "Psalm 63:8 · KJV", with **Read it in context**.
+  is fetched), titled "Psalm 63:8 · KJV", with **Read it in context**. Must work with any Bible EPUB he adds (e.g.
+  his ESV Reference Bible): contents listing only the books, chapters marked by "3:1" or a big number, verse numbers
+  that are styled rather than superscript, verse 1 unnumbered.
 - **Exact citations:** in a Bible, copy/share/quote cards cite "John 3:16–18 (KJV)" (across chapters
   "John 3:36–4:2"); other books "Author, Title, Book I, ch. XII". "Copy all highlights" adds each one's place.
 - **Daily goal circle:** a small progress circle at the bottom right of the page, only with the controls hidden and
