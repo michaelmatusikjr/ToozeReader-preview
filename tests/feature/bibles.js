@@ -147,6 +147,13 @@ async function epub(title, style, chapterNav, extra){
     return {pa, bp:R.meta.bp, xrShown:xr.filter(w=>w.offsetParent!==null).length, xrAll:xr.length, wocRed:woc.some(w=>getComputedStyle(w).color!==getComputedStyle(w.parentNode).color), wocAll:woc.length}; });
   ok('preference links are recognised (not notes), with the current choice marked', pf.pa.length===4 && pf.pa.every(p=>!p[3]) && pf.pa.filter(p=>p[2]).map(p=>p[0]).join()==='[Yes],[Red]', pf.pa);
   ok('tapping [No] hides the cross-reference letters, [Black] the red letters, for this book', pf.bp && pf.bp.xr===false && pf.bp.woc===false && pf.xrAll>0 && pf.xrShown===0 && pf.wocAll>0 && !pf.wocRed, pf);
+  // a copy added before .14 (no marks or switch list, "No" taken for a note link) is repaired on open
+  const old=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible R'); m.bp=null; const t=await Store.get('texts',m.id); delete t.acts; delete t.marks;
+    const no=t.words.findIndex(w=>/^\[?No\]?$/.test(w)); t.wf[no]|=F_N; t.notes=(t.notes||[]).concat([[no, no-3]]); await Store.put('texts',t);
+    await openDoc(LIB[0].id); await openDoc(m.id); await new Promise(r=>setTimeout(r,400));
+    const ok1=R.acts && R.acts.get(no)==='crossrefs.hide' && !R.notes.has(no) && !(R.wf[no]&F_N);
+    tapBookPref(no); return {ok1, bp:R.meta.bp, xr:!!(R.mk && R.mk.some(x=>x&2))}; });
+  ok('an ESV added with an older version: its switches are found and work without adding it again', old.ok1 && old.bp && old.bp.xr===false && old.xr, old);
   // style E: the letter in the verse is a cross-reference link; its note's references can be tapped
   const ex=await pg.evaluate(async()=>{ const m=LIB.find(m=>m.title==='ESV Bible'); await openDoc(m.id); await new Promise(r=>setTimeout(r,600));
     const k=R.words.findIndex((w,i)=>w==='17'); const raised=k>=0 && !!(R.wf[k]&F_P) && /^For\b/.test(R.words[k+1]||'');

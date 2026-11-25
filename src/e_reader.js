@@ -1091,7 +1091,23 @@ function loadMarks(text){
   R.mk=null; R.acts=null;
   if(text.marks){ R.mk=new Uint8Array(R.n); for(const k in text.marks){ const bit=MK_BIT[k]; if(!bit) continue; for(const [a,b] of text.marks[k]) for(let i=Math.max(0,a);i<Math.min(R.n,b);i++) R.mk[i]|=bit; } }
   if(text.acts){ R.acts=new Map(); for(const [a,b,x] of text.acts) for(let i=a;i<b&&i<R.n;i++) R.acts.set(i,x); }
+  else oldPrefs();
   applyBookPrefs();
+}
+/* a Bible added before Tooz knew its Preferences page: find the switches by their wording, undo their mistaken note
+   links, and mark cross-reference letters, footnote markers and verse numbers from what was kept (red letters need
+   the book added again) */
+const PREF_LINE=[[/^Words of Christ:/i,'redletter',{red:'show',black:'hide'}],[/^Display cross-references:/i,'crossrefs'],[/^Display footnote references:/i,'footnotes'],[/^Display verse numbers:/i,'versenums'],[/^Use pop-up navigation:/i,'usenavigation',{yes:'use',no:'skip'}]];
+function oldPrefs(){
+  const B=R.blocks||[], acts=new Map();
+  for(const bl of B.slice(0,4000)){ if(bl.e-bl.s>12) continue; const t=R.words.slice(bl.s,bl.e).join(' ');
+    const L=PREF_LINE.find(x=>x[0].test(t)); if(!L) continue;
+    for(let k=bl.s;k<bl.e;k++){ const w=R.words[k].replace(/[\[\]]/g,'').toLowerCase(); const verb=(L[2]||{yes:'show',no:'hide'})[w]; if(verb){ acts.set(k, L[1]+'.'+verb); if(R.wf) R.wf[k]&=~F_N; R.notes.delete(k); } } }
+  if(!acts.size) return;
+  R.acts=acts;
+  if(!R.mk && R.wf){ R.mk=new Uint8Array(R.n);
+    for(const [k] of R.notes){ const w=R.words[k]; if(/^[a-z]{1,2}$/.test(w)) R.mk[k]|=MK_BIT.xr; else if(/^\[\d{1,3}\]$/.test(w)) R.mk[k]|=MK_BIT.fn; }
+    for(let k=0;k<R.n;k++) if((R.wf[k]&F_P) && /^\d{1,3}$/.test(R.words[k])) R.mk[k]|=MK_BIT.vn; }
 }
 function bookPrefs(){ return Object.assign({woc:true, xr:true, fn:true, vn:true, nav:true}, (R.meta&&R.meta.bp)||{}); }
 function applyBookPrefs(){ const p=bookPrefs(), v=$('#v-reader'); for(const k of ['woc','xr','fn','vn']) v.classList.toggle('bp-no'+k, !p[k]); }
