@@ -208,8 +208,9 @@ function walkHTML(root, ctx, path){
   const addText=(t)=>{ if(rich && (!segs.length || segs[segs.length-1][1]!==flags)) segs.push([buf.length, flags]); buf+=t; };
   const visit=(n)=>{
     if(n.nodeType===3){
-      if(rich && stack.includes('pre') && n.nodeValue.includes('\n')){ const parts=n.nodeValue.split('\n'); parts.forEach((p,k)=>{ if(k){ if(!/\S/.test(buf)) ctx.gap=true; flush(); } addText(p); }); }
-      else addText(n.nodeValue);
+      const nv=n.nodeValue.replace(/\u00ad/g,'');   /* soft hyphens would end up inside words (search, read aloud) */
+      if(rich && stack.includes('pre') && nv.includes('\n')){ const parts=nv.split('\n'); parts.forEach((p,k)=>{ if(k){ if(!/\S/.test(buf)) ctx.gap=true; flush(); } addText(p); }); }
+      else addText(nv);
       return;
     }
     if(n.nodeType!==1) return;
@@ -223,10 +224,15 @@ function walkHTML(root, ctx, path){
       return;
     }
     if(SKIP.has(tag)) return;
+    if(tag==='br' && stack.some(x=>/^h[1-6]$/.test(x))){ addText(' '); return; }   /* a line break inside a title is one title, not two */
     const isB=BLOCK.has(tag);
     if(isB) flush();
     const id=n.getAttribute&&(n.getAttribute('id')||(tag==='a'&&n.getAttribute('name')));
     if(id && ctx.anchors) ctx.anchors[path+'#'+id]=ctx.words.length+splitWords(buf).length;
+    { /* printed page numbers and "back to the text" arrows are navigation aids, not words (the id above still works as a link target) */
+      const et0=(n.getAttribute('epub:type')||n.getAttribute('role')||''), t0=(n.textContent||'').trim();
+      if(/pagebreak/.test(et0) && t0.length<=10) return;
+      if(tag==='a' && (/backlink/.test(et0) || /^[\u21a9\u2191\u21b5\u23ce\u2934][\ufe0e\ufe0f]?$/.test(t0))) return; }
     if(tag==='br'){ flush(); return; }
     if(tag==='hr'){ flush(); if(rich) ctx.breaks.push(ctx.words.length); return; }
     if(/^h[1-3]$/.test(tag) && ctx.firstHeading && !ctx.firstHeading[path]){ const t=(n.textContent||'').trim(); if(t) ctx.firstHeading[path]=t.slice(0,100); }
@@ -356,14 +362,19 @@ async function parseEpub(buf, fname, onP){
   }
   if(!ctx.words.length) throw new Error(encXml ? DRM_MSG : 'No readable text was found in this EPUB.');
   P('Building the chapter list…', 70);
-  const lookup=(full)=>{ if(full in ctx.anchors) return ctx.anchors[full]; const p=full.split('#')[0]; return p in ctx.anchors? ctx.anchors[p] : undefined; };
+  const lookup=(full)=>{ if(full in ctx.anchors) return ctx.anchors[full]; const h=full.indexOf('#');
+    if(h>=0 && /%/.test(full)){ let d=null; try{ d=full.slice(0,h)+'#'+decodeURIComponent(full.slice(h+1)); }catch(e){} if(d && d in ctx.anchors) return ctx.anchors[d]; }   /* ids written percent-encoded in a link */
+    const p=full.split('#')[0]; return p in ctx.anchors? ctx.anchors[p] : undefined; };
   let chapters=[];
   try{
     if(navHref){
       const nd=parseXHTML(await read(navHref)||''); const nbase=dirOf(navHref);
       const navs=byTag(nd,'nav'); const nav=navs.find(n=>(n.getAttribute('epub:type')||n.getAttributeNS('http://www.idpf.org/2007/ops','type')||'').includes('toc')) || navs[0];
       const kids=(el,name)=>[...el.children].filter(c=>c.localName===name);
-      const walkOl=(ol,depth)=>{ for(const li of kids(ol,'li')){ const a=[...li.children].find(c=>c.localName==='a'||c.localName==='span'); if(a&&a.getAttribute('href')){ const i=lookup(resolvePath(nbase,a.getAttribute('href'))); const t=(a.textContent||'').replace(/\s+/g,' ').trim(); if(i!==undefined&&t) chapters.push({t:t.slice(0,100),i,d:depth}); } const sub=kids(li,'ol')[0]; if(sub) walkOl(sub,depth+1); } };
+      const walkOl=(ol,depth)=>{ for(const li of kids(ol,'li')){ const a=[...li.children].find(c=>c.localName==='a'||c.localName==='span'); let grp=null; if(a&&a.getAttribute('href')){ const i=lookup(resolvePath(nbase,a.getAttribute('href'))); const t=(a.textContent||'').replace(/\s+/g,' ').trim(); if(i!==undefined&&t) chapters.push({t:t.slice(0,100),i,d:depth}); }
+        else if(a){ const t=(a.textContent||'').replace(/\s+/g,' ').trim(); if(t){ grp={t:t.slice(0,100),i:null,d:depth}; chapters.push(grp); } }   /* a group heading with no link of its own: it starts where its first entry does */
+        const sub=kids(li,'ol')[0]; if(sub) walkOl(sub,depth+1);
+        if(grp){ const k=chapters.indexOf(grp); if(k+1<chapters.length && chapters[k+1].d>depth) grp.i=chapters[k+1].i; else chapters.splice(k,1); } } };
       const ol=nav&&byTag(nav,'ol')[0]; if(ol) walkOl(ol,0);
     }
     if(!chapters.length && tocId && items[tocId]){
@@ -373,6 +384,7 @@ async function parseEpub(buf, fname, onP){
     }
   }catch(e){ chapters=[]; }
   if(!chapters.length){ fileStarts.forEach((f,k)=>{ if(k===0||f.i!==fileStarts[k-1].i) chapters.push({t:ctx.firstHeading[f.path]||('Section '+(chapters.length+1)), i:f.i, d:0}); }); }
+  { const n=ctx.words.length; if(ctx.images.some(im=>im.i>=n)) for(const c of chapters) if(c.i===n) c.i=n-1; }   /* a last chapter that is only a picture still gets its entry */
   chapters=chapters.filter(c=>c.i<ctx.words.length).sort((a,b)=>a.i-b.i);
   const notes=resolveNotes(ctx, lookup);
   /* images: each picture file once (kept as a Blob, not text), plus every place it appears */
