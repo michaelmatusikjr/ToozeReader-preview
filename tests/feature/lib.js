@@ -8,7 +8,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1200);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1200);
   await pg.screenshot({path:__E.SCRATCH+'lib_empty1.png'});
   // add sheet
   await pg.click('#addBtn'); await sleep(500);

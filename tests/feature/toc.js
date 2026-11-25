@@ -8,7 +8,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1200);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1200);
   await pg.evaluate(()=>openDoc('shelf-kjv')); await sleep(800);
   await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='Psalm 23'); goTo(c.i); }); await sleep(600);
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rToc'); await sleep(600);

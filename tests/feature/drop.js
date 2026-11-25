@@ -9,7 +9,7 @@ async function run(reduce){
   const ctx=await b.newContext({viewport:{width:393,height:852}, deviceScaleFactor:2, serviceWorkers:'block', hasTouch:true, isMobile:true, reducedMotion:reduce?'reduce':'no-preference'});
   await ctx.addInitScript(()=>{ window.__toozKeepSample=true; });
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1800); await pg.evaluate(()=>closeSheet()); await sleep(300);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1800); await pg.evaluate(()=>closeSheet()); await sleep(300);
   const tag=reduce?'[reduce] ':'';
   const dropBox=()=>pg.evaluate(()=>{ const r=document.getElementById('drop').getBoundingClientRect(); return {cx:r.left+r.width/2, top:r.top, w:r.width, h:r.height, op:+getComputedStyle(document.getElementById('drop')).opacity}; });
   const tabBox=t=>pg.evaluate(t=>{ const r=document.querySelector('#tabs button[data-tab="'+t+'"]').getBoundingClientRect(); return {cx:r.left+r.width/2, top:document.getElementById('tabs').getBoundingClientRect().top}; },t);

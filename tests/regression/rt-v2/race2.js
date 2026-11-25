@@ -9,7 +9,7 @@ const TTF='/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf';
   const pg=await H.page(b,{fontRoute,settings:{mode:'pages',font:'original'}});
   const id=await H.importBook(pg,H.FILES+'epub_large.epub');
   const pg2=await pg.context().newPage(); pg2.errs=[]; pg2.on('pageerror',e=>pg2.errs.push(e.message)); pg2.on('console',m=>{ if(m.type()==='error') pg2.errs.push(m.text()); });
-  await pg2.goto('http://localhost:8750/'); await H.sleep(300);
+  await pg2.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await H.sleep(300);
   const r=await pg2.evaluate(async(id)=>{ window.__sm=[]; const o=switchMode; const p=openDoc(id).then(v=>"resolved "+v,e=>"rej "+e.message); 
     for(let i=0;i<200;i++){ await new Promise(r=>setTimeout(r,10)); if(!$('#v-reader').hidden && !R.mode) break; }
     const vis=!$('#v-reader').hidden; $('#rBack').click(); const afterClick=[!!R.meta, R.mode, $('#v-reader').hidden];

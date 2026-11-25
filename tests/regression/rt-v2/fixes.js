@@ -5,7 +5,7 @@ const H=require('../rt-modes/h.js');
   await ctx.route(/cdnjs|fonts\./,r=>r.abort());
   const pg=await ctx.newPage();
   await pg.addInitScript(()=>{ if(!sessionStorage.x){ sessionStorage.x=1; localStorage.setItem('rf.settings', JSON.stringify({font:'georgia',fontSize:40,theme:'dark',wpm:420})); } });
-  await pg.goto('http://localhost:8750/'); await H.sleep(600);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await H.sleep(600);
   console.log('migration', await pg.evaluate(()=>[S.speedFont,S.speedSize,S.font,S.wpm,getComputedStyle(document.documentElement).getPropertyValue('--rfont')]));
   // pre gaps + deriveBlocks
   console.log('pre/derive', await pg.evaluate(()=>{

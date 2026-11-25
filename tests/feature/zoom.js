@@ -8,7 +8,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\./,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(500);
   console.log('viewport', await pg.evaluate(()=>[document.querySelector('meta[name=viewport]').content, getComputedStyle(document.body).touchAction]));
   await pg.setInputFiles('#fileIn', __dirname+'/rich.epub'); await pg.waitForFunction(()=>LIB.some(m=>m.title==='Rich Test Book'),null,{timeout:20000});
   await pg.evaluate(()=>{ S.mode='scroll'; S.autoScroll=false; saveSettings(); }); await pg.evaluate(()=>openDoc(LIB.find(m=>m.title==='Rich Test Book').id)); await sleep(700);

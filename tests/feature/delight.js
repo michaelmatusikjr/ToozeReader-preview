@@ -11,7 +11,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1200);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1200);
   const ghost=()=>pg.evaluate(()=>{ const g=$('#dropGhost'); return g&&!g.hidden? 1 : null; });
   const backT=()=>pg.evaluate(()=>{ const t=$('#toast'); return !t.hidden && t.dataset.back? {txt:$('#toastAct').textContent, top:Math.round(t.getBoundingClientRect().top)} : null; });
 

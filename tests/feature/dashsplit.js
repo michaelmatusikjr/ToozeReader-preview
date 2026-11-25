@@ -5,7 +5,7 @@ const ok=(n,c,x)=>console.log((c?'PASS ':'FAIL ')+n+(x!==undefined?' '+JSON.stri
   const b=await chromium.launch({});
   const pg=await (await b.newContext({viewport:{width:393,height:852},serviceWorkers:'block'})).newPage(); await pg.addInitScript(()=>{window.__toozKeepSample=true});
   const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1500);
   /* make an old-style book: pasted text with dash-joined words, highlight + bookmark + position after the dash */
   const res=await pg.evaluate(async()=>{
     closeSheet();

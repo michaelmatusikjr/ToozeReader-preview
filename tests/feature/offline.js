@@ -14,7 +14,7 @@ const fs=require('fs');
   await ctx.route(/cdn\.jsdelivr\.net\/npm\/@diffusionstudio\/piper-wasm@1\.0\.0\/build\/(.*)/, r=>{ const f=r.request().url().split('/').pop(); r.fulfill({path:__E.NM+'@diffusionstudio/piper-wasm/build/'+f, headers:Object.assign({'content-type':f.endsWith('.wasm')?'application/wasm':'application/octet-stream'},cors)}); });
   await ctx.route(/fonts\.(googleapis|gstatic)/, r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message)); pg.on('console',m=>{ if(m.type()==='error' && !/ERR_|net::/.test(m.text())) errs.push('console '+m.text()); });
-  await pg.goto('http://localhost:8750/'); await sleep(1500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1500);
   await pg.evaluate(async()=>{
     closeSheet(); S.ttsEngine='natural'; S.pipVoice='en_US-lessac-medium'; S.ttsRate=1; S.mode='pages'; saveSettings();
     const c1='One. The first chapter is short. It has only a few sentences, but they are enough to test saving audio; the voice reads them in order.';

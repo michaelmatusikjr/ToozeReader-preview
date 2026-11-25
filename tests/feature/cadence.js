@@ -14,7 +14,7 @@ const fs=require('fs');
   await ctx.route(/cdn\.jsdelivr\.net\/npm\/@diffusionstudio\/piper-wasm@1\.0\.0\/build\/(.*)/, r=>{ const f=r.request().url().split('/').pop(); r.fulfill({path:__E.NM+'@diffusionstudio/piper-wasm/build/'+f, headers:Object.assign({'content-type':f.endsWith('.wasm')?'application/wasm':'application/octet-stream'},cors)}); });
   await ctx.route(/fonts\.(googleapis|gstatic)/, r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1500);
   await pg.evaluate(()=>{ closeSheet(); S.ttsEngine='natural'; S.pipVoice='en_US-lessac-medium'; S.ttsRate=1; saveSettings(); });
   const r=await pg.evaluate(async()=>{
     await natEnsure();

@@ -8,7 +8,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1500);
   console.log('lib', await pg.evaluate(()=>[LIB.length, LIB.filter(m=>m.category==='Bible').map(m=>m.title)]));
   for(const id of ['shelf-kjv','shelf-web']){
     const t0=Date.now(); await pg.evaluate(id=>openDoc(id), id); await sleep(500);

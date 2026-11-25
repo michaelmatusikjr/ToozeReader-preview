@@ -5,6 +5,14 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — backlog choices (all six items started).** Storage: **one list, biggest first, swipe left to delete**
+  (books, each book's saved audio, each voice; Undo). Themes: **theme cards in Settings** (up to 5, edit page/text/
+  accent with live preview, + while under 5, delete; Aa keeps a quick switch; night switch picks from his themes).
+  Notes tab: **folded books + search**. Bookmarks: **not named** — Mick's own idea: keep the chapter as the name and
+  let him put **one character inside the bookmark icon and change its fill colour**. Claude's calls: motion = stats
+  bars grow in on view, library rows collapse out, bookmark button drop-in, goal-met bar pulse; the ePub check is a
+  feature sweep with small fixes, bigger gaps listed for a decision. Briefs in `docs/briefs/`. Tests now take
+  `TOOZ_PORT` so several can run at once.
 - **Mick + Claude — branch cleanup; backlog recovered.** Mick's six backlog items (Nov 24) had been saved only on branch
   `claude/happy-planck-sknlbs` and never reached `main`. Copied into Pending changes in `PRODUCT.md`, each checked
   against the code: ePub cross-references already done (2026.11.25.9–.14); the other five not built. Old `claude/*`

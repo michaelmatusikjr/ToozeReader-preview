@@ -9,7 +9,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1300);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1300);
   // headings
   const hd=await pg.evaluate(async(b64)=>{ const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); const d=await parseFile(new File([bin],'hd.epub')); return [d.subjects, d.blocks.map(x=>x.t+(x.l?'L':'')+':'+d.words.slice(x.s,Math.min(x.e,x.s+4)).join(' '))]; }, fs.readFileSync(__E.FEAT+'hd.epub').toString('base64'));
   console.log('headings', JSON.stringify(hd,null,0));

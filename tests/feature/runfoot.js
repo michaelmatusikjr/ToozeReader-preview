@@ -9,7 +9,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const ctx=await b.newContext({viewport:{width:393,height:852}, serviceWorkers:'block', hasTouch:true, isMobile:true});
   await ctx.addInitScript(()=>{ window.__toozKeepSample=true; });
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1500); await pg.evaluate(()=>closeSheet()); await sleep(300);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1500); await pg.evaluate(()=>closeSheet()); await sleep(300);
   await pg.addStyleTag({content:'#v-reader{--run-b:calc(14px + 34px)!important}'});   /* env() can't be faked; set what it feeds */
   let ok=true;
   for(const mode of ['pages','scroll']){

@@ -15,7 +15,7 @@ npm run fixtures                  # makes the test books in tests/fixtures/ (not
 
 ```
 npm run build                     # rebuild index.html from src/
-npm run serve                     # serves the repo root on http://localhost:8750 (leave it running)
+npm run serve                     # serves the repo root on http://localhost:8750 (leave it running; another port: python3 -m http.server N + TOOZ_PORT=N)
 node tests/feature/tear.js        # any test
 ```
 

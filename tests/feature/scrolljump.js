@@ -12,7 +12,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1200);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1200);
   await pg.evaluate(()=>openDoc('shelf-imitation')); await sleep(1500);
   await pg.evaluate(()=>{ const c=R.meta.chapters.find(c=>c.t==='The Imitation of Christ'); goTo(c.i-150,true); }); await sleep(800);
   await pg.evaluate(()=>setChrome(false)); await sleep(300);

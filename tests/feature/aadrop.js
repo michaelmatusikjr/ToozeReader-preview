@@ -11,7 +11,7 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
-  await pg.goto('http://localhost:8750/'); await sleep(1200);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(1200);
   await pg.evaluate(()=>openDoc('shelf-gatsby')); await sleep(900);
   await pg.evaluate(()=>setChrome(true)); await pg.click('#rAa'); await sleep(1400);
   const dropX=sel=>pg.evaluate(s=>{ const d=document.querySelector(s+' .drop-seg'); if(!d) return null; const r=d.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; }, sel);

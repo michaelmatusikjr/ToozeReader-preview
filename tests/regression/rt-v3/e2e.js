@@ -16,7 +16,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms)); const [W,Hh]=(process.argv[2]|
  const st=()=>pg.evaluate(()=>({mode:R.mode,pos:R.pos,page:P.page,pages:P.pages,chrome:R.chrome,playing:R.playing,auto:SC.auto,tts:TTS.on,sheet:!$('#sheet').hidden&&$('#sheet h2').textContent,toast:!$('#toast').hidden&&$('#toastMsg').textContent}));
  const tapSel=async s=>{ await pg.locator(s).first().scrollIntoViewIfNeeded().catch(()=>{}); const bx=await pg.locator(s).first().boundingBox(); if(!bx) throw new Error('no box '+s); await pg.touchscreen.tap(bx.x+bx.width/2,bx.y+bx.height/2); await sleep(350); };
  const tap=async(x,y)=>{ await pg.touchscreen.tap(x*W,y*Hh); await sleep(450); };
- await pg.goto('http://localhost:8750/'); await sleep(900); await shot('library_fresh');
+ await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await sleep(900); await shot('library_fresh');
  log('lib',await pg.evaluate(()=>LIB.map(m=>m.title)));
  await tapSel('#docList .doc'); await sleep(900); log('open sample',await st()); await shot('sample_pages');
  await tap(.9,.5); log('fwd1',await st()); await tap(.9,.5); log('fwd2',await st()); await shot('sample_p2'); await tap(.1,.5); log('back',await st()); await tap(.5,.5); log('mid',await st());

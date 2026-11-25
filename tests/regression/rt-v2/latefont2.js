@@ -10,7 +10,7 @@ const TTF='/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf';
   const mode=scen.startsWith('scroll')||scen==='autoscroll'?'scroll':scen.startsWith('speed')?'speed':'pages';
   const pg=await H.page(b,{fontRoute,settings:{mode,focus:false,font:'original',turn:'none',autoScroll:scen==='autoscroll'}});
   const id=await H.importBook(pg,H.FILES+'epub_large.epub');
-  const pg2=await pg.context().newPage(); pg2.errs=[]; pg2.on('pageerror',e=>pg2.errs.push(e.message)); await pg2.goto('http://localhost:8750/'); await H.sleep(300);
+  const pg2=await pg.context().newPage(); pg2.errs=[]; pg2.on('pageerror',e=>pg2.errs.push(e.message)); await pg2.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await H.sleep(300);
   await pg2.evaluate((id)=>{ window.__rl=0; for(const m of ['pages','scroll','speed']){ const f=MODES[m].relayout; MODES[m].relayout=function(){ window.__rl++; return f.apply(this,arguments); }; } return openDoc(id); },id); await H.sleep(300);
   await pg2.evaluate(()=>goTo(R.SEC[100][0]+300)); await H.sleep(200);
   const t0=Date.now(); let log=[];

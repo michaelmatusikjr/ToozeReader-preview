@@ -7,7 +7,7 @@ const EP=(__E.SCRATCH+'redteam-epub/');
   await ctx.route(/cdnjs/,r=>r.fulfill({path:__E.NM+'jszip/dist/jszip.min.js',contentType:'application/javascript'}));
   await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); pg.on('pageerror',e=>console.log('ERR',e.message));
-  await pg.goto('http://localhost:8750/'); await pg.waitForTimeout(500);
+  await pg.goto('http://localhost:'+(process.env.TOOZ_PORT||8750)+'/'); await pg.waitForTimeout(500);
   const buf=require('fs').readFileSync(__dirname+'/rich.epub').toString('base64');
   console.log(await pg.evaluate(async(b64)=>{
     await loadScript(CDN.jszip); const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));

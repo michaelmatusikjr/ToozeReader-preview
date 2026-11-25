@@ -13,7 +13,7 @@ async function page(b, {w=390,h=780,touch=true,settings=null,fontRoute=null}={})
   if(fontRoute) await fontRoute(ctx); else await ctx.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
   const pg=await ctx.newPage(); pg.errs=[]; pg.on('pageerror',e=>pg.errs.push('PAGEERR '+e.message)); pg.on('console',m=>{ if(m.type()==='error') pg.errs.push('console '+m.text()); });
   if(settings) await pg.addInitScript((s)=>{ try{ const o=JSON.parse(localStorage.getItem('rf.settings')||'{}'); localStorage.setItem('rf.settings', JSON.stringify(Object.assign({v:2},o,s))); }catch(e){} }, settings);
-  await pg.goto((process.env.PORT?'http://localhost:'+process.env.PORT+'/':'http://localhost:8750/')); await sleep(700);
+  await pg.goto((process.env.PORT?'http://localhost:'+process.env.PORT+'/':'http://localhost:'+(process.env.TOOZ_PORT||8750)+'/')); await sleep(700);
   return pg;
 }
 async function importBook(pg, path, title){
