@@ -5,6 +5,14 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Claude — preview 2026.11.25.18: the whole Nov 24 backlog.** Themes, Storage, Notes tab, bookmark marks, motion,
+  ePub import fixes and the goal ring, built by five parallel builders in worktrees, merged and reviewed. Reviewer
+  findings fixed: contents-page lists (in `<nav>` / list-style none) get no numbers; a list number can't leak; a
+  starter book whose download is deleted keeps word anchors (`keepAnchors`) so notes land on the same words if it
+  re-downloads with a different count (`moveToAnchors`); Paper + night Gray both kept on theme migration. Left as is:
+  Storage swipe-delete has no confirmation (Undo only, as chosen). Needs his feel check on iPhone: theme colours
+  across the app, colour picker, bookmark character centring, motion timing, goal ring gap. Tests: themes, storage,
+  notesfold, bmmark, motion, epubcheck, batchfix18, delight.
 - **Mick — the goal circle looked closed in the last couple of minutes.** Cause: its rounded ends add ~5.5% of the
   circle, so a 94% ring looked shut. Mick proposed a curve (5% as soon as there's progress, matches the goal, then slows
   over the last 20% so 99% ≈ 95%, closed only at 100%). Built that in what you *see* (`ringFill`, `RING_CAP` in

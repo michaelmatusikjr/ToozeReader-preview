@@ -43,7 +43,8 @@ whole.**
 | Tutorial book, starter shelf, boot | `f_js3.js` | `SAMPLE_HTML`, `SAMPLE_V`, `SHELF` |
 | The drop (accent guide), flowing `.seg` selections (a redrawn control with the same `id`/`data-set` slides from where the old one was; give new `.seg`s an id) | `k_blob.js` | `Drop`, `Drop.progress`, `#drop` |
 | Themes (his list, max 5; chrome colours derived) | `c_js1.js`, `e_reader.js` | `SHIPPED`, `S.themes`, `normThemes`, `themeById`, `resolveTheme`, `chromeTokens`, `effectiveTheme`; Settings cards/editor/night switch: `themesHTML`, `bindThemes`, `openThemeEditor`, `TH_DOTS`; CSS `.tcard`, `.tprev` |
-| Storage list (swipe to delete, deferred delete + Undo) | `g_extra.js` | `storageSheet`, `stgItems`, `stgDelete`, `STG` |
+| Storage list (swipe to delete, deferred delete + Undo) | `g_extra.js` | `storageSheet`, `stgItems`, `stgDelete`, `STG`; shelf-book word anchors `keepAnchors` → `moveToAnchors` (called in `fetchShelfBook`) |
+| Goal ring fill curve (never looks closed early) | `e_reader.js` | `goalRing`, `ringFill`, `RING_CAP` |
 | Notes tab: folded books + search | `f_js3.js` | `renderNotes`, `nfoldToggle`, `NFOLD`, `NQ`, `markQ`, `#notesQ` |
 | Bookmark character + colour | `e_reader.js` | `bmIcon`, `bmEdit` (3rd arg = where Close goes back to; sheet act `__back`), `graphemes`; fields `b.ch`, `b.c` |
 | Motion (stats grow-in, card collapse) | `f_js3.js` | `statsGrow`, `leaveCard`, `reducedMotion`; CSS `.bars.pre`, `.goalbar.glow` |
