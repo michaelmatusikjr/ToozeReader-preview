@@ -302,7 +302,19 @@ async function scShow(i){
   } finally{ SC.busy=false; }
   await scEnsure();
   if(R.tearCenter){ R.tearCenter=false; tearCenterNow(); await scEnsure(); tearCenterNow(); }
+  else scSettle(i);
   R.pos=i; updateChrome();
+}
+/* After a jump, text is still being added and trimmed around the spot, and fonts may finish loading; iPhone Safari can
+   drop a scroll correction, sliding the page thousands of lines away (Mick, Nov 25: "Read it in context" for Heb. 1:7
+   showed Hebrews 6 cross references). Until the reader touches the page, keep word i where it was put. */
+function scSettle(i){
+  const tok=SC.settle=(SC.settle||0)+1;
+  for(const ms of [120, 400, 900, 1600, 2600]) setTimeout(async()=>{
+    if(SC.settle!==tok || R.mode!=='scroll' || SC.userScrolled || SC.auto || SC.busy || R.pos!==i || $('#v-reader').hidden) return;
+    const w=wordEl(i); if(!w){ SC.settle=0; await scShow(i); return; }
+    const d=scTopOf(w)-10-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
+  }, ms);
 }
 /* put the middle of the tear in the middle of the screen */
 function tearCenterNow(){

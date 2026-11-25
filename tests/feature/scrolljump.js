@@ -33,6 +33,12 @@ let fails=0; const ok=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(x!==undefine
   ok('once it stops, the far sections are tidied away', maxKids>5 && after[1]<=5 && after[0]>pre, [pre, maxKids, after]);
   const w=await pg.evaluate(()=>scPos()); await sleep(300);
   ok('and the place on screen didn’t move when they were', await pg.evaluate(w=>Math.abs(scPos()-w)<3, w));
+  // after a jump, if the page gets thrown away before the reader touches it (iPhone Safari dropping a scroll
+  // correction; Mick, Nov 25: "Read it in context" for Heb. 1:7 showed Hebrews 6 cross references), it comes back
+  const tgt=await pg.evaluate(async()=>{ const i=Math.floor(R.n*0.6); await goTo(i,true); await new Promise(r=>setTimeout(r,200)); scView.scrollTop+=6000; return i; });
+  await sleep(2000);
+  const back=await pg.evaluate(i=>{ const w=wordEl(i); return w? Math.round(w.getBoundingClientRect().top-scView.getBoundingClientRect().top) : null; }, tgt);
+  ok('a jump stays on its word even if the page is thrown away before you touch it', back!=null && back>=0 && back<60, back);
   ok('no page errors', !errs.length, errs);
   console.log(fails?'FAIL '+fails:'ALL PASS'); await b.close();
 })();

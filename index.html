@@ -2263,7 +2263,19 @@ async function scShow(i){
   } finally{ SC.busy=false; }
   await scEnsure();
   if(R.tearCenter){ R.tearCenter=false; tearCenterNow(); await scEnsure(); tearCenterNow(); }
+  else scSettle(i);
   R.pos=i; updateChrome();
+}
+/* After a jump, text is still being added and trimmed around the spot, and fonts may finish loading; iPhone Safari can
+   drop a scroll correction, sliding the page thousands of lines away (Mick, Nov 25: "Read it in context" for Heb. 1:7
+   showed Hebrews 6 cross references). Until the reader touches the page, keep word i where it was put. */
+function scSettle(i){
+  const tok=SC.settle=(SC.settle||0)+1;
+  for(const ms of [120, 400, 900, 1600, 2600]) setTimeout(async()=>{
+    if(SC.settle!==tok || R.mode!=='scroll' || SC.userScrolled || SC.auto || SC.busy || R.pos!==i || $('#v-reader').hidden) return;
+    const w=wordEl(i); if(!w){ SC.settle=0; await scShow(i); return; }
+    const d=scTopOf(w)-10-scView.scrollTop; if(Math.abs(d)>24) scView.scrollTop+=d;
+  }, ms);
 }
 /* put the middle of the tear in the middle of the screen */
 function tearCenterNow(){
@@ -4568,7 +4580,7 @@ async function shareFiles(fs){
 }
 
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.15 preview';
+const APP_VERSION='2026.11.25.16 preview';
 const WHATSNEW=[
   ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (For red letters in a Bible you added before, add it again.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],

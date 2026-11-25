@@ -1,5 +1,5 @@
 /* ---------- version and what's new ---------- */
-const APP_VERSION='2026.11.25.15';
+const APP_VERSION='2026.11.25.16';
 const WHATSNEW=[
   ['Your Bible’s own preferences','In Bibles with a Preferences page, like the ESV, the [Yes] / [No] choices work: red or black words of Christ, and cross-reference letters, footnote markers and verse numbers shown or hidden. Each Bible keeps its own choices. (For red letters in a Bible you added before, add it again.)'],
   ['Tap a Bible reference','In any book, references like “Isa. 26:8” have a faint dotted line under them. Tap one to read the verse from your Bible right there; Read it in context opens the Bible at that verse. Works with Bibles you add yourself, like an ESV EPUB. In a study Bible, tap a cross-reference letter, then any reference in the note.'],

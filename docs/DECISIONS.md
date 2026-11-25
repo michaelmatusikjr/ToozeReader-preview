@@ -5,6 +5,11 @@ feel-check feedback goes here too. Older history (before Nov 22) is summarized i
 
 ## 2026-11-25
 
+- **Mick — Scroll mode, ESV: "Read it in context" for Heb. 1:7 showed Hebrews 6 cross references.** The lookup was
+  right on his file (every import version tested) and his footer showed the right place ("48 min left"), so the page
+  slid away after the jump (iPhone Safari dropping a scroll correction while text is added/trimmed, or a late font).
+  Fix (2026.11.25.16): `scSettle` re-checks for 2.6 s after a jump and puts the word back unless he's scrolled.
+  Test: `scrolljump.js` (fails without the fix). Not reproducible in desktop Chromium; needs his feel check.
 - **Mick — screenshot after .14: preferences still dead, "No" still a note link.** His ESV copy was added before .14
   (import-time info missing). Rather than make him re-add, .15 repairs older copies on open (`oldPrefs`): finds the
   switches by their wording, drops the mistaken note links, marks cross-reference letters / footnote markers / verse
